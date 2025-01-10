@@ -11,5 +11,7 @@ module.exports = {
         performance: {
             hints: false
         }
-    }
+    },
+    publicPath: '/',
+    outputDir: 'dist'
 } 
