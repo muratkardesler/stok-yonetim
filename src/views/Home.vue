@@ -669,6 +669,6 @@ export default {
 .placeholder-dashboard span {
   font-size: 1.2rem;
   color: var(--text-color);
-  opacity: 0.1;
+  opacity: 0.2;
 }
 </style>
