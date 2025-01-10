@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: stok-yonetim
+    env: node
+    buildCommand: ./build.sh
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production 
