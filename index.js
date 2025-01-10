@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const userRoutes = require("./routes/userRoutes.js");
 
 const app = express();
@@ -15,10 +16,13 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+app.use(express.static(path.join(__dirname, 'dist')));
+
 app.use("/api", userRoutes);
 
-app.get("/test", (req, res) => {
-    res.json({ message: "API çalışıyor!" });
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(3000, () => {
