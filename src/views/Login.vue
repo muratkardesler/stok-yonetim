@@ -1,147 +1,140 @@
 <template>
   <div class="login-container">
-    <div class="login-box">
+    <div class="login-card">
       <div class="login-header">
-        <h1 class="logo-text">STOK</h1>
-        <h2>Stok Uygulaması'na hoş geldiniz</h2>
-        <p class="subtitle">e-posta ve parolanız ile güvenli giriş yapabilirsiniz.</p>
+        <h2>Hoş Geldiniz</h2>
+        <p>Stok yönetim sisteminize giriş yapın</p>
       </div>
 
-      <form @submit.prevent="handleLogin">
+      <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
+          <label>
+            <i class="fas fa-envelope"></i>
+            Email
+          </label>
           <input 
+            v-model="form.email" 
             type="email" 
-            v-model="email" 
             required
-            placeholder="E-posta Adresi"
-            :class="{ 'error': hasError }"
-          />
+            placeholder="ornek@sirket.com"
+          >
         </div>
-        
+
         <div class="form-group">
-          <input 
-            type="password" 
-            v-model="password" 
-            required
-            placeholder="Parola"
-            :class="{ 'error': hasError }"
-          />
-          <span v-if="hasError" class="error-message">
-            E-posta adresi veya parola hatalı.
-          </span>
+          <label>
+            <i class="fas fa-lock"></i>
+            Şifre
+          </label>
+          <div class="password-input">
+            <input 
+              v-model="form.password"
+              :type="showPassword ? 'text' : 'password'"
+              required
+              placeholder="••••••••"
+            >
+            <button 
+              type="button"
+              @click="showPassword = !showPassword"
+              class="toggle-password"
+            >
+              <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </button>
+          </div>
         </div>
 
         <div class="form-options">
           <label class="remember-me">
-            <input type="checkbox" v-model="rememberMe">
-            <span>Oturum açık kalsın</span>
+            <input type="checkbox" v-model="form.remember">
+            <span>Beni Hatırla</span>
           </label>
+          <a href="#" class="forgot-password">Şifremi Unuttum</a>
         </div>
 
-        <button 
-          type="submit" 
-          :disabled="loading"
-          class="login-button"
-        >
-          <span v-if="!loading">OTURUM AÇ</span>
-          <div v-else class="loader"></div>
+        <button type="submit" class="login-btn" :disabled="loading">
+          <i class="fas fa-spinner fa-spin" v-if="loading"></i>
+          <span v-else>Giriş Yap</span>
         </button>
-
-        <div class="links">
-          <a href="#" class="forgot-password">PAROLANIZI MI UNUTTUNUZ?</a>
-          <div class="divider"></div>
-          <a href="#" class="new-account">Yeni bir hesap mı açmak istiyorsunuz?</a>
-        </div>
       </form>
+
+      <div class="login-footer">
+        <p>Henüz hesabınız yok mu? <router-link to="/signup">Ücretsiz Deneyin</router-link></p>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+
 export default {
   name: 'Login',
+  setup() {
+    const router = useRouter();
+    return { router };
+  },
   data() {
     return {
-      email: '',
-      password: '',
-      rememberMe: false,
-      loading: false,
-      hasError: false
+      form: {
+        email: '',
+        password: '',
+        remember: false
+      },
+      showPassword: false,
+      loading: false
     }
   },
   methods: {
     async handleLogin() {
       this.loading = true;
-      this.hasError = false;
-
       try {
-        const response = await fetch('http://localhost:3000/api/login', {
+        const response = await axios({
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
+          url: '/api/login',
+          params: {
+            client_id: '6f0b2e5229c7455091966ef898fd6f68',
+            client_secret: '8041a365CDfb448c88a7780b7699A6aC'
           },
-          body: JSON.stringify({
-            email: this.email,
-            password: this.password
-          })
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          data: {
+            email: this.form.email,
+            password: this.form.password
+          }
         });
 
-        const data = await response.json();
-        
-        if (data.Status === 'Success') {
-          // Başarılı giriş
-          if (this.rememberMe) {
-            localStorage.setItem('userEmail', this.email);
-            localStorage.setItem('rememberMe', 'true');
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('lastLoginTime', new Date().getTime());
-          } else {
-            // Oturum açık kalmasın seçiliyse session storage kullan
-            sessionStorage.setItem('userEmail', this.email);
-            sessionStorage.setItem('isLoggedIn', 'true');
-          }
-          
-          // Dashboard'a yönlendir
-          this.$router.push('/dashboard');
-        } else {
-          // Başarısız giriş
-          this.hasError = true;
-        }
+        console.log('Login Response:', response.data);
 
+        // Status kontrolü - büyük/küçük harf duyarlılığını kaldır
+        const status = response.data?.Status?.toLowerCase() || response.data?.status?.toLowerCase();
+        
+        if (status === 'success') {
+          // Login durumunu sakla
+          if (this.form.remember) {
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userEmail', this.form.email);
+          } else {
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('userEmail', this.form.email);
+          }
+
+          // Dashboard'a yönlendir
+          this.router.push({ name: 'Dashboard' });
+        } else {
+          const message = response.data?.Message || response.data?.message || 'Giriş başarısız';
+          alert(message);
+        }
       } catch (error) {
         console.error('Login error:', error);
-        this.hasError = true;
+        const errorMessage = error.response?.data?.Message || 
+                           error.response?.data?.message || 
+                           error.message || 
+                           'Giriş işlemi sırasında bir hata oluştu';
+        alert(errorMessage);
       } finally {
         this.loading = false;
-      }
-    },
-
-    checkLoginStatus() {
-      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      const lastLoginTime = parseInt(localStorage.getItem('lastLoginTime'));
-      const currentTime = new Date().getTime();
-      const oneDayInMs = 24 * 60 * 60 * 1000; // 24 saat
-
-      if (isLoggedIn && (currentTime - lastLoginTime) < oneDayInMs) {
-        // Oturum hala geçerli, doğrudan dashboard'a yönlendir
-        this.$router.push('/dashboard');
-      } else if (isLoggedIn) {
-        // Oturum süresi dolmuş, localStorage'ı temizle
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('lastLoginTime');
-      }
-    }
-  },
-  mounted() {
-    // Sayfa yüklendiğinde oturum durumunu kontrol et
-    this.checkLoginStatus();
-
-    // Remember me kontrolü
-    if (localStorage.getItem('rememberMe') === 'true') {
-      this.rememberMe = true;
-      const savedEmail = localStorage.getItem('userEmail');
-      if (savedEmail) {
-        this.email = savedEmail;
       }
     }
   }
@@ -154,17 +147,17 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  padding: 1rem;
+  background: linear-gradient(135deg, #f5f7ff 0%, #e0e7ff 100%);
+  padding: 2rem;
 }
 
-.login-box {
+.login-card {
   background: white;
-  padding: 2.5rem;
-  border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  border-radius: 20px;
+  padding: 2rem;
   width: 100%;
   max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
 }
 
 .login-header {
@@ -172,63 +165,55 @@ export default {
   margin-bottom: 2rem;
 }
 
-.logo-text {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #E53935;
-  margin-bottom: 1.5rem;
-  letter-spacing: 2px;
-}
-
-h2 {
-  font-size: 1.5rem;
-  color: #484848;
+.login-header h2 {
+  color: var(--primary-color);
   margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.subtitle {
-  color: #666;
-  font-size: 0.95rem;
 }
 
 .form-group {
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.5rem;
 }
 
-input {
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: #666;
+}
+
+.form-group input {
   width: 100%;
-  padding: 0.8rem 1rem;
-  border: 1px solid #E0E0E0;
-  border-radius: 4px;
-  font-size: 0.95rem;
-  background: #F8F8F8;
-  transition: all 0.3s ease;
+  padding: 0.8rem;
+  border: 2px solid #eee;
+  border-radius: 8px;
+  transition: border-color 0.3s;
 }
 
-input::placeholder {
-  color: #999;
-}
-
-input:focus {
-  background: white;
-  border-color: #666;
+.form-group input:focus {
+  border-color: var(--primary-color);
   outline: none;
 }
 
-input.error {
-  border-color: #E53935;
-  background: #FFF8F8;
+.password-input {
+  position: relative;
 }
 
-.error-message {
-  color: #E53935;
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
-  display: block;
+.toggle-password {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
 }
 
 .form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.5rem;
 }
 
@@ -237,98 +222,60 @@ input.error {
   align-items: center;
   gap: 0.5rem;
   color: #666;
-  font-size: 0.9rem;
-}
-
-.remember-me input[type="checkbox"] {
-  width: auto;
-  margin: 0;
-}
-
-.login-button {
-  width: 100%;
-  padding: 0.9rem;
-  background: #666;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  letter-spacing: 0.5px;
   cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.login-button:hover {
-  background: #555;
-}
-
-.login-button:disabled {
-  background-color: #999;
-  cursor: not-allowed;
-}
-
-.links {
-  margin-top: 1.5rem;
-  text-align: center;
-}
-
-.forgot-password, .new-account {
-  display: block;
-  color: #666;
-  text-decoration: none;
-  font-size: 0.85rem;
-  transition: color 0.3s;
 }
 
 .forgot-password {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: transform 0.2s;
+}
+
+.login-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.login-footer a {
+  color: var(--primary-color);
+  text-decoration: none;
   font-weight: 500;
-  letter-spacing: 0.5px;
 }
 
-.forgot-password:hover {
-  color: #E53935;
-}
-
-.divider {
-  height: 1px;
-  background: #E0E0E0;
-  margin: 1rem 0;
-}
-
-.new-account:hover {
-  color: #E53935;
-}
-
-/* Loading Animation */
-.loader {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  border-top-color: transparent;
-  animation: spin 1s linear infinite;
-  margin: 0 auto;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Mobile Responsive */
 @media (max-width: 480px) {
-  .login-box {
+  .login-card {
     padding: 1.5rem;
   }
 
-  h2 {
-    font-size: 1.3rem;
-  }
-
-  .subtitle {
-    font-size: 0.9rem;
+  .form-options {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
   }
 }
 </style> 

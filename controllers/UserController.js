@@ -1,95 +1,94 @@
-const axios = require("axios");
+const express = require('express');
+const jwt = require('jsonwebtoken');
 
-const createUser = async (req, res) => {
-    console.log("------- YENİ KAYIT İSTEĞİ -------");
-    console.log("Gelen veri:", req.body);
+// Express Router oluştur
+const router = express.Router();
 
-    const userData = req.body;
+// Test kullanıcıları
+const users = [
+  {
+    id: 1,
+    email: 'test@test.com',
+    password: '123456',
+    company: 'Test Şirketi'
+  }
+];
 
-    // Veri doğrulama
-    if (!userData || Object.keys(userData).length === 0) {
-        return res.status(400).send({
-            error: "Invalid input data",
-            message: "Veri gönderilmedi"
-        });
+// Login endpoint
+router.post('/login', (req, res) => {
+  const { email, password } = req.body;
+  
+  const user = users.find(u => u.email === email && u.password === password);
+  
+  if (user) {
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+    
+    res.json({
+      status: 'success',
+      data: {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          company: user.company
+        }
+      }
+    });
+  } else {
+    res.status(401).json({
+      status: 'error',
+      message: 'Email veya şifre hatalı'
+    });
+  }
+});
+
+// Signup endpoint
+router.post('/signup', (req, res) => {
+  const { email, password, company } = req.body;
+  
+  if (users.some(u => u.email === email)) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Bu email adresi zaten kullanımda'
+    });
+  }
+  
+  const newUser = {
+    id: users.length + 1,
+    email,
+    password,
+    company
+  };
+  
+  users.push(newUser);
+  
+  const token = jwt.sign(
+    { userId: newUser.id, email: newUser.email },
+    process.env.JWT_SECRET || 'your-secret-key',
+    { expiresIn: '24h' }
+  );
+  
+  res.status(201).json({
+    status: 'success',
+    data: {
+      token,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        company: newUser.company
+      }
     }
+  });
+});
 
-    if (!userData.username || !userData.passwordHash || !userData.email || !userData.company || !userData.phone) {
-        return res.status(400).send({
-            error: "Invalid input data",
-            message: "Tüm alanların doldurulması zorunludur."
-        });
-    }
+// Test endpoint
+router.get('/test', (req, res) => {
+  res.json({ message: 'API çalışıyor!' });
+});
 
-    try {
-        // MuleSoft API'si için veri formatını dönüştür
-        const muleSoftData = {
-            username: userData.username,
-            passwordHash: userData.passwordHash,
-            companyName: userData.company,    // company -> companyName
-            contactInfo: userData.phone,      // phone -> contactInfo
-            address: "Türkiye",              // Sabit değer veya formdan alabiliriz
-            role: "User",                    // Varsayılan rol
-            email: userData.email
-        };
-
-        console.log("MuleSoft'a gönderilen veri:", muleSoftData);
-        
-        const response = await axios.post(
-            "http://flowbridge.us-e2.cloudhub.io/api/addUser?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC",
-            muleSoftData,
-            {
-                headers: { "Content-Type": "application/json" }
-            }
-        );
-
-        console.log("MuleSoft yanıtı:", response.data);
-
-        res.status(201).send({
-            message: "Kullanıcı başarıyla oluşturuldu",
-            data: response.data
-        });
-
-    } catch (error) {
-        console.error("MuleSoft API Hatası:", {
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message
-        });
-
-        res.status(error.response?.status || 500).send({
-            error: "API Hatası",
-            message: error.response?.data?.message || "Kullanıcı oluşturulurken bir hata oluştu"
-        });
-    }
-};
-
-const loginUser = async (req, res) => {
-    const { email, password } = req.body;
-
-    try {
-        const response = await axios.post(
-            "http://flowbridge.us-e2.cloudhub.io/api/login?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC",
-            {
-                email,
-                password
-            },
-            {
-                headers: { "Content-Type": "application/json" }
-            }
-        );
-
-        res.status(200).json(response.data);
-    } catch (error) {
-        console.error("Login error:", error.response?.data || error.message);
-        res.status(error.response?.status || 500).json({
-            Message: "Giriş başarısız",
-            Status: "Failed"
-        });
-    }
-};
-
-module.exports = {
-    createUser,
-    loginUser
-};
+// Router'ı export et
+module.exports = router;

@@ -3,15 +3,26 @@ const path = require("path");
 
 const app = express();
 
-app.use(express.static(path.join(__dirname, 'dist')));
+// Middleware'ler
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use('/api', require('./routes/userRoutes'));
+// Static dosyalar
+app.use(express.static(path.join(__dirname, 'dist'), {
+  maxAge: '1h',
+  etag: true
+}));
 
+// API Routes
+const userController = require('./controllers/UserController');
+app.use('/api/auth', userController);
+
+// Vue router için catch-all route
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3002;
 app.listen(port, () => {
-    console.log(`Sunucu http://localhost:${port} adresinde çalışıyor`);
+  console.log(`Server is running on port ${port}`);
 });
