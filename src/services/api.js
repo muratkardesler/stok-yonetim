@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Production ve development için base URL'i belirle
 const baseURL = process.env.NODE_ENV === 'production'
-  ? 'https://flowbridge.us-e2.cloudhub.io'
+  ? 'https://flowbridge.us-e2.cloudhub.io/api'
   : 'http://localhost:8080/api';
 
 const api = axios.create({
@@ -10,25 +10,27 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
-  }
+  },
+  // CORS için withCredentials'ı false yap
+  withCredentials: false
 });
 
 // Request interceptor
 api.interceptors.request.use(config => {
-  // Client ID ve secret'ı query parametresi olarak ekle
-  const params = new URLSearchParams();
-  params.append('client_id', '6f0b2e5229c7455091966ef898fd6f68');
-  params.append('client_secret', '8041a365CDfb448c88a7780b7699A6aC');
-  
-  // Mevcut query parametrelerini koru
-  const existingParams = new URLSearchParams(config.url.split('?')[1] || '');
-  for (const [key, value] of existingParams) {
-    params.append(key, value);
+  // Production ortamında CORS headers ekle
+  if (process.env.NODE_ENV === 'production') {
+    config.headers['Access-Control-Allow-Origin'] = '*';
+    config.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,PATCH,OPTIONS';
+    config.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
   }
-  
-  // URL'yi güncelle
-  const hasQuery = config.url.includes('?');
-  config.url = config.url.split('?')[0] + '?' + params.toString();
+
+  // URL'yi oluştur
+  let url = config.url || '';
+  if (!url.includes('client_id')) {
+    const separator = url.includes('?') ? '&' : '?';
+    url += `${separator}client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`;
+    config.url = url;
+  }
   
   const token = localStorage.getItem('token');
   if (token) {
@@ -43,6 +45,7 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(response => {
   return response;
 }, error => {
+  console.error('API Error:', error);
   if (error.response?.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('isLoggedIn');
@@ -52,10 +55,13 @@ api.interceptors.response.use(response => {
 });
 
 export const authService = {
-  login: (credentials) => api.post('/login', {
-    email: credentials.email,
-    password: credentials.password
-  }),
+  login: (credentials) => {
+    const url = `/login?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`;
+    return api.post(url, {
+      email: credentials.email,
+      password: credentials.password
+    });
+  },
   signup: (userData) => api.post('/signup', userData),
   logout: () => api.post('/logout')
 };
