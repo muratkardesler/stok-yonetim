@@ -3,6 +3,7 @@ import Home from "../views/Home.vue";
 import Login from "../views/Login.vue";
 import Signup from "../views/Signup.vue";
 import Dashboard from "../views/Dashboard.vue";
+import Stock from "../views/Stock.vue";
 
 const routes = [
   {
@@ -24,6 +25,12 @@ const routes = [
     path: "/dashboard",
     name: "Dashboard",
     component: Dashboard,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: "/stock",
+    name: "Stock",
+    component: Stock,
     meta: { requiresAuth: true }
   }
 ];

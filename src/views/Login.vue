@@ -64,8 +64,8 @@
 </template>
 
 <script>
-import axios from 'axios';
 import { useRouter } from 'vue-router';
+import { authService } from '@/services/api';
 
 export default {
   name: 'Login',
@@ -88,21 +88,11 @@ export default {
     async handleLogin() {
       this.loading = true;
       try {
-        const response = await axios({
-          method: 'POST',
-          url: '/api/login',
-          params: {
-            client_id: '6f0b2e5229c7455091966ef898fd6f68',
-            client_secret: '8041a365CDfb448c88a7780b7699A6aC'
-          },
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          data: {
-            email: this.form.email,
-            password: this.form.password
-          }
+        const response = await authService.login({
+          email: this.form.email,
+          password: this.form.password,
+          client_id: process.env.VUE_APP_CLIENT_ID,
+          client_secret: process.env.VUE_APP_CLIENT_SECRET
         });
 
         console.log('Login Response:', response.data);

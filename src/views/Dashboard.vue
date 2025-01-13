@@ -139,37 +139,24 @@
           </div>
         </section>
 
-        <!-- Banka Hesapları Bölümü -->
-        <section class="dashboard-section bank-accounts">
+        <!-- Ürün Kategorileri Bölümü -->
+        <section class="dashboard-section product-categories">
           <div class="section-header">
-            <h2>Bankaya Bağlı Hesaplarınız</h2>
-            <a href="#" class="link-button">Kasa ve Bankalar sayfasına git</a>
+            <h2>Ürün Kategorileri Dağılımı</h2>
           </div>
           
-          <div class="bank-features">
-            <div class="feature-card">
-              <i class="fas fa-sync-alt"></i>
-              <h3>Otomatik Veri Girişi</h3>
-              <p>El ile bilgi girişi yapmadan, bakiyeleriniz otomatik olarak güncellensin.</p>
-            </div>
-            
-            <div class="feature-card">
-              <i class="fas fa-desktop"></i>
-              <h3>Bilgileriniz Tek Ekranda</h3>
-              <p>Banka hesaplarınızdaki tüm hareketler tek ekranda toplansın, dilediğiniz an kolayca ulaşın.</p>
-            </div>
-            
-            <div class="feature-card">
-              <i class="fas fa-shield-alt"></i>
-              <h3>Hatasız Veri İşleme</h3>
-              <p>Akıllı banka hesap takibi ile tüm banka hareketleriniz hatasız bir şekilde Paragüt'e aktarılsın.</p>
-            </div>
+          <div class="chart-container">
+            <canvas ref="categoryChart"></canvas>
           </div>
 
-          <button class="connect-bank-btn">
-            <i class="fas fa-plus"></i>
-            Banka Hesabı Bağla
-          </button>
+          <div class="category-legend">
+            <div v-for="(category, index) in categoryData" :key="index" class="legend-item">
+              <span class="color-dot" :style="{ backgroundColor: chartColors[index] }"></span>
+              <span class="category-name">{{ category.name }}</span>
+              <span class="category-count">{{ category.count }} adet</span>
+              <span class="category-percentage">({{ calculatePercentage(category.count) }}%)</span>
+            </div>
+          </div>
         </section>
       </div>
     </main>
@@ -177,8 +164,9 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import Chart from 'chart.js/auto';
 
 export default {
   name: 'Dashboard',
@@ -188,24 +176,88 @@ export default {
     const trialDaysLeft = ref(14);
     const userName = ref('Berna');
     const userAvatar = ref('https://via.placeholder.com/32');
+    const categoryChart = ref(null);
+    const chartInstance = ref(null);
 
-    // Örnek veriler
-    const totalReceivables = ref(15000);
-    const receivablesProgress = ref(65);
-    const overdueAmount = ref(3500);
-    const overdueCount = ref(3);
-    const unplannedAmount = ref(2000);
-    const unplannedCount = ref(5);
-    const totalPayables = ref(12000);
-    const payablesProgress = ref(45);
-    const monthlyVAT = ref(2500);
-    const vatIncrease = ref(12);
+    // Örnek kategori verileri (gerçek verilerle değiştirilecek)
+    const categoryData = ref([
+      { name: 'Yüzük', count: 80 },
+      { name: 'Kolye', count: 30 }
+    ]);
 
-    const currentDate = ref(new Date().toLocaleDateString('tr-TR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    }));
+    const chartColors = [
+      '#4F46E5', // Primary color
+      '#06B6D4', // Secondary color
+      '#10B981', // Success color
+      '#F59E0B', // Warning color
+      '#EF4444', // Error color
+      '#8B5CF6', // Purple
+      '#EC4899', // Pink
+      '#14B8A6'  // Teal
+    ];
+
+    const calculatePercentage = (count) => {
+      const total = categoryData.value.reduce((sum, category) => sum + category.count, 0);
+      return ((count / total) * 100).toFixed(1);
+    };
+
+    const createChart = () => {
+      const ctx = categoryChart.value.getContext('2d');
+      
+      if (chartInstance.value) {
+        chartInstance.value.destroy();
+      }
+
+      chartInstance.value = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: categoryData.value.map(category => category.name),
+          datasets: [{
+            data: categoryData.value.map(category => category.count),
+            backgroundColor: chartColors.slice(0, categoryData.value.length),
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const value = context.raw;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${context.label}: ${value} adet (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    };
+
+    onMounted(() => {
+      // Chart oluştur
+      createChart();
+
+      // Örnek: Her 5 saniyede bir verileri güncelle
+      const interval = setInterval(() => {
+        // Burada gerçek veri güncelleme mantığı olacak
+        createChart();
+      }, 5000);
+
+      onUnmounted(() => {
+        clearInterval(interval);
+        if (chartInstance.value) {
+          chartInstance.value.destroy();
+        }
+      });
+    });
 
     const toggleMenu = () => {
       isMenuCollapsed.value = !isMenuCollapsed.value;
@@ -229,20 +281,13 @@ export default {
       trialDaysLeft,
       userName,
       userAvatar,
-      currentDate,
-      totalReceivables,
-      receivablesProgress,
-      overdueAmount,
-      overdueCount,
-      unplannedAmount,
-      unplannedCount,
-      totalPayables,
-      payablesProgress,
-      monthlyVAT,
-      vatIncrease,
+      categoryChart,
+      categoryData,
+      chartColors,
       toggleMenu,
       formatCurrency,
-      logout
+      logout,
+      calculatePercentage
     };
   }
 };
@@ -627,5 +672,65 @@ export default {
 
 .menu-collapsed .logo-text {
   display: none;
+}
+
+/* Product Categories Section */
+.product-categories {
+  background: white;
+}
+
+.chart-container {
+  height: 300px;
+  margin: 2rem 0;
+  position: relative;
+}
+
+.category-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: var(--background-light);
+}
+
+.color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.category-name {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.category-count {
+  color: var(--text-light);
+  margin-left: auto;
+}
+
+.category-percentage {
+  color: var(--primary-color);
+  font-weight: 500;
+  min-width: 60px;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .chart-container {
+    height: 250px;
+  }
+
+  .category-legend {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

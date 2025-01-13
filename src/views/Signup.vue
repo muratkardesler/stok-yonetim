@@ -185,6 +185,16 @@ export default {
       this.isLoading = true;
 
       try {
+        console.log('Sending registration data:', {
+          username: this.form.username,
+          password: this.form.password,
+          company: this.form.company,
+          phone: this.form.phone.replace(/\D/g, ''),
+          email: this.form.email,
+          role: this.form.role,
+          address: this.form.address
+        });
+
         const response = await axios({
           method: 'POST',
           url: '/api/addUser',
@@ -210,25 +220,25 @@ export default {
         console.log('API Response:', response.data);
 
         if (response.data && response.data.Status === 'Failed') {
+          console.error('Registration failed:', response.data);
           this.showNotification(response.data.Message || 'Kayıt işlemi başarısız oldu', 'error');
         } else if (response.data && response.data.Status === 'Success') {
+          // Token ve giriş durumunu sakla
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userEmail', this.form.email);
+          
+          // Başarılı mesajını göster
           this.showNotification('Kayıt başarılı bir şekilde oluşturuldu');
           
-          // Token'ı sakla
-          if (response.data.data && response.data.data.token) {
-            localStorage.setItem('token', response.data.data.token);
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('userEmail', this.form.email);
-          }
-          
-          setTimeout(() => {
-            this.$router.push('/dashboard');
-          }, 2000);
+          // Doğrudan dashboard'a yönlendir
+          this.$router.push({ name: 'Dashboard' });
         } else {
+          console.error('Unexpected response:', response.data);
           throw new Error('Beklenmeyen bir yanıt alındı');
         }
       } catch (error) {
-        console.error('Kayıt hatası:', error);
+        console.error('Registration error:', error);
+        console.error('Error response:', error.response?.data);
         const errorMessage = error.response?.data?.Message || 
                            error.response?.data?.message || 
                            error.message || 
