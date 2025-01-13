@@ -1,9 +1,14 @@
 services:
   - type: web
     name: stok-yonetim
-    env: node
-    buildCommand: ./build.sh
-    startCommand: node index.js
-    envVars:
-      - key: NODE_ENV
-        value: production 
+    env: static
+    buildCommand: npm run build
+    staticPublishPath: ./dist
+    headers:
+      - path: /api/*
+        name: Access-Control-Allow-Origin
+        value: "*"
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: http://flowbridge.us-e2.cloudhub.io/api/:splat 

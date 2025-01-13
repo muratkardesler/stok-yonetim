@@ -3,6 +3,8 @@
   publish = "dist"
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200 
+  from = "/api/*"
+  to = "http://flowbridge.us-e2.cloudhub.io/api/:splat"
+  status = 200
+  force = true
+  headers = {Access-Control-Allow-Origin = "*"} 
