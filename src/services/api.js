@@ -5,17 +5,12 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
-  }
+  },
+  withCredentials: false
 });
 
 // Request interceptor
 api.interceptors.request.use(config => {
-  // Client ID ve secret'ı query parametresi olarak ekle
-  const params = new URLSearchParams(config.params || {});
-  params.append('client_id', '6f0b2e5229c7455091966ef898fd6f68');
-  params.append('client_secret', '8041a365CDfb448c88a7780b7699A6aC');
-  config.params = params;
-
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
