@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Production ve development için base URL'i belirle
 const baseURL = process.env.NODE_ENV === 'production'
-  ? 'https://flowbridge.us-e2.cloudhub.io/api'
+  ? 'http://flowbridge.us-e2.cloudhub.io/api'
   : 'http://localhost:8080/api';
 
 const api = axios.create({
