@@ -2,9 +2,16 @@ const axios = require('axios');
 const express = require('express');
 const router = express.Router();
 
-const MULESOFT_API = 'https://flowbridge.us-e2.cloudhub.io/api';
-const CLIENT_ID = '6f0b2e5229c7455091966ef898fd6f68';
-const CLIENT_SECRET = '8041a365CDfb448c88a7780b7699A6aC';
+const MULESOFT_API = process.env.MULESOFT_API || 'https://flowbridge.us-e2.cloudhub.io/api';
+const CLIENT_ID = process.env.CLIENT_ID || '6f0b2e5229c7455091966ef898fd6f68';
+const CLIENT_SECRET = process.env.CLIENT_SECRET || '8041a365CDfb448c88a7780b7699A6aC';
+
+// Debug log
+console.log('API Configuration:', {
+    MULESOFT_API,
+    CLIENT_ID: CLIENT_ID.substring(0, 8) + '...',
+    NODE_ENV: process.env.NODE_ENV
+});
 
 // MuleSoft API'ye istek gönderen fonksiyon
 async function makeRequest(method, endpoint, data = null) {
@@ -13,6 +20,8 @@ async function makeRequest(method, endpoint, data = null) {
         client_id: CLIENT_ID,
         client_secret: CLIENT_SECRET
     };
+
+    console.log(`Making ${method} request to: ${url}`);
 
     try {
         const response = await axios({
@@ -24,24 +33,49 @@ async function makeRequest(method, endpoint, data = null) {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'Origin': 'https://flowbridge.us-e2.cloudhub.io'
-            }
+            },
+            validateStatus: false // Tüm HTTP durum kodlarını kabul et
         });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        if (response.status >= 400) {
+            throw {
+                response: {
+                    status: response.status,
+                    data: response.data
+                }
+            };
+        }
+
         return response.data;
     } catch (error) {
-        console.error('MuleSoft API Error:', error.response?.data || error.message);
+        console.error('MuleSoft API Error:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message
+        });
         throw error;
     }
 }
 
 // Login endpoint
 router.post('/login', async (req, res) => {
+    console.log('Login request received:', {
+        email: req.body.email,
+        hasPassword: !!req.body.password
+    });
+
     try {
         const result = await makeRequest('POST', '/login', {
             email: req.body.email,
             password: req.body.password
         });
+        console.log('Login successful');
         res.json(result);
     } catch (error) {
+        console.error('Login failed:', error.message);
         res.status(error.response?.status || 500).json({
             status: 'error',
             message: error.response?.data?.message || 'Internal server error'
