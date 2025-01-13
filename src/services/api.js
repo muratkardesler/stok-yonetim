@@ -5,19 +5,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
-  },
-  withCredentials: false
-});
-
-// Request interceptor
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
   }
-  return config;
-}, error => {
-  return Promise.reject(error);
 });
 
 // Response interceptor
@@ -34,10 +22,7 @@ api.interceptors.response.use(response => {
 });
 
 export const authService = {
-  login: (credentials) => api.post('/login', {
-    email: credentials.email,
-    password: credentials.password
-  }),
+  login: (credentials) => api.post('/login', credentials),
   signup: (userData) => api.post('/signup', userData),
   logout: () => api.post('/logout')
 };
