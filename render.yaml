@@ -1,14 +1,11 @@
 services:
   - type: web
     name: stok-yonetim
-    env: static
-    buildCommand: npm run build
-    staticPublishPath: ./dist
-    headers:
-      - path: /api/*
-        name: Access-Control-Allow-Origin
-        value: "*"
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: http://flowbridge.us-e2.cloudhub.io/api/:splat 
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000 
