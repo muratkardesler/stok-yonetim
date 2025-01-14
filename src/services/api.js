@@ -3,9 +3,9 @@ import axios from 'axios';
 const CLIENT_ID = '6f0b2e5229c7455091966ef898fd6f68';
 const CLIENT_SECRET = '8041a365CDfb448c88a7780b7699A6aC';
 
-// Development'da local proxy'yi, production'da doğrudan MuleSoft'u kullan
+// Development'da local proxy'yi, production'da HTTPS ile MuleSoft'u kullan
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'http://flowbridge.us-e2.cloudhub.io'
+  ? 'https://flowbridge.us-e2.cloudhub.io'
   : 'http://localhost:3001';
 
 const api = axios.create({
