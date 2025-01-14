@@ -98,23 +98,26 @@ export default {
         if (response.status === 'success') {
           // Kullanıcı bilgilerini sakla
           const storage = this.form.remember ? localStorage : sessionStorage;
-          storage.setItem('token', response.data.token);
           storage.setItem('userEmail', this.form.email);
           storage.setItem('isLoggedIn', 'true');
-          storage.setItem('userData', JSON.stringify(response.data.user));
+          if (response.data.user) {
+            storage.setItem('userData', JSON.stringify(response.data.user));
+          }
 
           // Dashboard'a yönlendir
           this.$router.push('/dashboard');
-        } else {
-          alert(response.data?.Message || 'Giriş başarısız');
         }
       } catch (error) {
         console.error('Login error:', error);
-        if (error.message === 'Unexpected token \'S\', "See /cors"... is not valid JSON') {
-          alert('CORS hatası oluştu. Lütfen CORS proxy iznini kontrol edin.');
-        } else {
-          alert(error.message || 'Giriş işlemi sırasında bir hata oluştu');
+        let errorMessage = 'Giriş işlemi sırasında bir hata oluştu';
+        
+        if (error.response?.data?.Message) {
+          errorMessage = error.response.data.Message;
+        } else if (error.message) {
+          errorMessage = error.message;
         }
+        
+        alert(errorMessage);
       } finally {
         this.loading = false;
       }
