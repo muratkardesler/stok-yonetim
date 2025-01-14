@@ -90,9 +90,7 @@ export default {
       try {
         const response = await authService.login({
           email: this.form.email,
-          password: this.form.password,
-          client_id: process.env.VUE_APP_CLIENT_ID,
-          client_secret: process.env.VUE_APP_CLIENT_SECRET
+          password: this.form.password
         });
 
         console.log('Login Response:', response.data);
