@@ -3,24 +3,34 @@ import axios from 'axios';
 const CLIENT_ID = '6f0b2e5229c7455091966ef898fd6f68';
 const CLIENT_SECRET = '8041a365CDfb448c88a7780b7699A6aC';
 
-// API URL'ini ortama göre ayarla
-const API_BASE_URL = 'https://flowbridge.us-e2.cloudhub.io';
+// Development'da proxy kullan, production'da direkt MuleSoft'a bağlan
+const API_BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'https://flowbridge.us-e2.cloudhub.io'
+  : '/api'; // Proxy üzerinden yönlendirme
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Origin': 'https://flowbridge.us-e2.cloudhub.io'
-  }
+    'Accept': 'application/json'
+  },
+  withCredentials: false
+});
+
+// Request interceptor
+api.interceptors.request.use((config) => {
+  // Client ID ve Secret'ı URL parametresi olarak ekle
+  const url = new URL(config.url, API_BASE_URL);
+  url.searchParams.append('client_id', CLIENT_ID);
+  url.searchParams.append('client_secret', CLIENT_SECRET);
+  config.url = url.pathname + url.search;
+  return config;
 });
 
 export const authService = {
   login: async (credentials) => {
     try {
       console.log('Login credentials:', credentials);
-      
-      const url = `/api/login?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`;
       
       // MuleSoft'un beklediği formatta veriyi hazırla
       const requestData = {
@@ -31,7 +41,7 @@ export const authService = {
 
       console.log('Login request data:', requestData);
       
-      const response = await api.post(url, requestData);
+      const response = await api.post('/login', requestData);
       console.log('Login response:', response);
 
       if (response.data && response.data.Status === 'Success') {
@@ -55,9 +65,6 @@ export const authService = {
 
   signup: async (userData) => {
     try {
-      const url = `/api/signup?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`;
-      
-      // MuleSoft'un beklediği formatta veriyi hazırla
       const requestData = {
         Username: userData.username,
         Password: userData.password,
@@ -68,7 +75,7 @@ export const authService = {
         Address: userData.address || 'Turkey'
       };
 
-      const response = await api.post(url, requestData);
+      const response = await api.post('/signup', requestData);
       return response.data;
     } catch (error) {
       console.error('Signup error:', error);
@@ -78,15 +85,9 @@ export const authService = {
 
   logout: async () => {
     try {
-      const url = `/api/logout?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`;
-      const response = await api.post(url);
-      
-      // Local storage'ı temizle
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('userData');
-      localStorage.removeItem('token');
-      
+      const response = await api.post('/logout');
+      localStorage.clear();
+      sessionStorage.clear();
       return response.data;
     } catch (error) {
       console.error('Logout error:', error);
@@ -96,10 +97,10 @@ export const authService = {
 };
 
 export const stockService = {
-  getProducts: () => api.get('/api/products'),
-  addProduct: (product) => api.post('/api/products', product),
-  updateProduct: (id, product) => api.put(`/api/products/${id}`, product),
-  deleteProduct: (id) => api.delete(`/api/products/${id}`)
+  getProducts: () => api.get('/products'),
+  addProduct: (product) => api.post('/products', product),
+  updateProduct: (id, product) => api.put(`/products/${id}`, product),
+  deleteProduct: (id) => api.delete(`/products/${id}`)
 };
 
 export default api; 
