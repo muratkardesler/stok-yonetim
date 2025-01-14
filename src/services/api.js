@@ -19,17 +19,26 @@ const api = axios.create({
 export const authService = {
   login: async (credentials) => {
     try {
+      console.log('Login credentials:', credentials);
+      
       // URL'ye client_id ve client_secret ekle
       const url = `/api/login?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`;
       
-      const response = await api.post(url, {
-        email: credentials.email,
-        password: credentials.password
-      });
+      // Request body'yi signup ile aynı formatta gönder
+      const requestData = {
+        Username: credentials.email.split('@')[0], // Email'den @ öncesini al
+        Password: credentials.password,
+        Email: credentials.email
+      };
 
-      console.log('Login response:', response.data);
+      console.log('Login request data:', requestData);
+      
+      const response = await api.post(url, requestData);
 
-      if (response.data.Status === 'Success') {
+      console.log('Raw login response:', response);
+      console.log('Login response data:', response.data);
+
+      if (response.data && (response.data.Status === 'Success' || response.data.status === 'success')) {
         localStorage.setItem('userEmail', credentials.email);
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userData', JSON.stringify(response.data));
@@ -39,12 +48,18 @@ export const authService = {
           data: response.data
         };
       } else {
-        throw new Error(response.data.Message || 'Giriş başarısız');
+        console.error('Login failed:', response.data);
+        throw new Error(response.data?.Message || response.data?.message || 'Giriş başarısız');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      if (error.response) {
-        throw new Error(error.response.data?.Message || 'API yanıt hatası');
+      console.error('Login error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      if (error.response?.data) {
+        throw new Error(error.response.data.Message || error.response.data.message || 'API yanıt hatası');
       }
       throw error;
     }
