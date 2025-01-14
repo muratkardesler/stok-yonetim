@@ -1,60 +1,69 @@
 import axios from 'axios';
 
+const CLIENT_ID = '6f0b2e5229c7455091966ef898fd6f68';
+const CLIENT_SECRET = '8041a365CDfb448c88a7780b7699A6aC';
+
+// Development'da local proxy'yi, production'da doğrudan MuleSoft'u kullan
+const API_BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'http://flowbridge.us-e2.cloudhub.io'
+  : 'http://localhost:3001';
+
 const api = axios.create({
-  baseURL: process.env.NODE_ENV === 'production' 
-    ? 'https://flowbridge.us-e2.cloudhub.io/api'
-    : '/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   }
 });
 
-// Request interceptor
-api.interceptors.request.use(config => {
-  // Add client_id and client_secret as query parameters
-  const params = {
-    client_id: '6f0b2e5229c7455091966ef898fd6f68',
-    client_secret: '8041a365CDfb448c88a7780b7699A6aC',
-    ...(config.params || {})
-  };
-  
-  config.params = params;
-  return config;
-});
-
-// Response interceptor
-api.interceptors.response.use(
-  response => response,
-  error => {
-    console.error('API Error:', error);
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('isLoggedIn');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
 export const authService = {
-  login: (credentials) => {
-    const url = '/login';
-    const data = {
-      email: credentials.email,
-      password: credentials.password
-    };
-    return api.post(url, data);
+  login: async (credentials) => {
+    try {
+      // URL'ye client_id ve client_secret ekle
+      const url = `/api/login?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`;
+      
+      const response = await api.post(url, {
+        email: credentials.email,
+        password: credentials.password
+      });
+
+      console.log('Login response:', response.data);
+
+      if (response.data.Status === 'Success') {
+        localStorage.setItem('userEmail', credentials.email);
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userData', JSON.stringify(response.data));
+
+        return {
+          status: 'success',
+          data: response.data
+        };
+      } else {
+        throw new Error(response.data.Message || 'Giriş başarısız');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      if (error.response) {
+        throw new Error(error.response.data?.Message || 'API yanıt hatası');
+      }
+      throw error;
+    }
   },
-  signup: (userData) => api.post('/signup', userData),
-  logout: () => api.post('/logout')
+  signup: async (userData) => {
+    const url = `/api/signup?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`;
+    return api.post(url, userData);
+  },
+  logout: async () => {
+    const url = `/api/logout?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`;
+    return api.post(url);
+  }
 };
 
 export const stockService = {
-  getProducts: () => api.get('/products'),
-  addProduct: (product) => api.post('/products', product),
-  updateProduct: (id, product) => api.put(`/products/${id}`, product),
-  deleteProduct: (id) => api.delete(`/products/${id}`)
+  getProducts: () => api.get('/api/products'),
+  addProduct: (product) => api.post('/api/products', product),
+  updateProduct: (id, product) => api.put(`/api/products/${id}`, product),
+  deleteProduct: (id) => api.delete(`/api/products/${id}`)
 };
 
 export default api; 

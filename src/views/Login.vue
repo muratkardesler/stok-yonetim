@@ -93,12 +93,9 @@ export default {
           password: this.form.password
         });
 
-        console.log('Login Response:', response.data);
+        console.log('Login Response:', response);
 
-        // Status kontrolü - büyük/küçük harf duyarlılığını kaldır
-        const status = response.data?.Status?.toLowerCase() || response.data?.status?.toLowerCase();
-        
-        if (status === 'success') {
+        if (response.status === 'success') {
           // Login durumunu sakla
           if (this.form.remember) {
             localStorage.setItem('isLoggedIn', 'true');
@@ -109,18 +106,17 @@ export default {
           }
 
           // Dashboard'a yönlendir
-          this.router.push({ name: 'Dashboard' });
+          this.$router.push('/dashboard');
         } else {
-          const message = response.data?.Message || response.data?.message || 'Giriş başarısız';
-          alert(message);
+          alert(response.data?.Message || 'Giriş başarısız');
         }
       } catch (error) {
         console.error('Login error:', error);
-        const errorMessage = error.response?.data?.Message || 
-                           error.response?.data?.message || 
-                           error.message || 
-                           'Giriş işlemi sırasında bir hata oluştu';
-        alert(errorMessage);
+        if (error.message === 'Unexpected token \'S\', "See /cors"... is not valid JSON') {
+          alert('CORS hatası oluştu. Lütfen CORS proxy iznini kontrol edin.');
+        } else {
+          alert(error.message || 'Giriş işlemi sırasında bir hata oluştu');
+        }
       } finally {
         this.loading = false;
       }

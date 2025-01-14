@@ -1,52 +1,58 @@
 const express = require('express');
-const cors = require('cors');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
-const apiMiddleware = require('./api-middleware');
 
 const app = express();
+const port = process.env.PORT || 3001;
 
-// CORS ayarları
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
-  credentials: true
-}));
-
-// Body parser
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Request logging middleware
+// CORS middleware
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  console.log('Headers:', req.headers);
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // OPTIONS isteklerini hemen yanıtla
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
   next();
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Global error handler:', err);
-  res.status(500).json({
-    status: 'error',
-    message: 'Internal server error'
-  });
 });
 
 // Static dosyaları serve et
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// API middleware'i kullan
-app.use('/api', apiMiddleware);
+// Proxy middleware yapılandırması
+const proxyOptions = {
+  target: 'http://flowbridge.us-e2.cloudhub.io',
+  changeOrigin: true,
+  secure: false,
+  onProxyReq: (proxyReq, req, res) => {
+    // URL'deki query parametrelerini koru
+    const url = new URL(proxyReq.path, 'http://dummy.com');
+    
+    // Eğer query parametreleri yoksa ekle
+    if (!url.searchParams.has('client_id')) {
+      url.searchParams.append('client_id', '6f0b2e5229c7455091966ef898fd6f68');
+    }
+    if (!url.searchParams.has('client_secret')) {
+      url.searchParams.append('client_secret', '8041a365CDfb448c88a7780b7699A6aC');
+    }
+    
+    proxyReq.path = url.pathname + url.search;
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+  }
+};
 
-// SPA için catch-all route
+// Proxy middleware'i uygula
+app.use('/api', createProxyMiddleware(proxyOptions));
+
+// Tüm route'ları Vue uygulamasına yönlendir
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-const port = process.env.PORT || 10000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  console.log('Environment:', process.env.NODE_ENV);
-  console.log('Current working directory:', process.cwd());
 }); 
