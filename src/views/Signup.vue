@@ -197,7 +197,7 @@ export default {
 
         const response = await axios({
           method: 'POST',
-          url: '/api/addUser',
+          url: '/api/signup',
           params: {
             client_id: '6f0b2e5229c7455091966ef898fd6f68',
             client_secret: '8041a365CDfb448c88a7780b7699A6aC'
@@ -207,11 +207,11 @@ export default {
             'Accept': 'application/json'
           },
           data: {
+            email: this.form.email,
+            password: this.form.password,
             username: this.form.username,
-            passwordHash: this.form.password,
             companyName: this.form.company,
             contactInfo: this.form.phone.replace(/\D/g, ''),
-            email: this.form.email,
             role: this.form.role,
             address: this.form.address
           }
@@ -223,9 +223,11 @@ export default {
           console.error('Registration failed:', response.data);
           this.showNotification(response.data.Message || 'Kayıt işlemi başarısız oldu', 'error');
         } else if (response.data && response.data.Status === 'Success') {
-          // Token ve giriş durumunu sakla
-          localStorage.setItem('isLoggedIn', 'true');
+          // Token ve kullanıcı bilgilerini sakla
+          localStorage.setItem('token', response.data.token);
           localStorage.setItem('userEmail', this.form.email);
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userData', JSON.stringify(response.data.user));
           
           // Başarılı mesajını göster
           this.showNotification('Kayıt başarılı bir şekilde oluşturuldu');

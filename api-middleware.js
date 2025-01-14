@@ -72,8 +72,21 @@ router.post('/login', async (req, res) => {
             email: req.body.email,
             password: req.body.password
         });
+        
+        // Ensure consistent response format
+        const response = {
+            status: 'success',
+            data: {
+                token: result.token || result.Token,
+                user: {
+                    email: req.body.email,
+                    ...result.user
+                }
+            }
+        };
+        
         console.log('Login successful');
-        res.json(result);
+        res.json(response);
     } catch (error) {
         console.error('Login failed:', error.message);
         res.status(error.response?.status || 500).json({
@@ -87,7 +100,20 @@ router.post('/login', async (req, res) => {
 router.post('/signup', async (req, res) => {
     try {
         const result = await makeRequest('POST', '/signup', req.body);
-        res.json(result);
+        
+        // Ensure consistent response format
+        const response = {
+            status: 'success',
+            data: {
+                token: result.token || result.Token,
+                user: {
+                    email: req.body.email,
+                    ...result.user
+                }
+            }
+        };
+        
+        res.json(response);
     } catch (error) {
         res.status(error.response?.status || 500).json({
             status: 'error',

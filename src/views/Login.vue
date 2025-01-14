@@ -96,14 +96,12 @@ export default {
         console.log('Login Response:', response);
 
         if (response.status === 'success') {
-          // Login durumunu sakla
-          if (this.form.remember) {
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('userEmail', this.form.email);
-          } else {
-            sessionStorage.setItem('isLoggedIn', 'true');
-            sessionStorage.setItem('userEmail', this.form.email);
-          }
+          // Kullanıcı bilgilerini sakla
+          const storage = this.form.remember ? localStorage : sessionStorage;
+          storage.setItem('token', response.data.token);
+          storage.setItem('userEmail', this.form.email);
+          storage.setItem('isLoggedIn', 'true');
+          storage.setItem('userData', JSON.stringify(response.data.user));
 
           // Dashboard'a yönlendir
           this.$router.push('/dashboard');
