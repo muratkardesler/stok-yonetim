@@ -1,0 +1,19 @@
+name: 🚀 Deploy Production
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v3
+
+      - name: 📂 Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }} 
