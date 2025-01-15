@@ -39,17 +39,25 @@ router.post('/login', async (req, res) => {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            data: data
+            data: JSON.stringify(data)  // JSON string'e çevir
         });
+
+        console.log('MuleSoft yanıtı:', response.data);
+
+        if (response.data.Status === 'Failed') {
+            throw new Error(response.data.Message || 'Login failed');
+        }
 
         // Yanıtı standartlaştır
         const standardResponse = {
             status: 'success',
             data: {
-                token: response.data.token || response.data.Token,
+                token: response.data.Token,
                 user: {
                     email: req.body.email,
-                    ...response.data.user
+                    username: response.data.Username?.[0],
+                    company: response.data.CompanyName?.[0],
+                    role: response.data.Role?.[0]
                 }
             }
         };
@@ -79,19 +87,19 @@ router.post('/signup', async (req, res) => {
 
         // İstek verilerini hazırla
         const data = {
-            email: req.body.email,
-            password: req.body.password,
             username: req.body.username,
-            company: req.body.company,
-            phone: req.body.phone?.replace(/\D/g, ''),
-            role: req.body.role || 'User',
-            address: req.body.address || 'Turkey'
+            password: req.body.password,
+            email: req.body.email,
+            companyName: req.body.company,
+            contactInfo: req.body.phone?.replace(/\D/g, ''),
+            role: 'User',
+            address: 'Turkey'
         };
 
         // İsteği gönder
         const response = await axios({
             method: 'post',
-            url: `${MULESOFT_API}/signup`,
+            url: `${MULESOFT_API}/addUser`,
             params: {
                 client_id: CLIENT_ID,
                 client_secret: CLIENT_SECRET
@@ -100,17 +108,25 @@ router.post('/signup', async (req, res) => {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            data: data
+            data: JSON.stringify(data)  // JSON string'e çevir
         });
+
+        console.log('MuleSoft yanıtı:', response.data);
+
+        if (response.data.Status === 'Failed') {
+            throw new Error(response.data.Message || 'Signup failed');
+        }
 
         // Yanıtı standartlaştır
         const standardResponse = {
             status: 'success',
             data: {
-                token: response.data.token || response.data.Token,
+                token: response.data.Token,
                 user: {
                     email: req.body.email,
-                    ...response.data.user
+                    username: req.body.username,
+                    company: req.body.company,
+                    role: 'User'
                 }
             }
         };
