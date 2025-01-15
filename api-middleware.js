@@ -98,7 +98,7 @@ router.post('/signup', async (req, res) => {
         // İstek verilerini hazırla
         const data = {
             username: req.body.Username,
-            password: req.body.Password,
+            passwordHash: req.body.Password,
             email: req.body.Email,
             companyName: req.body.CompanyName,
             contactInfo: req.body.ContactInfo?.replace(/\D/g, ''),
@@ -108,7 +108,7 @@ router.post('/signup', async (req, res) => {
 
         console.log('MuleSoft\'a gönderilen veri:', {
             ...data,
-            Password: '***'
+            passwordHash: '***'
         });
 
         // İsteği gönder

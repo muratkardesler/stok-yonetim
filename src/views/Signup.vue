@@ -207,13 +207,13 @@ export default {
             'Accept': 'application/json'
           },
           data: {
-            Username: this.form.username,
-            Password: this.form.password,
-            Email: this.form.email,
-            CompanyName: this.form.company,
-            ContactInfo: this.form.phone.replace(/\D/g, ''),
-            Role: this.form.role,
-            Address: this.form.address
+            username: this.form.username,
+            passwordHash: this.form.password,
+            email: this.form.email,
+            companyName: this.form.company,
+            contactInfo: this.form.phone.replace(/\D/g, ''),
+            role: this.form.role,
+            address: this.form.address
           }
         });
 
