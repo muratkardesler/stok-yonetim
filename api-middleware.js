@@ -41,31 +41,21 @@ router.post('/login', async (req, res) => {
             },
             data: data
         });
-<<<<<<< HEAD
-        
-        // Ensure consistent response format
-        const response = {
+
+        // Yanıtı standartlaştır
+        const standardResponse = {
             status: 'success',
             data: {
-                token: result.token || result.Token,
+                token: response.data.token || response.data.Token,
                 user: {
                     email: req.body.email,
-                    ...result.user
+                    ...response.data.user
                 }
             }
         };
-        
-        console.log('Login successful');
-        res.json(response);
-=======
 
-        console.log('✅ MuleSoft yanıtı:', {
-            status: response.status,
-            data: response.data
-        });
-
-        res.json(response.data);
->>>>>>> stok-murat-main
+        console.log('✅ Login başarılı:', standardResponse);
+        res.json(standardResponse);
     } catch (error) {
         console.error('❌ Login hatası:', {
             message: error.message,
@@ -74,7 +64,7 @@ router.post('/login', async (req, res) => {
         });
 
         res.status(error.response?.status || 500).json({
-            error: 'Login hatası',
+            status: 'error',
             message: error.response?.data?.message || error.message
         });
     }
@@ -83,30 +73,8 @@ router.post('/login', async (req, res) => {
 // Signup endpoint
 router.post('/signup', async (req, res) => {
     try {
-<<<<<<< HEAD
-        const result = await makeRequest('POST', '/signup', req.body);
-        
-        // Ensure consistent response format
-        const response = {
-            status: 'success',
-            data: {
-                token: result.token || result.Token,
-                user: {
-                    email: req.body.email,
-                    ...result.user
-                }
-            }
-        };
-        
-        res.json(response);
-    } catch (error) {
-        res.status(error.response?.status || 500).json({
-            status: 'error',
-            message: error.response?.data?.message || 'Internal server error'
-=======
         console.log('👥 Signup isteği alındı:', {
             body: { ...req.body, password: '***' }
->>>>>>> stok-murat-main
         });
 
         // İstek verilerini hazırla
@@ -135,12 +103,20 @@ router.post('/signup', async (req, res) => {
             data: data
         });
 
-        console.log('✅ MuleSoft yanıtı:', {
-            status: response.status,
-            data: response.data
-        });
+        // Yanıtı standartlaştır
+        const standardResponse = {
+            status: 'success',
+            data: {
+                token: response.data.token || response.data.Token,
+                user: {
+                    email: req.body.email,
+                    ...response.data.user
+                }
+            }
+        };
 
-        res.json(response.data);
+        console.log('✅ Signup başarılı:', standardResponse);
+        res.json(standardResponse);
     } catch (error) {
         console.error('❌ Signup hatası:', {
             message: error.message,
@@ -149,7 +125,7 @@ router.post('/signup', async (req, res) => {
         });
 
         res.status(error.response?.status || 500).json({
-            error: 'Signup hatası',
+            status: 'error',
             message: error.response?.data?.message || error.message
         });
     }

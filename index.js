@@ -8,6 +8,11 @@ app.use(cors());
 
 // JSON body parser
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// API middleware
+const apiMiddleware = require('./api-middleware');
+app.use('/api', apiMiddleware);
 
 // Static dosyaları serve et
 app.use(express.static(path.join(__dirname, 'dist')));
