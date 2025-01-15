@@ -23,8 +23,8 @@ router.post('/login', async (req, res) => {
 
         // İstek verilerini hazırla
         const data = {
-            email: req.body.email,
-            password: req.body.password
+            Email: req.body.email,
+            Password: req.body.password
         };
 
         // İsteği gönder
@@ -39,7 +39,7 @@ router.post('/login', async (req, res) => {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            data: JSON.stringify(data)  // JSON string'e çevir
+            data: data
         });
 
         console.log('MuleSoft yanıtı:', response.data);
@@ -71,9 +71,14 @@ router.post('/login', async (req, res) => {
             status: error.response?.status
         });
 
+        // MuleSoft'tan gelen hata mesajını kullan
+        const errorMessage = error.response?.data?.Message || 
+                           error.message || 
+                           'Giriş sırasında bir hata oluştu';
+
         res.status(error.response?.status || 500).json({
             status: 'error',
-            message: error.response?.data?.message || error.message
+            message: errorMessage
         });
     }
 });
@@ -87,13 +92,13 @@ router.post('/signup', async (req, res) => {
 
         // İstek verilerini hazırla
         const data = {
-            username: req.body.username,
-            password: req.body.password,
-            email: req.body.email,
-            companyName: req.body.company,
-            contactInfo: req.body.phone?.replace(/\D/g, ''),
-            role: 'User',
-            address: 'Turkey'
+            Username: req.body.username,
+            Password: req.body.password,
+            Email: req.body.email,
+            CompanyName: req.body.company,
+            ContactInfo: req.body.phone?.replace(/\D/g, ''),
+            Role: 'User',
+            Address: 'Turkey'
         };
 
         // İsteği gönder
@@ -108,7 +113,7 @@ router.post('/signup', async (req, res) => {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            data: JSON.stringify(data)  // JSON string'e çevir
+            data: data
         });
 
         console.log('MuleSoft yanıtı:', response.data);
@@ -140,9 +145,14 @@ router.post('/signup', async (req, res) => {
             status: error.response?.status
         });
 
+        // MuleSoft'tan gelen hata mesajını kullan
+        const errorMessage = error.response?.data?.Message || 
+                           error.message || 
+                           'Kayıt sırasında bir hata oluştu';
+
         res.status(error.response?.status || 500).json({
             status: 'error',
-            message: error.response?.data?.message || error.message
+            message: errorMessage
         });
     }
 });
