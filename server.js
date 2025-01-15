@@ -4,7 +4,7 @@ const app = express();
 
 // CORS ayarları
 app.use(cors({
-    origin: 'http://localhost:8081',
+    origin: ['http://localhost:8081', 'https://test-stok-yonetim.onrender.com', 'https://stok-yonetim.onrender.com'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
