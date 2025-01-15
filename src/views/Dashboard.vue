@@ -42,20 +42,16 @@
           <h1>Güncel Durum</h1>
           <span class="date">{{ currentDate }}</span>
         </div>
-
-        <div class="top-bar-right">
-          <div class="trial-notice" v-if="trialDaysLeft > 0">
-            <i class="fas fa-clock"></i>
-            Deneme sürenizin bitimine {{ trialDaysLeft }} gün kaldı
+        
+        <div class="user-menu">
+          <div class="user-info">
+            <span class="username">{{ username }}</span>
+            <small>{{ userEmail }}</small>
           </div>
-          
-          <div class="user-menu">
-            <img :src="userAvatar" alt="Profil" class="avatar" />
-            <span class="username">{{ userName }}</span>
-            <button @click="logout" class="logout-btn">
-              <i class="fas fa-sign-out-alt"></i>
-            </button>
-          </div>
+          <button @click="handleLogout" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            Çıkış Yap
+          </button>
         </div>
       </header>
 
@@ -170,6 +166,37 @@ import Chart from 'chart.js/auto';
 
 export default {
   name: 'Dashboard',
+  data() {
+    return {
+      currentDate: new Date().toLocaleDateString('tr-TR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }),
+      username: '',
+      userEmail: '',
+      trialDaysLeft: 14
+    }
+  },
+  created() {
+    // Kullanıcı bilgilerini localStorage'dan al
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    this.username = userData.username || 'Kullanıcı';
+    this.userEmail = localStorage.getItem('userEmail') || '';
+  },
+  methods: {
+    handleLogout() {
+      // Local storage'ı temizle
+      localStorage.removeItem('token');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userData');
+      sessionStorage.removeItem('isLoggedIn');
+      
+      // Ana sayfaya yönlendir
+      this.$router.push({ name: 'Home' });
+    }
+  },
   setup() {
     const router = useRouter();
     const isMenuCollapsed = ref(false);
@@ -270,12 +297,6 @@ export default {
       }).format(value);
     };
 
-    const logout = () => {
-      localStorage.removeItem('isLoggedIn');
-      sessionStorage.removeItem('isLoggedIn');
-      router.push('/login');
-    };
-
     return {
       isMenuCollapsed,
       trialDaysLeft,
@@ -286,7 +307,6 @@ export default {
       chartColors,
       toggleMenu,
       formatCurrency,
-      logout,
       calculatePercentage
     };
   }
@@ -385,7 +405,9 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  padding: 1rem 2rem;
+  background: white;
+  border-bottom: 1px solid #eee;
 }
 
 .page-title h1 {
@@ -428,11 +450,26 @@ export default {
 }
 
 .logout-btn {
-  background: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
   border: none;
-  color: var(--text-light);
+  border-radius: 8px;
+  background: #EF4444;
+  color: white;
+  font-weight: 500;
   cursor: pointer;
-  padding: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: #DC2626;
+  transform: translateY(-1px);
+}
+
+.logout-btn i {
+  font-size: 1.1rem;
 }
 
 /* Dashboard Content Styles */

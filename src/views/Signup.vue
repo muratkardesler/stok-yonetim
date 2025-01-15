@@ -197,7 +197,7 @@ export default {
 
         const response = await axios({
           method: 'POST',
-          url: '/api/register',
+          url: '/api/signup',
           params: {
             client_id: '6f0b2e5229c7455091966ef898fd6f68',
             client_secret: '8041a365CDfb448c88a7780b7699A6aC'
@@ -207,13 +207,13 @@ export default {
             'Accept': 'application/json'
           },
           data: {
-            email: this.form.email,
-            password: this.form.password,
-            username: this.form.username,
-            companyName: this.form.company,
-            contactInfo: this.form.phone.replace(/\D/g, ''),
-            role: this.form.role,
-            address: this.form.address
+            Username: this.form.username,
+            Password: this.form.password,
+            Email: this.form.email,
+            CompanyName: this.form.company,
+            ContactInfo: this.form.phone.replace(/\D/g, ''),
+            Role: this.form.role,
+            Address: this.form.address
           }
         });
 
