@@ -1,8 +1,15 @@
-const { defineConfig } = require('@vue/cli-service')
-
-module.exports = defineConfig({
+module.exports = {
     transpileDependencies: true,
     devServer: {
-        port: 8080
+        port: 8085,
+        proxy: {
+            '/api': {
+                target: 'http://flowbridge.us-e2.cloudhub.io',
+                changeOrigin: true,
+                pathRewrite: {
+                    '^/api': '/api'
+                }
+            }
+        }
     }
-}) 
+} 

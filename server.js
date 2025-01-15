@@ -1,58 +1,44 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const path = require('path');
-
+const cors = require('cors');
 const app = express();
-const port = process.env.PORT || 3001;
 
-// CORS middleware
+// CORS ayarları
+app.use(cors({
+    origin: 'http://localhost:8081',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
+    preflightContinue: true,
+    optionsSuccessStatus: 204
+}));
+
+// Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// İstek logları
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  // OPTIONS isteklerini hemen yanıtla
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
+    console.log(`📨 ${req.method} ${req.url}`);
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+    next();
 });
 
-// Static dosyaları serve et
-app.use(express.static(path.join(__dirname, 'dist')));
+// API middleware
+const apiMiddleware = require('./api-middleware');
+app.use('/api', apiMiddleware);
 
-// Proxy middleware yapılandırması
-const proxyOptions = {
-  target: 'http://flowbridge.us-e2.cloudhub.io',
-  changeOrigin: true,
-  secure: false,
-  onProxyReq: (proxyReq, req, res) => {
-    // URL'deki query parametrelerini koru
-    const url = new URL(proxyReq.path, 'http://dummy.com');
-    
-    // Eğer query parametreleri yoksa ekle
-    if (!url.searchParams.has('client_id')) {
-      url.searchParams.append('client_id', '6f0b2e5229c7455091966ef898fd6f68');
-    }
-    if (!url.searchParams.has('client_secret')) {
-      url.searchParams.append('client_secret', '8041a365CDfb448c88a7780b7699A6aC');
-    }
-    
-    proxyReq.path = url.pathname + url.search;
-  },
-  onProxyRes: (proxyRes, req, res) => {
-    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-  }
-};
-
-// Proxy middleware'i uygula
-app.use('/api', createProxyMiddleware(proxyOptions));
-
-// Tüm route'ları Vue uygulamasına yönlendir
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+// Hata yakalama
+app.use((err, req, res, next) => {
+    console.error('❌ Sunucu hatası:', err);
+    res.status(500).json({
+        error: 'Sunucu hatası',
+        message: err.message
+    });
 });
 
+// Sunucuyu başlat
+const port = 3000;
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+    console.log(`🚀 Express sunucusu http://localhost:${port} adresinde çalışıyor`);
 }); 
