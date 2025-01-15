@@ -97,18 +97,18 @@ router.post('/signup', async (req, res) => {
 
         // İstek verilerini hazırla
         const data = {
-            username: req.body.username,
-            password: req.body.password,
-            email: req.body.email,
-            companyName: req.body.company,
-            contactInfo: req.body.phone?.replace(/\D/g, ''),
-            role: 'User',
-            address: 'Turkey'
+            Username: req.body.username,
+            Password: req.body.password,
+            Email: req.body.email,
+            CompanyName: req.body.company,
+            ContactInfo: req.body.phone?.replace(/\D/g, ''),
+            Role: 'User',
+            Address: 'Turkey'
         };
 
         console.log('MuleSoft\'a gönderilen veri:', {
             ...data,
-            password: '***'
+            Password: '***'
         });
 
         // İsteği gönder
@@ -138,10 +138,10 @@ router.post('/signup', async (req, res) => {
             data: {
                 token: response.data.Token,
                 user: {
-                    email: req.body.email,
-                    username: req.body.username,
-                    company: req.body.company,
-                    role: 'User'
+                    email: data.Email,
+                    username: data.Username,
+                    company: data.CompanyName,
+                    role: data.Role
                 },
                 message: response.data.Message
             }

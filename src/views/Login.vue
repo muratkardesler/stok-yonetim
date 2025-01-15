@@ -106,10 +106,10 @@ export default {
         // Remember me seçeneğine göre oturum bilgisini sakla
         if (this.form.remember) {
           localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('user', JSON.stringify(response.user));
+          localStorage.setItem('user', JSON.stringify(response.data.user));
         } else {
           sessionStorage.setItem('isLoggedIn', 'true');
-          sessionStorage.setItem('user', JSON.stringify(response.user));
+          sessionStorage.setItem('user', JSON.stringify(response.data.user));
         }
 
         console.log('Oturum bilgileri kaydedildi, dashboard\'a yönlendiriliyor...');

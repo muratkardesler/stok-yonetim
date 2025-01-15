@@ -33,20 +33,10 @@ export const authService = {
                 data: response.data
             });
 
-            if (response.data.Status === 'Success') {
-                // Kullanıcı bilgilerini hazırla
-                const userData = {
-                    username: response.data.Username[0],
-                    email: response.data.Email[0],
-                    created: response.data.Created[0]
-                };
-                
-                return {
-                    user: userData,
-                    message: response.data.Message
-                };
+            if (response.data.status === 'success') {
+                return response.data;
             } else {
-                throw new Error(response.data.Message || 'Giriş başarısız');
+                throw new Error(response.data.message || 'Giriş başarısız');
             }
         } catch (error) {
             console.error('❌ Login hatası:', {
@@ -91,17 +81,10 @@ export const authService = {
                 data: response.data
             });
 
-            if (response.data.Status === 'Success') {
-                return {
-                    user: {
-                        username: userData.username,
-                        email: userData.email,
-                        company: userData.company
-                    },
-                    message: response.data.Message
-                };
+            if (response.data.status === 'success') {
+                return response.data;
             } else {
-                throw new Error(response.data.Message || 'Kayıt başarısız');
+                throw new Error(response.data.message || 'Kayıt başarısız');
             }
         } catch (error) {
             console.error('❌ Signup hatası:', {
