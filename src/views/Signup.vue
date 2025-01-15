@@ -197,7 +197,7 @@ export default {
 
         const response = await axios({
           method: 'POST',
-          url: '/api/signup',
+          url: 'http://flowbridge.us-e2.cloudhub.io/api/addUser',
           params: {
             client_id: '6f0b2e5229c7455091966ef898fd6f68',
             client_secret: '8041a365CDfb448c88a7780b7699A6aC'
@@ -219,7 +219,7 @@ export default {
 
         console.log('API Response:', response.data);
 
-        if (response.data && response.data.Status === 'Failed') {
+        if (response.ndata && respose.data.Status === 'Failed') {
           console.error('Registration failed:', response.data);
           this.showNotification(response.data.Message || 'Kayıt işlemi başarısız oldu', 'error');
         } else if (response.data && response.data.Status === 'Success') {
