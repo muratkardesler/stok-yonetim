@@ -81,43 +81,45 @@ export default {
         remember: false
       },
       showPassword: false,
-      loading: false
+      loading: false,
+      error: null
     }
   },
   methods: {
     async handleLogin() {
-      this.loading = true;
       try {
+        this.loading = true;
+        this.error = null;
+
+        console.log('Login isteği gönderiliyor:', {
+          email: this.form.email,
+          hasPassword: !!this.form.password
+        });
+
         const response = await authService.login({
           email: this.form.email,
           password: this.form.password
         });
 
-        console.log('Login Response:', response);
+        console.log('Login başarılı:', response);
 
-        if (response.status === 'success') {
-          // Kullanıcı bilgilerini sakla
-          const storage = this.form.remember ? localStorage : sessionStorage;
-          storage.setItem('userEmail', this.form.email);
-          storage.setItem('isLoggedIn', 'true');
-          if (response.data.user) {
-            storage.setItem('userData', JSON.stringify(response.data.user));
-          }
-
-          // Dashboard'a yönlendir
-          this.$router.push('/dashboard');
+        // Remember me seçeneğine göre oturum bilgisini sakla
+        if (this.form.remember) {
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('user', JSON.stringify(response.user));
+        } else {
+          sessionStorage.setItem('isLoggedIn', 'true');
+          sessionStorage.setItem('user', JSON.stringify(response.user));
         }
+
+        console.log('Oturum bilgileri kaydedildi, dashboard\'a yönlendiriliyor...');
+
+        // Dashboard'a yönlendir
+        await this.router.push({ name: 'Dashboard' });
+        
       } catch (error) {
-        console.error('Login error:', error);
-        let errorMessage = 'Giriş işlemi sırasında bir hata oluştu';
-        
-        if (error.response?.data?.Message) {
-          errorMessage = error.response.data.Message;
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        alert(errorMessage);
+        console.error('Login hatası:', error);
+        this.error = error.response?.data?.message || 'Giriş sırasında bir hata oluştu';
       } finally {
         this.loading = false;
       }
