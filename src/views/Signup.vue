@@ -212,8 +212,8 @@ export default {
             email: this.form.email,
             companyName: this.form.company,
             contactInfo: this.form.phone.replace(/\D/g, ''),
-            role: this.form.role,
-            address: this.form.address
+            role: 'User',
+            address: 'Turkey'
           }
         });
 
