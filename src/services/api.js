@@ -69,7 +69,7 @@ export const authService = {
             // İsteği gönder
             const response = await axios({
                 method: 'post',
-                url: `/api/addUser?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
+                url: `/api/register?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
                 headers: {
                     'Content-Type': 'application/json'
                 },

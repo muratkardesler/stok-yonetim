@@ -197,7 +197,7 @@ export default {
 
         const response = await axios({
           method: 'POST',
-          url: '/api/signup',
+          url: '/api/register',
           params: {
             client_id: '6f0b2e5229c7455091966ef898fd6f68',
             client_secret: '8041a365CDfb448c88a7780b7699A6aC'

@@ -1,6 +1,12 @@
 <template>
   <div class="login-container">
     <div class="login-card">
+      <!-- Notification -->
+      <div v-if="notification.show" 
+           :class="['notification', notification.type]">
+        {{ notification.message }}
+      </div>
+      
       <div class="login-header">
         <h2>Hoş Geldiniz</h2>
         <p>Stok yönetim sisteminize giriş yapın</p>
@@ -82,10 +88,25 @@ export default {
       },
       showPassword: false,
       loading: false,
-      error: null
+      error: null,
+      notification: {
+        show: false,
+        message: '',
+        type: 'success'
+      }
     }
   },
   methods: {
+    showNotification(message, type = 'success') {
+      this.notification = {
+        show: true,
+        message,
+        type
+      };
+      setTimeout(() => {
+        this.notification.show = false;
+      }, 3000);
+    },
     async handleLogin() {
       try {
         this.loading = true;
@@ -103,6 +124,9 @@ export default {
 
         console.log('Login başarılı:', response);
 
+        // Başarılı giriş mesajı göster
+        this.showNotification('Başarıyla giriş yaptınız! Yönlendiriliyorsunuz...', 'success');
+
         // Remember me seçeneğine göre oturum bilgisini sakla
         if (this.form.remember) {
           localStorage.setItem('isLoggedIn', 'true');
@@ -112,14 +136,15 @@ export default {
           sessionStorage.setItem('user', JSON.stringify(response.data.user));
         }
 
-        console.log('Oturum bilgileri kaydedildi, dashboard\'a yönlendiriliyor...');
-
-        // Dashboard'a yönlendir
-        await this.router.push({ name: 'Dashboard' });
+        // 1 saniye bekleyip yönlendir
+        setTimeout(async () => {
+          await this.router.push({ name: 'Dashboard' });
+        }, 1000);
         
       } catch (error) {
         console.error('Login hatası:', error);
-        this.error = error.response?.data?.message || 'Giriş sırasında bir hata oluştu';
+        const errorMessage = error.response?.data?.message || 'Kullanıcı adı veya şifre hatalı';
+        this.showNotification(errorMessage, 'error');
       } finally {
         this.loading = false;
       }
@@ -263,6 +288,39 @@ export default {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
+  }
+}
+
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 25px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  animation: slideIn 0.3s ease-out;
+  z-index: 1000;
+}
+
+.notification.success {
+  background-color: #10B981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.notification.error {
+  background-color: #EF4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }
 </style> 
