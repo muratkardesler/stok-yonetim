@@ -23,9 +23,14 @@ router.post('/login', async (req, res) => {
 
         // İstek verilerini hazırla
         const data = {
-            Email: req.body.email,
-            Password: req.body.password
+            email: req.body.email,
+            password: req.body.password
         };
+
+        console.log('MuleSoft\'a gönderilen veri:', {
+            ...data,
+            password: '***'
+        });
 
         // İsteği gönder
         const response = await axios({
@@ -54,11 +59,11 @@ router.post('/login', async (req, res) => {
             data: {
                 token: response.data.Token,
                 user: {
-                    email: req.body.email,
+                    email: response.data.Email?.[0],
                     username: response.data.Username?.[0],
-                    company: response.data.CompanyName?.[0],
-                    role: response.data.Role?.[0]
-                }
+                    created: response.data.Created?.[0]
+                },
+                message: response.data.Message
             }
         };
 
@@ -92,14 +97,19 @@ router.post('/signup', async (req, res) => {
 
         // İstek verilerini hazırla
         const data = {
-            Username: req.body.username,
-            Password: req.body.password,
-            Email: req.body.email,
-            CompanyName: req.body.company,
-            ContactInfo: req.body.phone?.replace(/\D/g, ''),
-            Role: 'User',
-            Address: 'Turkey'
+            username: req.body.username,
+            password: req.body.password,
+            email: req.body.email,
+            companyName: req.body.company,
+            contactInfo: req.body.phone?.replace(/\D/g, ''),
+            role: 'User',
+            address: 'Turkey'
         };
+
+        console.log('MuleSoft\'a gönderilen veri:', {
+            ...data,
+            password: '***'
+        });
 
         // İsteği gönder
         const response = await axios({
@@ -132,7 +142,8 @@ router.post('/signup', async (req, res) => {
                     username: req.body.username,
                     company: req.body.company,
                     role: 'User'
-                }
+                },
+                message: response.data.Message
             }
         };
 
