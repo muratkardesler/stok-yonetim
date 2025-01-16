@@ -129,7 +129,8 @@ export default {
           const userData = {
             username: response.Username?.[0],
             email: response.Email?.[0],
-            created: response.Created?.[0]
+            created: response.Created?.[0],
+            companyId: response.CompanyId?.[0]
           };
 
           // Remember me seçeneğine göre oturum bilgisini sakla

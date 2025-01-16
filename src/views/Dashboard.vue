@@ -166,69 +166,30 @@ import Chart from 'chart.js/auto';
 
 export default {
   name: 'Dashboard',
-  data() {
-    return {
-      currentDate: new Date().toLocaleDateString('tr-TR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
-      username: '',
-      userEmail: '',
-      trialDaysLeft: 14,
-      chartInstance: null
-    }
-  },
-  beforeDestroy() {
-    // Chart instance'ını temizle
-    if (this.chartInstance) {
-      this.chartInstance.destroy();
-      this.chartInstance = null;
-    }
-  },
-  created() {
-    // Kullanıcı bilgilerini localStorage'dan al
-    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-    this.username = userData.username || 'Kullanıcı';
-    this.userEmail = userData.email || '';
-  },
-  methods: {
-    async handleLogout() {
-      try {
-        // Chart instance'ını temizle
-        if (this.chartInstance) {
-          this.chartInstance.destroy();
-          this.chartInstance = null;
-        }
-
-        // Local storage'ı temizle
-        localStorage.removeItem('token');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('userData');
-        sessionStorage.removeItem('isLoggedIn');
-        
-        // Ana sayfaya yönlendir
-        await this.$router.push({ name: 'Home' });
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
-    }
-  },
   setup() {
     const router = useRouter();
     const isMenuCollapsed = ref(false);
     const trialDaysLeft = ref(14);
-    const userName = ref('Berna');
+    const userData = ref(JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || '{}'));
+    const userName = ref(userData.value.username || 'Kullanıcı');
+    const userEmail = ref(userData.value.email || '');
+    const companyId = ref(userData.value.CompanyId);
     const userAvatar = ref('https://via.placeholder.com/32');
     const categoryChart = ref(null);
     const chartInstance = ref(null);
+    const totalReceivables = ref(0);
+    const receivablesProgress = ref(0);
+    const overdueAmount = ref(0);
+    const overdueCount = ref(0);
+    const unplannedAmount = ref(0);
+    const unplannedCount = ref(0);
+    const totalPayables = ref(0);
+    const payablesProgress = ref(0);
+    const monthlyVAT = ref(0);
+    const vatIncrease = ref(0);
 
     // Örnek kategori verileri (gerçek verilerle değiştirilecek)
-    const categoryData = ref([
-      { name: 'Yüzük', count: 80 },
-      { name: 'Kolye', count: 30 }
-    ]);
+    const categoryData = ref([]);
 
     const chartColors = [
       '#4F46E5', // Primary color
@@ -247,7 +208,8 @@ export default {
     };
 
     const createChart = () => {
-      const ctx = categoryChart.value.getContext('2d');
+      const ctx = categoryChart.value?.getContext('2d');
+      if (!ctx) return;
       
       if (chartInstance.value) {
         chartInstance.value.destroy();
@@ -286,13 +248,28 @@ export default {
       });
     };
 
+    const fetchCategories = async () => {
+      try {
+        // API'den kategorileri çek
+        const response = await fetch(`https://api.example.com/categories?companyId=${companyId.value}`);
+        const data = await response.json();
+        categoryData.value = data;
+        createChart();
+      } catch (error) {
+        console.error('Kategoriler yüklenirken hata:', error);
+      }
+    };
+
     onMounted(() => {
-      // Chart oluştur
-      createChart();
+      if (companyId.value) {
+        fetchCategories();
+      }
 
       // Örnek: Her 5 saniyede bir verileri güncelle
       const interval = setInterval(() => {
-        createChart();
+        if (companyId.value) {
+          fetchCategories();
+        }
       }, 5000);
 
       onUnmounted(() => {
@@ -303,6 +280,25 @@ export default {
         }
       });
     });
+
+    const handleLogout = async () => {
+      try {
+        if (chartInstance.value) {
+          chartInstance.value.destroy();
+          chartInstance.value = null;
+        }
+
+        localStorage.removeItem('token');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userData');
+        sessionStorage.removeItem('isLoggedIn');
+        
+        await router.push({ name: 'Home' });
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    };
 
     const toggleMenu = () => {
       isMenuCollapsed.value = !isMenuCollapsed.value;
@@ -319,13 +315,26 @@ export default {
       isMenuCollapsed,
       trialDaysLeft,
       userName,
+      userEmail,
+      companyId,
       userAvatar,
       categoryChart,
       categoryData,
       chartColors,
       toggleMenu,
       formatCurrency,
-      calculatePercentage
+      calculatePercentage,
+      handleLogout,
+      totalReceivables,
+      receivablesProgress,
+      overdueAmount,
+      overdueCount,
+      unplannedAmount,
+      unplannedCount,
+      totalPayables,
+      payablesProgress,
+      monthlyVAT,
+      vatIncrease
     };
   }
 };

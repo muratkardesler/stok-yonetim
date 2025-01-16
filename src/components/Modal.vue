@@ -1,23 +1,41 @@
 <template>
-  <div class="modal-overlay" @click="$emit('close')">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <slot name="header"></slot>
-        <button class="close-btn" @click="$emit('close')">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      
-      <div class="modal-body">
-        <slot name="body"></slot>
-      </div>
-      
-      <div class="modal-footer">
-        <slot name="footer"></slot>
+  <Transition name="modal">
+    <div v-if="modelValue" class="modal-overlay" @click="closeModal">
+      <div class="modal-container" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">{{ title }}</h3>
+          <button class="modal-close" @click="closeModal">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-content">
+          <slot></slot>
+        </div>
       </div>
     </div>
-  </div>
+  </Transition>
 </template>
+
+<script>
+export default {
+  name: 'Modal',
+  props: {
+    modelValue: {
+      type: Boolean,
+      required: true
+    },
+    title: {
+      type: String,
+      default: ''
+    }
+  },
+  methods: {
+    closeModal() {
+      this.$emit('update:modelValue', false);
+    }
+  }
+};
+</script>
 
 <style scoped>
 .modal-overlay {
@@ -26,47 +44,84 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 1000;
+  align-items: center;
+  z-index: 50;
 }
 
-.modal-content {
-  background: white;
-  border-radius: 12px;
+.modal-container {
+  background-color: white;
+  border-radius: 0.5rem;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .modal-header {
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.modal-body {
-  padding: 1rem;
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
 }
 
-.modal-footer {
-  padding: 1rem;
-  border-top: 1px solid #eee;
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.close-btn {
+.modal-close {
   background: none;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
+  color: #6b7280;
   cursor: pointer;
-  color: #666;
+  padding: 0.5rem;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #1f2937;
+}
+
+.modal-content {
+  padding: 1.5rem;
+}
+
+/* Modal Transitions */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+/* Dark Mode */
+:deep(.dark) .modal-container {
+  background-color: #1f2937;
+}
+
+:deep(.dark) .modal-header {
+  border-bottom-color: #374151;
+}
+
+:deep(.dark) .modal-title {
+  color: #f3f4f6;
+}
+
+:deep(.dark) .modal-close {
+  color: #9ca3af;
+}
+
+:deep(.dark) .modal-close:hover {
+  color: #f3f4f6;
 }
 </style> 
