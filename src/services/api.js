@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const CLIENT_ID = '6f0b2e5229c7455091966ef898fd6f68';
 const CLIENT_SECRET = '8041a365CDfb448c88a7780b7699A6aC';
+const BASE_URL = 'https://flowbridge.us-e2.cloudhub.io';
 
 // Auth servisi
 export const authService = {
@@ -21,7 +22,7 @@ export const authService = {
             // İsteği gönder
             const response = await axios({
                 method: 'post',
-                url: `/api/login?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
+                url: `${BASE_URL}/api/login?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -57,19 +58,19 @@ export const authService = {
 
             // İstek verilerini hazırla
             const data = {
-                Username: userData.username,
-                Password: userData.password,
-                Email: userData.email,
-                CompanyName: userData.company,
-                ContactInfo: userData.phone?.replace(/\D/g, ''),
-                Role: 'User',
-                Address: 'Turkey'
+                username: userData.username,
+                passwordHash: userData.password,
+                email: userData.email,
+                companyName: userData.company,
+                contactInfo: userData.phone?.replace(/\D/g, ''),
+                role: 'User',
+                address: 'Turkey'
             };
 
             // İsteği gönder
             const response = await axios({
                 method: 'post',
-                url: `/api/signup?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
+                url: `${BASE_URL}/api/addUser?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
                 headers: {
                     'Content-Type': 'application/json'
                 },
