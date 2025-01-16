@@ -124,26 +124,39 @@ export default {
 
         console.log('Login başarılı:', response);
 
-        // Başarılı giriş mesajı göster
-        this.showNotification('Başarıyla giriş yaptınız! Yönlendiriliyorsunuz...', 'success');
+        if (response.Status === 'Success') {
+          // Kullanıcı bilgilerini sakla
+          const userData = {
+            username: response.Username?.[0],
+            email: response.Email?.[0],
+            created: response.Created?.[0]
+          };
 
-        // Remember me seçeneğine göre oturum bilgisini sakla
-        if (this.form.remember) {
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('user', JSON.stringify(response.data.user));
+          // Remember me seçeneğine göre oturum bilgisini sakla
+          if (this.form.remember) {
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userData', JSON.stringify(userData));
+          } else {
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('userData', JSON.stringify(userData));
+          }
+
+          // Başarılı mesajını göster
+          this.showNotification(response.Message || 'Başarıyla giriş yaptınız! Yönlendiriliyorsunuz...', 'success');
+
+          // 1 saniye bekleyip yönlendir
+          setTimeout(async () => {
+            await this.router.push({ name: 'Dashboard' });
+          }, 1000);
         } else {
-          sessionStorage.setItem('isLoggedIn', 'true');
-          sessionStorage.setItem('user', JSON.stringify(response.data.user));
+          throw new Error(response.Message || 'Giriş başarısız');
         }
-
-        // 1 saniye bekleyip yönlendir
-        setTimeout(async () => {
-          await this.router.push({ name: 'Dashboard' });
-        }, 1000);
-        
       } catch (error) {
         console.error('Login hatası:', error);
-        const errorMessage = error.response?.data?.message || 'Kullanıcı adı veya şifre hatalı';
+        const errorMessage = error.response?.data?.Message || 
+                           error.response?.data?.message || 
+                           error.message || 
+                           'Kullanıcı adı veya şifre hatalı';
         this.showNotification(errorMessage, 'error');
       } finally {
         this.loading = false;

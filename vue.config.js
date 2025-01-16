@@ -4,8 +4,9 @@ module.exports = {
         port: 8085,
         proxy: {
             '/api': {
-                target: 'http://flowbridge.us-e2.cloudhub.io',
+                target: 'https://flowbridge.us-e2.cloudhub.io',
                 changeOrigin: true,
+                secure: false,
                 pathRewrite: {
                     '^/api': '/api'
                 }

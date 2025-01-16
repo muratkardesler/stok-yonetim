@@ -104,9 +104,7 @@
 
 <script>
 import axios from 'axios';
-
-// CORS proxy URL'i
-const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+import { authService } from '@/services/api';
 
 export default {
   name: 'Signup',
@@ -185,58 +183,36 @@ export default {
       this.isLoading = true;
 
       try {
-        console.log('Sending registration data:', {
+        const response = await authService.signup({
           username: this.form.username,
           password: this.form.password,
           company: this.form.company,
           phone: this.form.phone.replace(/\D/g, ''),
-          email: this.form.email,
-          role: this.form.role,
-          address: this.form.address
+          email: this.form.email
         });
 
-        const response = await axios({
-          method: 'POST',
-          url: 'http://flowbridge.us-e2.cloudhub.io/api/addUser',
-          params: {
-            client_id: '6f0b2e5229c7455091966ef898fd6f68',
-            client_secret: '8041a365CDfb448c88a7780b7699A6aC'
-          },
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          data: {
+        console.log('API Response:', response);
+
+        if (response.Status === 'Success') {
+          // Kullanıcı bilgilerini sakla
+          const userData = {
             username: this.form.username,
-            passwordHash: this.form.password,
-            email: this.form.email,
-            companyName: this.form.company,
-            contactInfo: this.form.phone.replace(/\D/g, ''),
-            role: 'User',
-            address: 'Turkey'
-          }
-        });
-
-        console.log('API Response:', response.data);
-
-        if (response.ndata && respose.data.Status === 'Failed') {
-          console.error('Registration failed:', response.data);
-          this.showNotification(response.data.Message || 'Kayıt işlemi başarısız oldu', 'error');
-        } else if (response.data && response.data.Status === 'Success') {
-          // Token ve kullanıcı bilgilerini sakla
-          localStorage.setItem('token', response.data.token);
-          localStorage.setItem('userEmail', this.form.email);
+            email: this.form.email
+          };
+          
+          // Oturum bilgilerini sakla
           localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('userData', JSON.stringify(response.data.user));
+          localStorage.setItem('userData', JSON.stringify(userData));
           
           // Başarılı mesajını göster
-          this.showNotification('Kayıt başarılı bir şekilde oluşturuldu');
+          this.showNotification(response.Message || 'Kayıt başarılı bir şekilde oluşturuldu');
           
-          // Doğrudan dashboard'a yönlendir
-          this.$router.push({ name: 'Dashboard' });
+          // Dashboard'a yönlendir
+          setTimeout(() => {
+            this.$router.push({ name: 'Dashboard' });
+          }, 1000);
         } else {
-          console.error('Unexpected response:', response.data);
-          throw new Error('Beklenmeyen bir yanıt alındı');
+          throw new Error(response.Message || 'Kayıt işlemi başarısız oldu');
         }
       } catch (error) {
         console.error('Registration error:', error);

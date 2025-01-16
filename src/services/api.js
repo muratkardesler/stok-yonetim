@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const CLIENT_ID = '6f0b2e5229c7455091966ef898fd6f68';
 const CLIENT_SECRET = '8041a365CDfb448c88a7780b7699A6aC';
-const BASE_URL = 'https://flowbridge.us-e2.cloudhub.io';
+const BASE_URL = process.env.NODE_ENV === 'development' ? '' : 'https://flowbridge.us-e2.cloudhub.io';
 
 // Auth servisi
 export const authService = {
@@ -29,16 +29,8 @@ export const authService = {
                 data: data
             });
 
-            console.log('✅ Yanıt alındı:', {
-                status: response.status,
-                data: response.data
-            });
-
-            if (response.data.status === 'success') {
-                return response.data;
-            } else {
-                throw new Error(response.data.message || 'Giriş başarısız');
-            }
+            console.log('✅ Yanıt alındı:', response.data);
+            return response.data;
         } catch (error) {
             console.error('❌ Login hatası:', {
                 message: error.message,
@@ -60,12 +52,17 @@ export const authService = {
             const data = {
                 username: userData.username,
                 passwordHash: userData.password,
-                email: userData.email,
                 companyName: userData.company,
                 contactInfo: userData.phone?.replace(/\D/g, ''),
-                role: 'User',
-                address: 'Turkey'
+                address: userData.address || 'Turkey',
+                role: userData.role || 'User',
+                email: userData.email
             };
+
+            console.log('MuleSoft\'a gönderilen veri:', {
+                ...data,
+                passwordHash: '***'
+            });
 
             // İsteği gönder
             const response = await axios({
@@ -77,16 +74,8 @@ export const authService = {
                 data: data
             });
 
-            console.log('✅ Yanıt alındı:', {
-                status: response.status,
-                data: response.data
-            });
-
-            if (response.data.status === 'success') {
-                return response.data;
-            } else {
-                throw new Error(response.data.message || 'Kayıt başarısız');
-            }
+            console.log('✅ Yanıt alındı:', response.data);
+            return response.data;
         } catch (error) {
             console.error('❌ Signup hatası:', {
                 message: error.message,

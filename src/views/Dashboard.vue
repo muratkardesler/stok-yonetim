@@ -175,26 +175,44 @@ export default {
       }),
       username: '',
       userEmail: '',
-      trialDaysLeft: 14
+      trialDaysLeft: 14,
+      chartInstance: null
+    }
+  },
+  beforeDestroy() {
+    // Chart instance'ını temizle
+    if (this.chartInstance) {
+      this.chartInstance.destroy();
+      this.chartInstance = null;
     }
   },
   created() {
     // Kullanıcı bilgilerini localStorage'dan al
     const userData = JSON.parse(localStorage.getItem('userData') || '{}');
     this.username = userData.username || 'Kullanıcı';
-    this.userEmail = localStorage.getItem('userEmail') || '';
+    this.userEmail = userData.email || '';
   },
   methods: {
-    handleLogout() {
-      // Local storage'ı temizle
-      localStorage.removeItem('token');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('userData');
-      sessionStorage.removeItem('isLoggedIn');
-      
-      // Ana sayfaya yönlendir
-      this.$router.push({ name: 'Home' });
+    async handleLogout() {
+      try {
+        // Chart instance'ını temizle
+        if (this.chartInstance) {
+          this.chartInstance.destroy();
+          this.chartInstance = null;
+        }
+
+        // Local storage'ı temizle
+        localStorage.removeItem('token');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userData');
+        sessionStorage.removeItem('isLoggedIn');
+        
+        // Ana sayfaya yönlendir
+        await this.$router.push({ name: 'Home' });
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
     }
   },
   setup() {
@@ -274,7 +292,6 @@ export default {
 
       // Örnek: Her 5 saniyede bir verileri güncelle
       const interval = setInterval(() => {
-        // Burada gerçek veri güncelleme mantığı olacak
         createChart();
       }, 5000);
 
@@ -282,6 +299,7 @@ export default {
         clearInterval(interval);
         if (chartInstance.value) {
           chartInstance.value.destroy();
+          chartInstance.value = null;
         }
       });
     });
