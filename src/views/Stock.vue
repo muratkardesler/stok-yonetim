@@ -306,7 +306,7 @@ export default {
   setup() {
     const router = useRouter();
     const userData = ref(JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || '{}'));
-    const companyId = ref(userData.value.CompanyId);
+    const companyId = localStorage.getItem("companyIdva");
     const categories = ref([]);
     const products = ref([]);
     const selectedCategory = ref(null);

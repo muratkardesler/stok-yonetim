@@ -123,16 +123,16 @@ export default {
         });
 
         console.log('Login başarılı:', response);
-
+        localStorage.setItem('companyIdva', response.CompanyId);
         if (response.Status === 'Success') {
           // Kullanıcı bilgilerini sakla
           const userData = {
+            companyId: response.CompanyId?.[0],
             username: response.Username?.[0],
             email: response.Email?.[0],
-            created: response.Created?.[0],
-            companyId: response.CompanyId?.[0]
+            created: response.Created?.[0]
           };
-
+          
           // Remember me seçeneğine göre oturum bilgisini sakla
           if (this.form.remember) {
             localStorage.setItem('isLoggedIn', 'true');
