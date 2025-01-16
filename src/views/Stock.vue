@@ -7,6 +7,16 @@
       </h1>
       
       <div class="flex space-x-4">
+        <!-- Refresh Button -->
+        <button 
+          @click="fetchData" 
+          class="btn btn-secondary"
+          :disabled="loading"
+        >
+          <i class="fas fa-sync-alt mr-2"></i>
+          {{ loading ? 'Yükleniyor...' : 'Yenile' }}
+        </button>
+
         <!-- Dark Mode Toggle -->
         <button 
           @click="toggleDarkMode" 
@@ -298,136 +308,167 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
+import Modal from '@/components/Modal.vue';
 
 export default {
   name: 'Stock',
+  components: {
+    Modal
+  },
   setup() {
+    const store = useStore();
     const router = useRouter();
-    const userData = ref(JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || '{}'));
-    const companyId = localStorage.getItem("companyIdva");
-    const categories = ref([]);
-    const products = ref([]);
-    const selectedCategory = ref(null);
+    
+    // State
+    const companyId = ref(localStorage.getItem('companyIdva'));
     const showAddCategoryModal = ref(false);
     const showAddProductModal = ref(false);
     const searchQuery = ref('');
     const selectedCategoryFilter = ref('');
     const isDarkMode = ref(localStorage.getItem('darkMode') === 'true');
     
+    // Dark mode watcher
+    watch(isDarkMode, (newValue) => {
+      if (newValue) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }, { immediate: true });
+
     const newCategory = ref({
       name: '',
-      description: '',
-      companyId: companyId.value
+      description: ''
     });
 
     const newProduct = ref({
       name: '',
       quantity: 0,
       price: 0,
-      description: '',
-      categoryId: '',
-      companyId: companyId.value
+      description: ''
     });
 
-    const fetchCategories = async () => {
-      try {
-        console.log('Fetching categories for companyId:', companyId.value);
-        const response = await fetch(`https://api.example.com/categories?companyId=${companyId.value}`);
-        const data = await response.json();
-        categories.value = data;
-      } catch (error) {
-        console.error('Kategoriler yüklenirken hata:', error);
-      }
-    };
+    // Computed Properties
+    const categories = computed(() => store.getters['stock/getCategories']);
+    const products = computed(() => store.getters['stock/getProducts']);
+    const selectedCategory = computed(() => store.getters['stock/getSelectedCategory']);
+    const loading = computed(() => store.getters['stock/getLoading']);
+    const error = computed(() => store.getters['stock/getError']);
+    const unsavedChanges = computed(() => store.getters['stock/getUnsavedChanges']);
 
-    const addCategory = async () => {
-      try {
-        console.log('Adding category with companyId:', companyId.value);
-        const response = await fetch('https://api.example.com/categories', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...newCategory.value,
-            companyId: companyId.value
-          })
-        });
-        
-        if (response.ok) {
-          await fetchCategories();
-          showAddCategoryModal.value = false;
-          newCategory.value = { name: '', description: '', companyId: companyId.value };
-        }
-      } catch (error) {
-        console.error('Kategori eklenirken hata:', error);
-      }
-    };
-
-    const addProduct = async () => {
-      try {
-        console.log('Adding product with companyId:', companyId.value);
-        const response = await fetch('https://api.example.com/products', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...newProduct.value,
-            companyId: companyId.value
-          })
-        });
-        
-        if (response.ok) {
-          await fetchProducts();
-          showAddProductModal.value = false;
-          newProduct.value = {
-            name: '',
-            quantity: 0,
-            price: 0,
-            description: '',
-            categoryId: '',
-            companyId: companyId.value
-          };
-        }
-      } catch (error) {
-        console.error('Ürün eklenirken hata:', error);
-      }
-    };
-
-    const fetchProducts = async () => {
-      try {
-        console.log('Fetching products for companyId:', companyId.value);
-        const response = await fetch(`https://api.example.com/products?companyId=${companyId.value}`);
-        const data = await response.json();
-        products.value = data;
-      } catch (error) {
-        console.error('Ürünler yüklenirken hata:', error);
-      }
-    };
-
-    onMounted(() => {
-      if (companyId.value) {
-        console.log('Component mounted with companyId:', companyId.value);
-        fetchCategories();
-        fetchProducts();
-      } else {
-        console.error('CompanyId not found in user data');
-      }
+    const filteredCategories = computed(() => {
+      if (!searchQuery.value) return categories.value;
+      return categories.value.filter(cat => 
+        cat.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        cat.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
+      );
     });
 
+    const filteredProducts = computed(() => {
+      let filtered = products.value;
+      if (selectedCategory.value) {
+        filtered = filtered.filter(p => p.categoryId === selectedCategory.value.id);
+      }
+      if (searchQuery.value) {
+        filtered = filtered.filter(p => 
+          p.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+          p.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
+        );
+      }
+      return filtered;
+    });
+
+    // Methods
     const toggleDarkMode = () => {
       isDarkMode.value = !isDarkMode.value;
       localStorage.setItem('darkMode', isDarkMode.value);
     };
 
+    const selectCategory = (category) => {
+      store.dispatch('stock/selectCategory', category);
+    };
+
+    async function addCategory() {
+      if (!newCategory.value.name || !newCategory.value.description) {
+        return;
+      }
+
+      try {
+        const response = await store.dispatch('stock/addCategory', {
+          category: {
+            name: newCategory.value.name,
+            description: newCategory.value.description
+          },
+          companyId: companyId.value
+        });
+
+        if (response.Status === 'Success') {
+          // Reset form and close modal
+          newCategory.value = { name: '', description: '' };
+          showAddCategoryModal.value = false;
+          
+          // Show success message
+          alert(response.Message || 'Kategori başarıyla eklendi');
+        }
+      } catch (error) {
+        console.error('Error adding category:', error);
+        alert(error.message || 'Kategori eklenirken bir hata oluştu');
+      }
+    }
+
+    const addProduct = async () => {
+      try {
+        if (!newProduct.value.name.trim()) {
+          throw new Error('Ürün adı zorunludur');
+        }
+        if (!selectedCategory.value) {
+          throw new Error('Lütfen bir kategori seçin');
+        }
+        
+        const product = {
+          ...newProduct.value,
+          categoryId: selectedCategory.value.id
+        };
+        
+        await store.dispatch('stock/addProduct', product);
+        showAddProductModal.value = false;
+        newProduct.value = { name: '', quantity: 0, price: 0, description: '' };
+      } catch (error) {
+        console.error('Ürün eklenirken hata:', error);
+      }
+    };
+
+    const getProductCountByCategory = (categoryId) => {
+      return products.value.filter(p => p.categoryId === categoryId).length;
+    };
+
+    const formatPrice = (price) => {
+      return new Intl.NumberFormat('tr-TR', {
+        style: 'currency',
+        currency: 'TRY'
+      }).format(price);
+    };
+
+    // Lifecycle Hooks
+    onMounted(() => {
+      // Sadece dark mode kontrolü yap
+      if (isDarkMode.value) {
+        document.documentElement.classList.add('dark');
+      }
+    });
+
+    // Kategorileri getirmek için yeni method - şimdilik boş bırakıyoruz
+    const fetchData = async () => {
+      // API hazır olduğunda burada kategorileri getireceğiz
+      console.log('Kategorileri getirme özelliği henüz hazır değil');
+    };
+
     return {
+      // State
       companyId,
-      categories,
-      products,
-      selectedCategory,
       showAddCategoryModal,
       showAddProductModal,
       searchQuery,
@@ -435,12 +476,39 @@ export default {
       isDarkMode,
       newCategory,
       newProduct,
+
+      // Computed
+      categories: filteredCategories,
+      products: filteredProducts,
+      selectedCategory,
+      loading,
+      error,
+      unsavedChanges,
+
+      // Methods
+      toggleDarkMode,
+      selectCategory,
       addCategory,
       addProduct,
-      fetchCategories,
-      fetchProducts,
-      toggleDarkMode
+      getProductCountByCategory,
+      formatPrice,
+      fetchData
     };
   }
 };
-</script> 
+</script>
+
+<style>
+/* Dark mode styles */
+:root {
+  --primary-color: #4F46E5;
+  --secondary-color: #06B6D4;
+}
+
+.dark {
+  --primary-color: #818CF8;
+  --secondary-color: #22D3EE;
+}
+
+/* ... rest of the styles ... */
+</style> 
