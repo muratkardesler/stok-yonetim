@@ -10,6 +10,9 @@ export default {
   },
 
   mutations: {
+    SET_CATEGORIES(state, categories) {
+      state.categories = categories;
+    },
     ADD_CATEGORY(state, category) {
       state.categories.push(category);
     },
@@ -22,7 +25,43 @@ export default {
   },
 
   actions: {
-    async addCategory({ commit }, { category, companyId }) {
+    async fetchCategories({ commit }, companyId) {
+      try {
+        commit('SET_LOADING', true);
+        console.log('Fetching categories for CompanyId:', companyId);
+        
+        const url = `/categories?CompanyId=${companyId}&client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`;
+        console.log('Request URL:', url);
+        
+        const response = await axios({
+          method: 'get',
+          url: url,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('Categories response:', response.data);
+        
+        if (Array.isArray(response.data)) {
+          commit('SET_CATEGORIES', response.data);
+        } else {
+          console.error('Invalid response format:', response.data);
+          commit('SET_CATEGORIES', []);
+        }
+      } catch (error) {
+        console.error('Kategoriler yüklenirken hata:', error);
+        console.error('Error response:', error.response?.data);
+        console.error('Error config:', error.config);
+        commit('SET_ERROR', error.message);
+        commit('SET_CATEGORIES', []);
+      } finally {
+        commit('SET_LOADING', false);
+      }
+    },
+
+    async addCategory({ commit, dispatch }, { category, companyId }) {
       try {
         commit('SET_LOADING', true);
         const response = await axios.post(`/categories?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, {
@@ -32,11 +71,8 @@ export default {
         });
 
         if (response.data?.Status === 'Success') {
-          // Başarılı yanıt durumunda kategoriyi state'e ekle
-          commit('ADD_CATEGORY', {
-            id: Date.now(), // Geçici bir ID
-            ...category
-          });
+          // Kategorileri yeniden yükle
+          await dispatch('fetchCategories', companyId);
           return response.data;
         } else {
           throw new Error(response.data?.Message || 'Kategori eklenemedi');

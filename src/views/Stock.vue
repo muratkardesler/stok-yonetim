@@ -101,23 +101,23 @@
     <!-- Categories Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
       <div 
-        v-for="category in filteredCategories" 
-        :key="category.id"
+        v-for="category in categories" 
+        :key="category.CategoryId"
         class="card card-hover cursor-pointer"
-        :class="{ 'ring-2 ring-primary-500': selectedCategory?.id === category.id }"
+        :class="{ 'ring-2 ring-primary-500': selectedCategory?.CategoryId === category.CategoryId }"
         @click="selectCategory(category)"
       >
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-            {{ category.name }}
+            {{ category.Name }}
           </h3>
-          <span class="bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-100 px-3 py-1 rounded-full text-sm">
-            {{ getProductCountByCategory(category.id) }} ürün
-          </span>
         </div>
         <p class="text-gray-600 dark:text-gray-300 text-sm">
-          {{ category.description || 'Açıklama yok' }}
+          {{ category.Description || 'Açıklama yok' }}
         </p>
+        <div class="text-xs text-gray-500 mt-2">
+          Oluşturulma: {{ new Date(category.CreatedAt).toLocaleDateString('tr-TR') }}
+        </div>
       </div>
     </div>
 
@@ -324,6 +324,7 @@ export default {
     
     // State
     const companyId = ref(localStorage.getItem('companyIdva'));
+    console.log('Initial CompanyId:', companyId.value); // Debug log
     const showAddCategoryModal = ref(false);
     const showAddProductModal = ref(false);
     const searchQuery = ref('');
@@ -352,8 +353,19 @@ export default {
     });
 
     // Computed Properties
-    const categories = computed(() => store.getters['stock/getCategories']);
-    const products = computed(() => store.getters['stock/getProducts']);
+    const categories = computed(() => {
+      const allCategories = store.getters['stock/getCategories'];
+      if (!searchQuery.value) return allCategories;
+      
+      return allCategories.filter(cat => 
+        cat.Name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        (cat.Description && cat.Description.toLowerCase().includes(searchQuery.value.toLowerCase()))
+      );
+    });
+
+    // Products array'ini boş array olarak başlat
+    const products = ref([]);
+
     const selectedCategory = computed(() => store.getters['stock/getSelectedCategory']);
     const loading = computed(() => store.getters['stock/getLoading']);
     const error = computed(() => store.getters['stock/getError']);
@@ -442,7 +454,10 @@ export default {
     };
 
     const getProductCountByCategory = (categoryId) => {
-      return products.value.filter(p => p.categoryId === categoryId).length;
+      // Şimdilik her kategori için 0 döndür
+      return 0;
+      // İleride products API hazır olduğunda bu kısmı aktif edeceğiz
+      // return products.value.filter(p => p.CategoryId === categoryId).length;
     };
 
     const formatPrice = (price) => {
@@ -453,17 +468,37 @@ export default {
     };
 
     // Lifecycle Hooks
-    onMounted(() => {
-      // Sadece dark mode kontrolü yap
+    onMounted(async () => {
+      // Dark mode kontrolü
       if (isDarkMode.value) {
         document.documentElement.classList.add('dark');
       }
+
+      // CompanyId kontrolü ve kategorileri getirme
+      if (companyId.value) {
+        console.log('Mounting with CompanyId:', companyId.value); // Debug log
+        try {
+          await store.dispatch('stock/fetchCategories', companyId.value);
+        } catch (error) {
+          console.error('Kategoriler yüklenirken hata:', error);
+        }
+      } else {
+        console.error('CompanyId bulunamadı');
+      }
     });
 
-    // Kategorileri getirmek için yeni method - şimdilik boş bırakıyoruz
+    // Kategorileri yenileme methodu
     const fetchData = async () => {
-      // API hazır olduğunda burada kategorileri getireceğiz
-      console.log('Kategorileri getirme özelliği henüz hazır değil');
+      if (!companyId.value) {
+        console.error('CompanyId bulunamadı');
+        return;
+      }
+
+      try {
+        await store.dispatch('stock/fetchCategories', companyId.value);
+      } catch (error) {
+        console.error('Kategoriler yüklenirken hata:', error);
+      }
     };
 
     return {
