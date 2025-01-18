@@ -112,6 +112,22 @@
                 <i class="fas fa-box-open text-6xl"></i>
               </div>
 
+              <!-- Action Buttons -->
+              <div class="absolute top-4 right-4 flex space-x-2">
+                <button 
+                  class="action-btn-small edit-btn-light"
+                  @click.stop="editCategory(category)"
+                >
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button 
+                  class="action-btn-small delete-btn-light"
+                  @click.stop="confirmDeleteCategory(category)"
+                >
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </div>
+
               <!-- Category Icon and Name -->
               <div class="flex-grow flex flex-col items-center justify-center mb-4">
                 <div class="bg-primary-50 w-16 h-16 rounded-xl flex items-center justify-center mb-4">
@@ -148,7 +164,7 @@
             <!-- Back Side -->
             <div class="flip-card-back bg-primary-500 text-white rounded-xl shadow-sm p-6 flex flex-col">
               <!-- Header with Category Name and Creation Date -->
-              <div class="mb-6">
+              <div class="mb-4">
                 <div class="flex items-center justify-between">
                   <h3 class="text-xl font-bold card-title">{{ category.Name }}</h3>
                   <button 
@@ -164,8 +180,8 @@
                 </p>
               </div>
 
-              <!-- Category Description - Centered -->
-              <div class="flex-1 flex flex-col justify-center">
+              <!-- Category Description -->
+              <div class="flex-1">
                 <div class="card-description">
                   <p class="description-text">
                     {{ category.Description || 'Bu kategori için henüz bir açıklama eklenmemiş.' }}
@@ -173,10 +189,10 @@
                 </div>
               </div>
 
-              <!-- Add Product Button -->
-              <div class="mt-6">
+              <!-- Action Button -->
+              <div class="mt-4">
                 <button 
-                  class="add-product-btn"
+                  class="add-product-btn w-full"
                   @click.stop="showAddProductModal = true"
                 >
                   <i class="fas fa-plus mr-2"></i>
@@ -185,6 +201,164 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Kategori Düzenle</h3>
+          <button @click="showEditModal = false" class="text-gray-400 hover:text-gray-500">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Kategori Adı</label>
+            <input 
+              type="text" 
+              v-model="editingCategory.Name"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Açıklama</label>
+            <div class="relative">
+              <textarea 
+                v-model="editingCategory.Description"
+                rows="3"
+                maxlength="50"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              ></textarea>
+              <div class="absolute bottom-2 right-2 text-xs text-gray-500">
+                {{ editingCategory.Description?.length || 0 }}/50
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button 
+            @click="showEditModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            İptal
+          </button>
+          <button 
+            @click="saveCategory"
+            class="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-md hover:bg-primary-600"
+          >
+            Kaydet
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Kategori Silme Onayı</h3>
+          <button @click="showDeleteModal = false" class="text-gray-400 hover:text-gray-500">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <p class="text-gray-600">
+            <strong class="text-red-500">"{{ deletingCategory?.Name }}"</strong> kategorisini silmek istediğinize emin misiniz?
+          </p>
+          
+          <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                  Bu işlem geri alınamaz. Kategoriyi sildiğinizde:
+                </p>
+                <ul class="mt-2 text-sm text-yellow-700 list-disc list-inside">
+                  <li>Kategoriye ait tüm ürünler silinecektir</li>
+                  <li>İlgili tüm raporlar ve istatistikler etkilenecektir</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button 
+            @click="showDeleteModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Vazgeç
+          </button>
+          <button 
+            @click="deleteCategory"
+            class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Evet, Sil
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div v-if="showAddCategoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Yeni Kategori Ekle</h3>
+          <button @click="showAddCategoryModal = false" class="text-gray-400 hover:text-gray-500">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Kategori Adı</label>
+            <input 
+              type="text" 
+              v-model="newCategory.name"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              placeholder="Kategori adını girin"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Açıklama</label>
+            <div class="relative">
+              <textarea 
+                v-model="newCategory.description"
+                rows="3"
+                maxlength="50"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="Kategori açıklamasını girin"
+                @input="checkDescriptionLength"
+              ></textarea>
+              <div class="absolute bottom-2 right-2 text-xs text-gray-500">
+                {{ newCategory.description.length }}/50
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button 
+            @click="showAddCategoryModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            İptal
+          </button>
+          <button 
+            @click="addCategory"
+            class="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-md hover:bg-primary-600"
+            :disabled="isSaving"
+          >
+            {{ isSaving ? 'Ekleniyor...' : 'Ekle' }}
+          </button>
         </div>
       </div>
     </div>
@@ -487,6 +661,78 @@ export default {
       }
     };
 
+    const showEditModal = ref(false);
+    const editingCategory = ref({
+      CategoryId: null,
+      Name: '',
+      Description: ''
+    });
+
+    const editCategory = (category) => {
+      editingCategory.value = { ...category };
+      showEditModal.value = true;
+    };
+
+    const saveCategory = async () => {
+      try {
+        const response = await store.dispatch('stock/updateCategory', {
+          category: editingCategory.value,
+          companyId: companyId.value
+        });
+
+        if (response.success) {
+          toast.info(`${response.message}`, {
+            timeout: 3000,
+            position: "top-right",
+            icon: "✨",
+            closeOnClick: true,
+            theme: "colored"
+          });
+          showEditModal.value = false;
+        }
+      } catch (error) {
+        toast.error(`Kategori güncellenirken bir hata oluştu: ${error.message}`, {
+          timeout: 4000,
+          position: "top-right",
+          icon: "⚠️"
+        });
+      }
+    };
+
+    const showDeleteModal = ref(false);
+    const deletingCategory = ref(null);
+
+    const confirmDeleteCategory = (category) => {
+      deletingCategory.value = category;
+      showDeleteModal.value = true;
+    };
+
+    const deleteCategory = async () => {
+      try {
+        const response = await store.dispatch('stock/deleteCategory', {
+          categoryId: deletingCategory.value.CategoryId,
+          companyId: companyId.value
+        });
+
+        if (response.success) {
+          toast.error(`🗑️ ${response.message}`, {
+            timeout: 3000,
+            position: "top-right",
+            icon: "✅",
+            closeOnClick: true,
+            theme: "colored"
+          });
+          showDeleteModal.value = false;
+        }
+      } catch (error) {
+        toast.error(`Kategori silinirken bir hata oluştu: ${error.message}`, {
+          timeout: 4000,
+          position: "top-right",
+          icon: "⚠️"
+        });
+      }
+    };
+
     return {
       // State
       companyId,
@@ -521,6 +767,14 @@ export default {
       checkDescriptionLength,
       flippedCardId,
       toggleCard,
+      editCategory,
+      confirmDeleteCategory,
+      showEditModal,
+      editingCategory,
+      saveCategory,
+      showDeleteModal,
+      deletingCategory,
+      deleteCategory,
     };
   }
 };
@@ -617,5 +871,64 @@ export default {
 
 .close-btn:hover {
   opacity: 1;
+}
+
+.action-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.edit-btn {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.edit-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.delete-btn {
+  background: rgba(255, 0, 0, 0.15);
+}
+
+.delete-btn:hover {
+  background: rgba(255, 0, 0, 0.25);
+}
+
+.action-btn-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.edit-btn-light {
+  background: #EEF2FF;
+  color: #4F46E5;
+}
+
+.edit-btn-light:hover {
+  background: #E0E7FF;
+  transform: translateY(-1px);
+}
+
+.delete-btn-light {
+  background: #FEE2E2;
+  color: #EF4444;
+}
+
+.delete-btn-light:hover {
+  background: #FEE2E2;
+  transform: translateY(-1px);
 }
 </style> 

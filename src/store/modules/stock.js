@@ -21,6 +21,9 @@ export default {
     },
     SET_ERROR(state, error) {
       state.error = error;
+    },
+    REMOVE_CATEGORY(state, categoryId) {
+      state.categories = state.categories.filter(category => category.CategoryId !== categoryId);
     }
   },
 
@@ -83,6 +86,63 @@ export default {
         throw error;
       } finally {
         commit('SET_LOADING', false);
+      }
+    },
+
+    async deleteCategory({ commit }, { categoryId, companyId }) {
+      try {
+        const response = await axios.delete(`/categories/${String(companyId)}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}&CategoryId=${String(categoryId)}`);
+
+        if (response.data?.Status === 'Success') {
+          // Kategoriyi state'den kaldır
+          commit('REMOVE_CATEGORY', categoryId);
+          return {
+            success: true,
+            message: response.data.Message || 'Kategori başarıyla silindi.'
+          };
+        }
+        
+        throw new Error(response.data?.Message || 'Kategori silinemedi.');
+      } catch (error) {
+        console.error('Delete category error:', error);
+        throw new Error(error.response?.data?.Message || 'Kategori silinirken bir hata oluştu');
+      }
+    },
+
+    async updateCategory({ commit, dispatch, state }, { category, companyId }) {
+      try {
+        // Açıklama uzunluğu kontrolü
+        if (category.Description && category.Description.length > 50) {
+          throw new Error('Açıklama 50 karakterden uzun olamaz.');
+        }
+
+        // Aynı isimde başka kategori var mı kontrolü
+        const existingCategory = state.categories.find(
+          cat => cat.Name.toLowerCase() === category.Name.toLowerCase() && 
+                cat.CategoryId !== category.CategoryId // Kendisi hariç kontrol
+        );
+
+        if (existingCategory) {
+          throw new Error(`"${category.Name}" isimli başka bir kategori zaten mevcut.`);
+        }
+
+        const response = await axios.put(
+          `/categories/${companyId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}&CategoryId=${String(category.CategoryId)}`,
+          {
+            CategoryId: String(category.CategoryId),
+            Name: category.Name,
+            Description: category.Description
+          }
+        );
+        
+        if (response.data.Status === 'Success') {
+          await dispatch('fetchCategories', companyId);
+          return { success: true, message: response.data.Message || 'Kategori başarıyla güncellendi.' };
+        }
+        return { success: false, message: response.data.Message || 'Kategori güncellenirken bir hata oluştu.' };
+      } catch (error) {
+        console.error('Update category error:', error);
+        throw new Error(error.message || 'Kategori güncellenirken bir hata oluştu.');
       }
     }
   },
