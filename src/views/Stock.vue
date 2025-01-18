@@ -243,12 +243,38 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Açıklama
           </label>
-          <textarea 
-            v-model="newCategory.description" 
-            class="input" 
-            :disabled="isSaving"
-            rows="3"
-          />
+          <div class="relative">
+            <textarea 
+              v-model="newCategory.description" 
+              class="input pr-16" 
+              :class="{'border-red-500': isDescriptionTooLong}"
+              :disabled="isSaving"
+              rows="3"
+              maxlength="50"
+              @input="checkDescriptionLength"
+            />
+            <div class="absolute bottom-2 right-2 text-xs">
+              <span :class="{
+                'text-gray-500': !isDescriptionTooLong,
+                'text-red-500 font-medium': isDescriptionTooLong
+              }">
+                {{ newCategory.description.length }}/50
+              </span>
+            </div>
+          </div>
+          <transition
+            enter-active-class="transition ease-out duration-300"
+            enter-from-class="transform opacity-0 scale-95"
+            enter-to-class="transform opacity-100 scale-100"
+            leave-active-class="transition ease-in duration-200"
+            leave-from-class="transform opacity-100 scale-100"
+            leave-to-class="transform opacity-0 scale-95"
+          >
+            <p v-if="isDescriptionTooLong" class="mt-1 text-sm text-red-500">
+              <i class="fas fa-exclamation-circle mr-1"></i>
+              Açıklama en fazla 50 karakter olabilir
+            </p>
+          </transition>
         </div>
 
         <div class="flex justify-end space-x-3">
@@ -263,7 +289,7 @@
           <button 
             type="submit" 
             class="btn btn-primary relative"
-            :disabled="isSaving"
+            :disabled="isSaving || isDescriptionTooLong"
           >
             <span v-if="!isSaving">Kaydet</span>
             <span v-else class="flex items-center">
@@ -468,6 +494,24 @@ export default {
         return;
       }
 
+      // Aynı isimde kategori var mı kontrolü
+      const existingCategory = categories.value.find(
+        cat => cat.Name.toLowerCase() === newCategory.value.name.toLowerCase()
+      );
+
+      if (existingCategory) {
+        toast.error(`"${newCategory.value.name}" isimli kategori zaten mevcut!`, {
+          timeout: 4000,
+          position: "top-right",
+          icon: "⚠️",
+          closeOnClick: true,
+          pauseOnFocusLoss: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return;
+      }
+
       isSaving.value = true;
       try {
         const response = await store.dispatch('stock/addCategory', {
@@ -598,6 +642,26 @@ export default {
       }
     };
 
+    // State
+    const isDescriptionTooLong = ref(false);
+
+    // Methods
+    const checkDescriptionLength = () => {
+      if (newCategory.value.description.length > 50) {
+        isDescriptionTooLong.value = true;
+        toast.warning("Açıklama 50 karakterden uzun olamaz!", {
+          timeout: 3000,
+          position: "top-right",
+          icon: "⚠️",
+          closeOnClick: true
+        });
+        // Fazla karakterleri kes
+        newCategory.value.description = newCategory.value.description.slice(0, 50);
+      } else {
+        isDescriptionTooLong.value = false;
+      }
+    };
+
     return {
       // State
       companyId,
@@ -628,6 +692,8 @@ export default {
       fetchData,
       isSaving,
       filterByCategory,
+      isDescriptionTooLong,
+      checkDescriptionLength,
     };
   }
 };
