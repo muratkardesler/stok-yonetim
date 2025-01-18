@@ -56,28 +56,42 @@
     </div>
 
     <!-- Search and Filter Section -->
-    <div class="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <!-- Search -->
-      <div class="relative">
-        <input 
-          v-model="searchQuery" 
-          type="text" 
-          placeholder="Ürün veya kategori ara..."
-          class="input pl-10"
-        >
-        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+    <div class="flex flex-col sm:flex-row gap-4 mb-6">
+      <!-- Search Input -->
+      <div class="flex-1">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center">
+            <i class="fas fa-search text-gray-400"></i>
+          </span>
+          <input 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="Ürün veya kategori ara..." 
+            class="input pl-10 w-full"
+          />
+        </div>
       </div>
-      
-      <!-- Category Filter -->
-      <select 
-        v-model="selectedCategoryFilter" 
-        class="input"
-      >
-        <option value="">Tüm Kategoriler</option>
-        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-          {{ cat.name }}
-        </option>
-      </select>
+
+      <!-- Category Filter Dropdown -->
+      <div class="relative w-full sm:w-64">
+        <select
+          v-model="selectedCategoryFilter"
+          class="input w-full appearance-none pr-10"
+          @change="filterByCategory"
+        >
+          <option value="">Tüm Kategoriler</option>
+          <option 
+            v-for="category in categories" 
+            :key="category.CategoryId" 
+            :value="category.CategoryId"
+          >
+            {{ category.Name }}
+          </option>
+        </select>
+        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+          <i class="fas fa-chevron-down text-gray-400"></i>
+        </div>
+      </div>
     </div>
 
     <!-- Auto-save Notice -->
@@ -101,23 +115,44 @@
     <!-- Categories Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
       <div 
-        v-for="category in categories" 
+        v-for="category in filteredCategories" 
         :key="category.CategoryId"
-        class="card card-hover cursor-pointer"
+        class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-100 dark:border-gray-700 relative group"
         :class="{ 'ring-2 ring-primary-500': selectedCategory?.CategoryId === category.CategoryId }"
         @click="selectCategory(category)"
       >
-        <div class="flex items-center justify-between mb-4">
+        <!-- Category Header -->
+        <div class="flex items-start justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
             {{ category.Name }}
           </h3>
+          <div class="flex items-center bg-blue-50 dark:bg-blue-900/50 px-2 py-1 rounded-lg">
+            <i class="fas fa-box-open text-blue-500 dark:text-blue-400 mr-1.5"></i>
+            <span class="text-blue-700 dark:text-blue-300 font-medium text-sm">
+              {{ getProductCountByCategory(category.CategoryId) }}
+            </span>
+          </div>
         </div>
-        <p class="text-gray-600 dark:text-gray-300 text-sm">
-          {{ category.Description || 'Açıklama yok' }}
+
+        <!-- Category Description -->
+        <p class="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
+          {{ category.Description || 'Bu kategori için henüz bir açıklama eklenmemiş.' }}
         </p>
-        <div class="text-xs text-gray-500 mt-2">
-          Oluşturulma: {{ new Date(category.CreatedAt).toLocaleDateString('tr-TR') }}
+
+        <!-- Category Footer -->
+        <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center text-gray-500 dark:text-gray-400">
+            <i class="far fa-calendar-alt mr-1.5"></i>
+            {{ new Date(category.CreatedAt).toLocaleDateString('tr-TR') }}
+          </div>
+          <div class="flex items-center text-primary-500 dark:text-primary-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            Detayları Görüntüle
+            <i class="fas fa-arrow-right ml-1.5 text-xs transition-transform group-hover:translate-x-1"></i>
+          </div>
         </div>
+
+        <!-- Hover Overlay -->
+        <div class="absolute inset-0 bg-primary-500/5 dark:bg-primary-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl pointer-events-none"></div>
       </div>
     </div>
 
@@ -369,9 +404,10 @@ export default {
       const allCategories = store.getters['stock/getCategories'];
       if (!searchQuery.value) return allCategories;
       
+      const query = searchQuery.value.toLowerCase();
       return allCategories.filter(cat => 
-        cat.Name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        (cat.Description && cat.Description.toLowerCase().includes(searchQuery.value.toLowerCase()))
+        cat.Name.toLowerCase().includes(query) ||
+        (cat.Description && cat.Description.toLowerCase().includes(query))
       );
     });
 
@@ -383,26 +419,31 @@ export default {
     const error = computed(() => store.getters['stock/getError']);
     const unsavedChanges = computed(() => store.getters['stock/getUnsavedChanges']);
 
-    const filteredCategories = computed(() => {
-      if (!searchQuery.value) return categories.value;
-      return categories.value.filter(cat => 
-        cat.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        cat.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
-      );
-    });
-
     const filteredProducts = computed(() => {
       let filtered = products.value;
       if (selectedCategory.value) {
-        filtered = filtered.filter(p => p.categoryId === selectedCategory.value.id);
+        filtered = filtered.filter(p => p.categoryId === selectedCategory.value.CategoryId);
       }
       if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
         filtered = filtered.filter(p => 
-          p.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-          p.description?.toLowerCase().includes(searchQuery.value.toLowerCase())
+          p.name.toLowerCase().includes(query) ||
+          (p.description && p.description.toLowerCase().includes(query))
         );
       }
       return filtered;
+    });
+
+    // Computed property for filtered categories
+    const filteredCategories = computed(() => {
+      let result = categories.value;
+      
+      // Eğer kategori filtresi seçilmişse
+      if (selectedCategoryFilter.value) {
+        result = result.filter(cat => cat.CategoryId === selectedCategoryFilter.value);
+      }
+      
+      return result;
     });
 
     // Methods
@@ -510,6 +551,19 @@ export default {
       }).format(price);
     };
 
+    // Method to handle category filtering
+    const filterByCategory = () => {
+      if (selectedCategoryFilter.value) {
+        const category = categories.value.find(cat => cat.CategoryId === selectedCategoryFilter.value);
+        if (category) {
+          selectCategory(category);
+        }
+      } else {
+        // Tüm kategoriler seçildiğinde seçili kategoriyi temizle
+        store.dispatch('stock/selectCategory', null);
+      }
+    };
+
     // Lifecycle Hooks
     onMounted(async () => {
       // Dark mode kontrolü
@@ -556,12 +610,13 @@ export default {
       newProduct,
 
       // Computed
-      categories: filteredCategories,
+      categories,
       products: filteredProducts,
       selectedCategory,
       loading,
       error,
       unsavedChanges,
+      filteredCategories,
 
       // Methods
       toggleDarkMode,
@@ -571,7 +626,8 @@ export default {
       getProductCountByCategory,
       formatPrice,
       fetchData,
-      isSaving
+      isSaving,
+      filterByCategory,
     };
   }
 };
@@ -589,5 +645,30 @@ export default {
   --secondary-color: #22D3EE;
 }
 
-/* ... rest of the styles ... */
+/* Animations */
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s infinite;
+}
+
+/* Card Hover Effects */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+}
+
+/* Line Clamp */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 </style> 
