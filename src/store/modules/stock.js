@@ -24,6 +24,9 @@ export default {
     },
     REMOVE_CATEGORY(state, categoryId) {
       state.categories = state.categories.filter(category => category.CategoryId !== categoryId);
+    },
+    DELETE_CATEGORY(state, categoryId) {
+      state.categories = state.categories.filter(category => category.CategoryId !== categoryId);
     }
   },
 
@@ -89,23 +92,34 @@ export default {
       }
     },
 
-    async deleteCategory({ commit }, { categoryId, companyId }) {
+    async deleteCategory({ commit, rootGetters }, { categoryId, companyId }) {
       try {
-        const response = await axios.delete(`/categories/${String(companyId)}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}&CategoryId=${String(categoryId)}`);
+        // Önce kategorideki tüm ürünleri bul
+        const productsInCategory = rootGetters['product/getProductsByCategory'](categoryId);
+        
+        // Kategorideki her ürünü veritabanından sil
+        for (const product of productsInCategory) {
+          await axios.delete(`/products/${product.ProductId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}&CompanyId=${companyId}&CategoryId=${categoryId}`);
+        }
 
-        if (response.data?.Status === 'Success') {
+        // Sonra kategoriyi sil - URL yapısını düzeltiyoruz
+        const response = await axios.delete(`/categories/${companyId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}&CategoryId=${categoryId}`);
+        
+        if (response.data) {
           // Kategoriyi state'den kaldır
-          commit('REMOVE_CATEGORY', categoryId);
+          commit('DELETE_CATEGORY', categoryId);
+          
+          // İlgili kategorideki tüm ürünleri state'den kaldır
+          commit('product/DELETE_PRODUCTS_BY_CATEGORY', categoryId, { root: true });
+          
           return {
             success: true,
-            message: response.data.Message || 'Kategori başarıyla silindi.'
+            message: 'Kategori ve ilgili tüm ürünler başarıyla silindi!'
           };
         }
-        
-        throw new Error(response.data?.Message || 'Kategori silinemedi.');
       } catch (error) {
-        console.error('Delete category error:', error);
-        throw new Error(error.response?.data?.Message || 'Kategori silinirken bir hata oluştu');
+        console.error('Error deleting category:', error);
+        throw error;
       }
     },
 

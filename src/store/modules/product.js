@@ -31,6 +31,9 @@ const mutations = {
   },
   DELETE_PRODUCT(state, productId) {
     state.products = state.products.filter(p => p.ProductId !== productId);
+  },
+  DELETE_PRODUCTS_BY_CATEGORY(state, categoryId) {
+    state.products = state.products.filter(product => String(product.CategoryId) !== String(categoryId));
   }
 };
 
