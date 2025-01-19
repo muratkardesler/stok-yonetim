@@ -142,12 +142,13 @@
               <div class="border-t border-gray-100 pt-4 mt-auto">
                 <div class="flex items-center justify-between">
                   <!-- Product Count -->
-                  <div class="flex items-center space-x-2">
-                    <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-primary-50 text-primary-700">
-                      <i class="fas fa-box-open mr-2"></i>
-                      {{ getProductCountByCategory(category.CategoryId) }} Ürün
-                    </span>
-                  </div>
+                  <span 
+                    class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-primary-50 text-primary-700 cursor-pointer hover:bg-primary-100 transition-colors"
+                    @click="selectedCategoryFilter = category.CategoryId"
+                  >
+                    <i class="fas fa-box-open mr-2"></i>
+                    {{ getProductCountByCategory(category.CategoryId) }} Ürün
+                  </span>
                   
                   <!-- Details Button -->
                   <button 
@@ -237,7 +238,14 @@
                   <div class="text-sm font-medium text-gray-900">{{ product.Name }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-primary-100 text-primary-800">
+                  <span 
+                    :class="[
+                      'px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full cursor-pointer transition-colors',
+                      getCategoryColor(product.CategoryId).bg,
+                      getCategoryColor(product.CategoryId).text
+                    ]"
+                    @click="selectedCategoryFilter = product.CategoryId"
+                  >
                     {{ getCategoryName(product.CategoryId) }}
                   </span>
                 </td>
@@ -711,7 +719,7 @@ export default {
 
     // Products array'ini boş array olarak başlat
     const products = computed(() => {
-      const allProducts = store.getters['product/getProducts'];
+      const allProducts = store.getters['product/getProducts'] || [];
       
       // Eğer kategori filtresi seçilmişse
       if (selectedCategoryFilter.value) {
@@ -724,7 +732,7 @@ export default {
       if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase();
         return allProducts.filter(product => 
-          product.Name.toLowerCase().includes(query) ||
+          (product.Name && product.Name.toLowerCase().includes(query)) ||
           (product.Description && product.Description.toLowerCase().includes(query))
         );
       }
@@ -885,6 +893,41 @@ export default {
           timeout: 3000,
           position: "top-right",
           icon: "❌"
+        });
+        return;
+      }
+
+      // Fiyat ve stok adeti kontrolü
+      if (parseFloat(newProduct.value.price) <= 0) {
+        toast.error("Ürün fiyatı 0'dan büyük olmalıdır!", {
+          timeout: 3000,
+          position: "top-right",
+          icon: "❌"
+        });
+        return;
+      }
+
+      if (parseInt(newProduct.value.stockQuantity) < 0) {
+        toast.error("Stok adeti negatif olamaz!", {
+          timeout: 3000,
+          position: "top-right",
+          icon: "❌"
+        });
+        return;
+      }
+
+      // Aynı kategoride aynı isimde ürün kontrolü
+      const existingProduct = products.value.find(
+        p => p.CategoryId === newProduct.value.categoryId && 
+             p.Name.toLowerCase() === newProduct.value.name.toLowerCase()
+      );
+
+      if (existingProduct) {
+        toast.error(`Bu kategoride "${newProduct.value.name}" isimli ürün zaten mevcut!`, {
+          timeout: 4000,
+          position: "top-right",
+          icon: "⚠️",
+          closeOnClick: true
         });
         return;
       }
@@ -1226,6 +1269,26 @@ export default {
       }
     };
 
+    const getCategoryColor = (categoryId) => {
+      if (!categoryId) return { bg: 'bg-gray-100', text: 'text-gray-800' }; // Default color for undefined categoryId
+      
+      // Benzersiz renkler listesi
+      const colors = [
+        { bg: 'bg-blue-100', text: 'text-blue-800' },
+        { bg: 'bg-green-100', text: 'text-green-800' },
+        { bg: 'bg-purple-100', text: 'text-purple-800' },
+        { bg: 'bg-pink-100', text: 'text-pink-800' },
+        { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+        { bg: 'bg-indigo-100', text: 'text-indigo-800' },
+        { bg: 'bg-red-100', text: 'text-red-800' },
+        { bg: 'bg-orange-100', text: 'text-orange-800' }
+      ];
+      
+      // CategoryId'ye göre renk seç
+      const index = Math.abs(parseInt(categoryId)) % colors.length;
+      return colors[index] || colors[0]; // Eğer hesaplanan index geçersizse ilk rengi döndür
+    };
+
     return {
       // State
       companyId,
@@ -1279,7 +1342,8 @@ export default {
       saveProduct,
       showDeleteProductModal,
       deletingProduct,
-      deleteProduct
+      deleteProduct,
+      getCategoryColor
     };
   }
 };
