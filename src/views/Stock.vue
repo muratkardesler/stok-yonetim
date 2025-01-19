@@ -193,7 +193,7 @@
               <div class="mt-4">
                 <button 
                   class="add-product-btn w-full"
-                  @click.stop="showAddProductModal = true"
+                  @click.stop="openAddProductModal(category)"
                 >
                   <i class="fas fa-plus mr-2"></i>
                   Bu Kategoriye Ürün Ekle
@@ -201,6 +201,71 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Products Section -->
+      <div class="bg-white rounded-xl shadow-sm p-6 mt-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold text-gray-900 flex items-center">
+            <i class="fas fa-boxes text-primary-500 mr-3"></i>
+            Ürünlerim
+          </h2>
+          <div class="flex items-center space-x-4">
+            <span class="text-sm text-gray-500">
+              Toplam {{ products.length }} ürün
+            </span>
+          </div>
+        </div>
+
+        <!-- Products Table -->
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ürün Adı</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Açıklama</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fiyat</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="product in products" :key="product.ProductId" class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ product.Name }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-primary-100 text-primary-800">
+                    {{ getCategoryName(product.CategoryId) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="text-sm text-gray-900 max-w-xs truncate">{{ product.Description }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ formatPrice(product.Price) }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ product.StockQuantity }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                  <button class="text-primary-600 hover:text-primary-900" @click="editProduct(product)">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="text-red-600 hover:text-red-900" @click="confirmDeleteProduct(product)">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="products.length === 0">
+                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                  Henüz ürün bulunmamaktadır.
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -363,6 +428,222 @@
       </div>
     </div>
 
+    <!-- Add Product Modal -->
+    <div v-if="showAddProductModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Yeni Ürün Ekle</h3>
+          <button @click="showAddProductModal = false" class="text-gray-400 hover:text-gray-500">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <!-- Product Name -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Ürün Adı</label>
+            <input 
+              type="text" 
+              v-model="newProduct.name"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              placeholder="Ürün adını girin"
+            />
+          </div>
+
+          <!-- Product Description -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Açıklama</label>
+            <div class="relative">
+              <textarea 
+                v-model="newProduct.description"
+                rows="3"
+                maxlength="100"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="Ürün açıklamasını girin"
+              ></textarea>
+              <div class="absolute bottom-2 right-2 text-xs text-gray-500">
+                {{ newProduct.description?.length || 0 }}/100
+              </div>
+            </div>
+          </div>
+
+          <!-- Price -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Fiyat (₺)</label>
+            <input 
+              type="number" 
+              v-model="newProduct.price"
+              min="0"
+              step="0.01"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              placeholder="0.00"
+            />
+          </div>
+
+          <!-- Stock Quantity -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Stok Miktarı</label>
+            <input 
+              type="number" 
+              v-model="newProduct.stockQuantity"
+              min="0"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              placeholder="0"
+            />
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button 
+            @click="showAddProductModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            İptal
+          </button>
+          <button 
+            @click="addProduct"
+            class="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-md hover:bg-primary-600"
+            :disabled="isAddingProduct"
+          >
+            {{ isAddingProduct ? 'Ekleniyor...' : 'Ekle' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div v-if="showEditProductModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Ürün Düzenle</h3>
+          <button @click="showEditProductModal = false" class="text-gray-400 hover:text-gray-500">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <!-- Product Name -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Ürün Adı</label>
+            <input 
+              type="text" 
+              v-model="editingProduct.Name"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              placeholder="Ürün adını girin"
+            />
+          </div>
+
+          <!-- Product Description -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Açıklama</label>
+            <div class="relative">
+              <textarea 
+                v-model="editingProduct.Description"
+                rows="3"
+                maxlength="100"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="Ürün açıklamasını girin"
+              ></textarea>
+              <div class="absolute bottom-2 right-2 text-xs text-gray-500">
+                {{ editingProduct.Description?.length || 0 }}/100
+              </div>
+            </div>
+          </div>
+
+          <!-- Price -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Fiyat (₺)</label>
+            <input 
+              type="number" 
+              v-model="editingProduct.Price"
+              min="0"
+              step="0.01"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              placeholder="0.00"
+            />
+          </div>
+
+          <!-- Stock Quantity -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Stok Miktarı</label>
+            <input 
+              type="number" 
+              v-model="editingProduct.StockQuantity"
+              min="0"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              placeholder="0"
+            />
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button 
+            @click="showEditProductModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            İptal
+          </button>
+          <button 
+            @click="saveProduct"
+            class="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-md hover:bg-primary-600"
+            :disabled="isEditingProduct"
+          >
+            {{ isEditingProduct ? 'Güncelleniyor...' : 'Güncelle' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Product Confirmation Modal -->
+    <div v-if="showDeleteProductModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Ürün Silme Onayı</h3>
+          <button @click="showDeleteProductModal = false" class="text-gray-400 hover:text-gray-500">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <p class="text-gray-600">
+            <strong class="text-red-500">"{{ deletingProduct?.Name }}"</strong> ürününü silmek istediğinize emin misiniz?
+          </p>
+          
+          <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                  Bu işlem geri alınamaz. Ürünü sildiğinizde:
+                </p>
+                <ul class="mt-2 text-sm text-yellow-700 list-disc list-inside">
+                  <li>Ürüne ait tüm veriler silinecektir</li>
+                  <li>İlgili tüm raporlar ve istatistikler etkilenecektir</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button 
+            @click="showDeleteProductModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Vazgeç
+          </button>
+          <button 
+            @click="deleteProduct"
+            class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Evet, Sil
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Rest of the modals and other content... -->
   </div>
 </template>
@@ -410,9 +691,10 @@ export default {
 
     const newProduct = ref({
       name: '',
-      quantity: 0,
-      price: 0,
-      description: ''
+      description: '',
+      price: '',
+      stockQuantity: '',
+      categoryId: ''
     });
 
     // Computed Properties
@@ -428,7 +710,27 @@ export default {
     });
 
     // Products array'ini boş array olarak başlat
-    const products = ref([]);
+    const products = computed(() => {
+      const allProducts = store.getters['product/getProducts'];
+      
+      // Eğer kategori filtresi seçilmişse
+      if (selectedCategoryFilter.value) {
+        return allProducts.filter(product => 
+          String(product.CategoryId) === String(selectedCategoryFilter.value)
+        );
+      }
+      
+      // Eğer arama yapılıyorsa
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        return allProducts.filter(product => 
+          product.Name.toLowerCase().includes(query) ||
+          (product.Description && product.Description.toLowerCase().includes(query))
+        );
+      }
+      
+      return allProducts;
+    });
 
     const selectedCategory = computed(() => store.getters['stock/getSelectedCategory']);
     const loading = computed(() => store.getters['stock/getLoading']);
@@ -573,33 +875,83 @@ export default {
       }
     }
 
+    const isAddingProduct = ref(false);
+
     const addProduct = async () => {
+      // Validation
+      if (!newProduct.value.name || !newProduct.value.description || 
+          !newProduct.value.price || !newProduct.value.stockQuantity) {
+        toast.error("Lütfen tüm alanları doldurun!", {
+          timeout: 3000,
+          position: "top-right",
+          icon: "❌"
+        });
+        return;
+      }
+
+      isAddingProduct.value = true;
       try {
-        if (!newProduct.value.name.trim()) {
-          throw new Error('Ürün adı zorunludur');
+        const response = await store.dispatch('product/addProduct', {
+          product: newProduct.value,
+          companyId: companyId.value
+        });
+
+        if (response.success) {
+          // Reset form and close modal
+          newProduct.value = {
+            name: '',
+            description: '',
+            price: '',
+            stockQuantity: '',
+            categoryId: ''
+          };
+          showAddProductModal.value = false;
+          
+          // Show success toast
+          toast.success(`✨ ${response.message}`, {
+            timeout: 4000,
+            position: "top-right",
+            closeOnClick: true,
+            theme: "colored"
+          });
+
+          // Refresh products list
+          await store.dispatch('product/fetchProducts', {
+            companyId: companyId.value,
+            categoryId: newProduct.value.categoryId
+          });
         }
-        if (!selectedCategory.value) {
-          throw new Error('Lütfen bir kategori seçin');
-        }
-        
-        const product = {
-          ...newProduct.value,
-          categoryId: selectedCategory.value.id
-        };
-        
-        await store.dispatch('stock/addProduct', product);
-        showAddProductModal.value = false;
-        newProduct.value = { name: '', quantity: 0, price: 0, description: '' };
       } catch (error) {
-        console.error('Ürün eklenirken hata:', error);
+        console.error('Error adding product:', error);
+        toast.error(`Ürün eklenirken bir hata oluştu: ${error.message || 'Bilinmeyen hata'}`, {
+          timeout: 5000,
+          position: "top-right",
+          icon: "⚠️",
+          closeOnClick: true
+        });
+      } finally {
+        isAddingProduct.value = false;
+      }
+    };
+
+    const fetchProducts = async (categoryId) => {
+      if (!companyId.value) {
+        console.error('CompanyId bulunamadı');
+        return;
+      }
+
+      try {
+        await store.dispatch('product/fetchProducts', {
+          companyId: companyId.value,
+          categoryId: categoryId
+        });
+      } catch (error) {
+        console.error('Ürünler yüklenirken hata:', error);
       }
     };
 
     const getProductCountByCategory = (categoryId) => {
-      // Şimdilik her kategori için 0 döndür
-      return 0;
-      // İleride products API hazır olduğunda bu kısmı aktif edeceğiz
-      // return products.value.filter(p => p.CategoryId === categoryId).length;
+      return store.getters['product/getProductCountByCategory'](categoryId) || 0;
     };
 
     const formatPrice = (price) => {
@@ -634,8 +986,13 @@ export default {
         console.log('Mounting with CompanyId:', companyId.value); // Debug log
         try {
           await store.dispatch('stock/fetchCategories', companyId.value);
+          // Tüm ürünleri getir
+          await store.dispatch('product/fetchProducts', {
+            companyId: companyId.value,
+            categoryId: '' // Boş bırakarak tüm ürünleri getir
+          });
         } catch (error) {
-          console.error('Kategoriler yüklenirken hata:', error);
+          console.error('Veriler yüklenirken hata:', error);
         }
       } else {
         console.error('CompanyId bulunamadı');
@@ -760,6 +1117,115 @@ export default {
       }
     };
 
+    const openAddProductModal = (category) => {
+      newProduct.value = {
+        name: '',
+        description: '',
+        price: '',
+        stockQuantity: '',
+        categoryId: category.CategoryId // Otomatik olarak kategori ID'sini set et
+      };
+      showAddProductModal.value = true;
+    };
+
+    const getCategoryName = (categoryId) => {
+      const category = categories.value.find(cat => String(cat.CategoryId) === String(categoryId));
+      return category ? category.Name : 'Bilinmeyen Kategori';
+    };
+
+    const showEditProductModal = ref(false);
+    const editingProduct = ref({
+      ProductId: null,
+      Name: '',
+      Description: '',
+      Price: '',
+      StockQuantity: '',
+      CategoryId: ''
+    });
+    const isEditingProduct = ref(false);
+
+    const editProduct = (product) => {
+      editingProduct.value = { ...product };
+      showEditProductModal.value = true;
+    };
+
+    const saveProduct = async () => {
+      if (!editingProduct.value.Name || !editingProduct.value.Description || 
+          !editingProduct.value.Price || !editingProduct.value.StockQuantity) {
+        toast.error("Lütfen tüm alanları doldurun!", {
+          timeout: 3000,
+          position: "top-right",
+          icon: "❌"
+        });
+        return;
+      }
+
+      isEditingProduct.value = true;
+      try {
+        const response = await store.dispatch('product/updateProduct', {
+          product: editingProduct.value,
+          companyId: companyId.value
+        });
+
+        if (response.success) {
+          toast.info(`✨ ${response.message}`, {
+            timeout: 3000,
+            position: "top-right",
+            closeOnClick: true,
+            theme: "colored"
+          });
+          showEditProductModal.value = false;
+        }
+      } catch (error) {
+        console.error('Error updating product:', error);
+        toast.error(`Ürün güncellenirken bir hata oluştu: ${error.message || 'Bilinmeyen hata'}`, {
+          timeout: 5000,
+          position: "top-right",
+          icon: "⚠️",
+          closeOnClick: true
+        });
+      } finally {
+        isEditingProduct.value = false;
+      }
+    };
+
+    const showDeleteProductModal = ref(false);
+    const deletingProduct = ref(null);
+
+    const confirmDeleteProduct = (product) => {
+      deletingProduct.value = product;
+      showDeleteProductModal.value = true;
+    };
+
+    const deleteProduct = async () => {
+      try {
+        const response = await store.dispatch('product/deleteProduct', {
+          productId: deletingProduct.value.ProductId,
+          companyId: companyId.value,
+          categoryId: deletingProduct.value.CategoryId
+        });
+
+        if (response.success) {
+          // Silme sesi çal
+          playDeleteSound();
+          
+          toast.error(`🗑️ ${response.message}`, {
+            timeout: 3000,
+            position: "top-right",
+            closeOnClick: true,
+            theme: "colored"
+          });
+          showDeleteProductModal.value = false;
+        }
+      } catch (error) {
+        toast.error(`Ürün silinirken bir hata oluştu: ${error.message}`, {
+          timeout: 4000,
+          position: "top-right",
+          icon: "⚠️"
+        });
+      }
+    };
+
     return {
       // State
       companyId,
@@ -802,6 +1268,18 @@ export default {
       showDeleteModal,
       deletingCategory,
       deleteCategory,
+      isAddingProduct,
+      openAddProductModal,
+      getCategoryName,
+      editProduct,
+      confirmDeleteProduct,
+      showEditProductModal,
+      editingProduct,
+      isEditingProduct,
+      saveProduct,
+      showDeleteProductModal,
+      deletingProduct,
+      deleteProduct
     };
   }
 };
