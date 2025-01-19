@@ -474,6 +474,27 @@ export default {
 
     const isSaving = ref(false);
 
+    // Ses nesnelerini null olarak başlat
+    const deleteSound = ref(null);
+
+    // Sesleri yükle
+    onMounted(() => {
+      try {
+        deleteSound.value = new Audio('/sounds/delete.mp3');
+      } catch (error) {
+        console.warn('Ses dosyası yüklenemedi:', error);
+      }
+    });
+
+    // Ses çalma fonksiyonu
+    const playDeleteSound = () => {
+      try {
+        deleteSound.value?.play().catch(err => console.warn('Ses çalınamadı:', err));
+      } catch (error) {
+        console.warn('Ses çalma hatası:', error);
+      }
+    };
+
     async function addCategory() {
       if (!newCategory.value.name || !newCategory.value.description) {
         toast.error("Kategori adı ve açıklama alanları zorunludur!", {
@@ -513,11 +534,14 @@ export default {
         });
 
         if (response.Status === 'Success') {
+          // Başarılı ekleme sesi çal
+          playDeleteSound();
+          
           // Reset form and close modal
           newCategory.value = { name: '', description: '' };
           showAddCategoryModal.value = false;
           
-          // Show success toast with animation
+          // Show success toast
           toast.success(`✨ ${response.Message || 'Yeni kategori başarıyla eklendi!'}`, {
             timeout: 4000,
             position: "top-right",
@@ -715,6 +739,9 @@ export default {
         });
 
         if (response.success) {
+          // Başarılı silme sesi çal
+          playDeleteSound();
+          
           toast.error(`🗑️ ${response.message}`, {
             timeout: 3000,
             position: "top-right",
