@@ -59,16 +59,9 @@ const actions = {
     }
   },
 
-  async addProduct({ commit }, { product, companyId }) {
+  async addProduct({ commit }, productData) {
     try {
-      const response = await axios.post(`/products?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, {
-        CompanyId: companyId,
-        CategoryId: String(product.categoryId),
-        Name: product.name,
-        Description: product.description,
-        Price: parseFloat(product.price),
-        StockQuantity: parseInt(product.stockQuantity)
-      });
+      const response = await axios.post(`/products?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, productData);
 
       if (response.data) {
         commit('ADD_PRODUCT', response.data);

@@ -455,119 +455,129 @@
 
     <!-- Add Product Modal -->
     <div v-if="showAddProductModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-2xl font-bold text-gray-900 flex items-center">
-            <i class="fas fa-box-open text-primary-500 mr-3"></i>
-            Yeni Ürün Ekle
-          </h3>
-          <button @click="showAddProductModal = false" class="text-gray-400 hover:text-gray-500 transition-colors">
-            <i class="fas fa-times text-xl"></i>
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Yeni Ürün Ekle</h3>
+          <button @click="showAddProductModal = false" class="text-gray-400 hover:text-gray-500">
+            <i class="fas fa-times"></i>
           </button>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Sol Taraf - Temel Bilgiler -->
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Ürün Adı</label>
-              <input 
-                type="text" 
-                v-model="newProduct.name"
-                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                placeholder="Ürün adını girin"
-              />
-            </div>
+        <div class="space-y-4">
+          <!-- Product Name -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Ürün Adı</label>
+            <input 
+              type="text" 
+              v-model="newProduct.name"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              placeholder="Ürün adını girin"
+            />
+          </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
-              <div class="relative">
-                <textarea 
-                  v-model="newProduct.description"
-                  rows="3"
-                  maxlength="100"
-                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  placeholder="Ürün açıklamasını girin"
-                ></textarea>
-                <div class="absolute bottom-2 right-2 text-xs text-gray-400">
-                  {{ newProduct.description?.length || 0 }}/100
-                </div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Fiyat (₺)</label>
-                <input 
-                  type="number" 
-                  v-model="newProduct.price"
-                  min="0"
-                  step="0.01"
-                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Stok Miktarı</label>
-                <input 
-                  type="number" 
-                  v-model="newProduct.stockQuantity"
-                  min="0"
-                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  placeholder="0"
-                />
+          <!-- Product Description -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Açıklama</label>
+            <div class="relative">
+              <textarea 
+                v-model="newProduct.description"
+                rows="3"
+                maxlength="100"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="Ürün açıklamasını girin"
+              ></textarea>
+              <div class="absolute bottom-2 right-2 text-xs text-gray-500">
+                {{ newProduct.description?.length || 0 }}/100
               </div>
             </div>
           </div>
 
-          <!-- Sağ Taraf - Kod Bilgileri -->
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Kod Türü</label>
-              <div class="grid grid-cols-2 gap-4">
-                <label class="flex items-center p-3 border rounded-lg cursor-pointer transition-all"
-                       :class="[newProduct.codeType === 'barcode' ? 'border-primary-500 bg-primary-50' : 'border-gray-200']">
-                  <input 
-                    type="radio" 
-                    v-model="newProduct.codeType" 
-                    value="barcode"
-                    class="hidden"
-                  >
-                  <i class="fas fa-barcode mr-2" :class="[newProduct.codeType === 'barcode' ? 'text-primary-500' : 'text-gray-400']"></i>
-                  <span :class="[newProduct.codeType === 'barcode' ? 'text-primary-700' : 'text-gray-600']">Barkod</span>
-                </label>
-                <label class="flex items-center p-3 border rounded-lg cursor-pointer transition-all"
-                       :class="[newProduct.codeType === 'qr' ? 'border-primary-500 bg-primary-50' : 'border-gray-200']">
-                  <input 
-                    type="radio" 
-                    v-model="newProduct.codeType" 
-                    value="qr"
-                    class="hidden"
-                  >
-                  <i class="fas fa-qrcode mr-2" :class="[newProduct.codeType === 'qr' ? 'text-primary-500' : 'text-gray-400']"></i>
-                  <span :class="[newProduct.codeType === 'qr' ? 'text-primary-700' : 'text-gray-600']">QR Kod</span>
-                </label>
-              </div>
-            </div>
+          <!-- Price -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Fiyat (₺)</label>
+            <input 
+              type="number" 
+              v-model="newProduct.price"
+              min="0"
+              step="0.01"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              placeholder="0.00"
+            />
+          </div>
 
-            <div v-if="newProduct.codeType" class="bg-gray-50 p-4 rounded-lg">
-              <div class="flex justify-center mb-4">
-                <button 
-                  @click="generateCode"
-                  class="btn-primary flex items-center"
+          <!-- Stock Quantity -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Stok Miktarı</label>
+            <input 
+              type="number" 
+              v-model="newProduct.stockQuantity"
+              min="0"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              placeholder="0"
+            />
+          </div>
+
+          <!-- Code Type Selection -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Kod Türü</label>
+            <div class="mt-2 flex space-x-4">
+              <label class="inline-flex items-center">
+                <input 
+                  type="radio" 
+                  v-model="newProduct.codeType" 
+                  value="barcode"
+                  class="form-radio text-primary-500"
                 >
-                  <i class="fas fa-magic mr-2"></i>
-                  Otomatik Oluştur
+                <span class="ml-2">Barkod</span>
+              </label>
+              <label class="inline-flex items-center">
+                <input 
+                  type="radio" 
+                  v-model="newProduct.codeType" 
+                  value="qr"
+                  class="form-radio text-primary-500"
+                >
+                <span class="ml-2">QR Kod</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Code Input/Scanner -->
+          <div v-if="newProduct.codeType">
+            <label class="block text-sm font-medium text-gray-700">
+              {{ newProduct.codeType === 'barcode' ? 'Barkod' : 'QR Kod' }}
+            </label>
+            <div class="mt-2 space-y-3">
+              <div class="flex space-x-2">
+                <input 
+                  type="text" 
+                  v-model="newProduct.codeValue"
+                  :placeholder="newProduct.codeType === 'barcode' ? 'Barkod değeri' : 'QR kod değeri'"
+                  class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                />
+                <button 
+                  @click="scanCode"
+                  class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                >
+                  <i class="fas fa-qrcode mr-2"></i>
+                  Tarat
                 </button>
               </div>
+              
+              <button 
+                @click="generateCode"
+                class="w-full px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              >
+                <i class="fas fa-magic mr-2"></i>
+                Otomatik Oluştur
+              </button>
 
               <!-- Code Preview -->
-              <div v-if="newProduct.codeValue" class="text-center">
-                <div v-if="newProduct.codeType === 'qr'" class="bg-white p-4 rounded-lg inline-block">
-                  <qrcode-vue :value="newProduct.codeValue" :size="200" level="H" class="mx-auto"></qrcode-vue>
+              <div v-if="newProduct.codeValue" class="p-4 bg-gray-50 rounded-lg">
+                <div class="text-center" v-if="newProduct.codeType === 'qr'">
+                  <qrcode-vue :value="newProduct.codeValue" :size="200" level="H"></qrcode-vue>
                 </div>
-                <div v-else class="bg-white p-4 rounded-lg">
+                <div class="text-center" v-else>
                   <svg ref="barcodeElement"></svg>
                 </div>
               </div>
@@ -575,20 +585,19 @@
           </div>
         </div>
 
-        <div class="mt-8 flex justify-end space-x-3 border-t pt-4">
+        <div class="mt-6 flex justify-end space-x-3">
           <button 
             @click="showAddProductModal = false"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
             İptal
           </button>
           <button 
             @click="addProduct"
-            class="px-6 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors flex items-center"
+            class="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-md hover:bg-primary-600"
             :disabled="isAddingProduct"
           >
-            <i class="fas fa-plus mr-2"></i>
-            {{ isAddingProduct ? 'Ekleniyor...' : 'Ürün Ekle' }}
+            {{ isAddingProduct ? 'Ekleniyor...' : 'Ekle' }}
           </button>
         </div>
       </div>
@@ -756,7 +765,7 @@
         
         <div class="space-y-4">
           <p class="text-gray-600">
-            <strong class="text-red-500">"{{ deletingProduct?.Name }}"</strong> ürünü silmek istediğinize emin misiniz?
+            <strong class="text-red-500">"{{ deletingProduct?.Name }}"</strong> ürününü silmek istediğinize emin misiniz?
           </p>
           
           <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
@@ -796,35 +805,28 @@
 
     <!-- Code Preview Modal -->
     <div v-if="showCodePreviewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl p-6 w-full max-w-sm">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-lg font-bold text-gray-900 flex items-center">
-            <i :class="[previewProduct?.CodeType === 'qr' ? 'fas fa-qrcode' : 'fas fa-barcode']" class="mr-2 text-primary-500"></i>
+      <div class="bg-white rounded-lg p-6 w-full max-w-sm">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">
             {{ previewProduct?.CodeType === 'qr' ? 'QR Kod' : 'Barkod' }}
           </h3>
-          <button @click="showCodePreviewModal = false" class="text-gray-400 hover:text-gray-500 transition-colors">
+          <button @click="showCodePreviewModal = false" class="text-gray-400 hover:text-gray-500">
             <i class="fas fa-times"></i>
           </button>
         </div>
         
         <div class="space-y-4">
-          <div class="text-center bg-gray-50 p-4 rounded-xl">
-            <div v-if="previewProduct?.CodeType === 'qr'" id="qrcode" class="flex justify-center">
-              <qrcode-vue :value="previewProduct.CodeValue" :size="200" level="H" class="mx-auto"></qrcode-vue>
+          <div class="text-center">
+            <div v-if="previewProduct?.CodeType === 'qr'">
+              <qrcode-vue :value="previewProduct.CodeValue" :size="200" level="H"></qrcode-vue>
             </div>
             <div v-else>
               <svg ref="previewBarcodeElement"></svg>
             </div>
           </div>
           
-          <div class="flex justify-center">
-            <button 
-              @click="downloadCode"
-              class="btn-primary flex items-center px-6 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors"
-            >
-              <i class="fas fa-download mr-2"></i>
-              {{ previewProduct?.CodeType === 'qr' ? 'QR Kodu İndir' : 'Barkodu İndir' }}
-            </button>
+          <div class="text-center text-sm text-gray-500">
+            {{ previewProduct?.CodeValue }}
           </div>
         </div>
       </div>
@@ -904,7 +906,7 @@ export default {
         return allProducts.filter(product => 
           (product.Name && product.Name.toLowerCase().includes(query)) ||
           (product.Description && product.Description.toLowerCase().includes(query))
-        );
+        ));
       }
       
       return allProducts;
@@ -930,24 +932,13 @@ export default {
       return filtered;
     });
 
-    // Categories computed property
-    const categories = computed(() => {
-      const allCategories = store.getters['stock/getCategories'];
-      if (!searchQuery.value) return allCategories;
-      
-      const query = searchQuery.value.toLowerCase();
-      return allCategories.filter(cat => 
-        cat.Name.toLowerCase().includes(query) ||
-        (cat.Description && cat.Description.toLowerCase().includes(query))
-      );
-    });
-
-    // Filtered categories computed property
+    // Computed property for filtered categories
     const filteredCategories = computed(() => {
-      let result = categories.value;
+      let result = products.value;
       
+      // Eğer kategori filtresi seçilmişse
       if (selectedCategoryFilter.value) {
-        result = result.filter(cat => cat.CategoryId === selectedCategoryFilter.value);
+        result = result.filter(product => product.CategoryId === selectedCategoryFilter.value);
       }
       
       return result;
@@ -1067,19 +1058,23 @@ export default {
     const isAddingProduct = ref(false);
 
     const generateCode = () => {
+      const timestamp = Date.now();
+      const randomNum = Math.floor(Math.random() * 1000);
+      
       if (newProduct.value.codeType === 'qr') {
-        // QR kod için ürün bilgilerini JSON formatında saklayalım
+        // Create a detailed QR code content
         const codeData = {
-          name: newProduct.value.name,
-          categoryId: newProduct.value.categoryId,
+          productName: newProduct.value.name,
+          description: newProduct.value.description,
           price: parseFloat(newProduct.value.price),
-          description: newProduct.value.description
+          categoryId: newProduct.value.categoryId,
+          timestamp,
+          random: randomNum
         };
         newProduct.value.codeValue = JSON.stringify(codeData);
       } else {
-        // Barkod için basit bir format kullanalım: URUN-KATEGORI-ID şeklinde
-        const timestamp = Date.now().toString().slice(-6); // Son 6 hanesi yeterli
-        newProduct.value.codeValue = `URUN-${newProduct.value.categoryId}-${timestamp}`;
+        // Generate barcode format: PROD-CATEGORYID-TIMESTAMP-RANDOM
+        newProduct.value.codeValue = `PROD-${newProduct.value.categoryId}-${timestamp}-${randomNum}`;
       }
       newProduct.value.isCodeGenerated = true;
     };
@@ -1103,13 +1098,10 @@ export default {
     };
 
     const addProduct = async () => {
-      console.log('Starting addProduct with:', newProduct.value); // Debug log
-
       // Validation
       if (!newProduct.value.name || !newProduct.value.description || 
-          !newProduct.value.price || !newProduct.value.stockQuantity || 
-          !newProduct.value.categoryId) {
-        toast.error("Lütfen tüm zorunlu alanları doldurun!", {
+          !newProduct.value.price || !newProduct.value.stockQuantity) {
+        toast.error("Lütfen tüm alanları doldurun!", {
           timeout: 3000,
           position: "top-right",
           icon: "❌"
@@ -1117,45 +1109,81 @@ export default {
         return;
       }
 
+      // If code type is selected but no code value exists, generate one
+      if (newProduct.value.codeType && !newProduct.value.codeValue) {
+        generateCode();
+      }
+
+      // Fiyat ve stok adeti kontrolü
+      if (parseFloat(newProduct.value.price) <= 0) {
+        toast.error("Ürün fiyatı 0'dan büyük olmalıdır!", {
+          timeout: 3000,
+          position: "top-right",
+          icon: "❌"
+        });
+        return;
+      }
+
+      if (parseInt(newProduct.value.stockQuantity) < 0) {
+        toast.error("Stok adeti negatif olamaz!", {
+          timeout: 3000,
+          position: "top-right",
+          icon: "❌"
+        });
+        return;
+      }
+
+      // Aynı kategoride aynı isimde ürün kontrolü
+      const existingProduct = products.value.find(
+        p => p.CategoryId === newProduct.value.categoryId && 
+             p.Name.toLowerCase() === newProduct.value.name.toLowerCase()
+      );
+
+      if (existingProduct) {
+        toast.error(`Bu kategoride "${newProduct.value.name}" isimli ürün zaten mevcut!`, {
+          timeout: 4000,
+          position: "top-right",
+          icon: "⚠️",
+          closeOnClick: true
+        });
+        return;
+      }
+
       isAddingProduct.value = true;
       try {
-        // Eğer kod türü seçilmişse ve değer yoksa otomatik oluştur
-        if (newProduct.value.codeType && !newProduct.value.codeValue) {
-          generateCode();
-        }
-
+        // Prepare product data with code fields
         const productData = {
-          CompanyId: companyId.value.toString(),
-          CategoryId: newProduct.value.categoryId.toString(),
           Name: newProduct.value.name,
           Description: newProduct.value.description,
           Price: parseFloat(newProduct.value.price),
           StockQuantity: parseInt(newProduct.value.stockQuantity),
+          CategoryId: newProduct.value.categoryId,
+          CompanyId: companyId.value,
           CodeType: newProduct.value.codeType || null,
           CodeValue: newProduct.value.codeValue || null,
           IsCodeGenerated: newProduct.value.isCodeGenerated ? 1 : 0
         };
 
-        console.log('Sending product data to API:', productData); // Debug log
-
-        const response = await store.dispatch('product/addProduct', productData);
-
-        console.log('API Response:', response); // Debug log
+        const response = await store.dispatch('product/addProduct', {
+          product: productData,
+          companyId: companyId.value
+        });
 
         if (response.success) {
           // Reset form and close modal
           newProduct.value = {
             name: '',
             description: '',
-            price: 0,
-            stockQuantity: 0,
-            categoryId: null,
+            price: '',
+            stockQuantity: '',
+            categoryId: '',
             codeType: '',
-            codeValue: null,
+            codeValue: '',
             isCodeGenerated: false
           };
           showAddProductModal.value = false;
           
+          // Show success toast
           toast.success(`✨ ${response.message}`, {
             timeout: 4000,
             position: "top-right",
@@ -1166,7 +1194,7 @@ export default {
           // Refresh products list
           await store.dispatch('product/fetchProducts', {
             companyId: companyId.value,
-            categoryId: newProduct.value.categoryId
+            categoryId: productData.CategoryId
           });
         }
       } catch (error) {
@@ -1231,12 +1259,13 @@ export default {
 
       // CompanyId kontrolü ve kategorileri getirme
       if (companyId.value) {
-        console.log('Mounting with CompanyId:', companyId.value);
+        console.log('Mounting with CompanyId:', companyId.value); // Debug log
         try {
           await store.dispatch('stock/fetchCategories', companyId.value);
+          // Tüm ürünleri getir
           await store.dispatch('product/fetchProducts', {
             companyId: companyId.value,
-            categoryId: ''
+            categoryId: '' // Boş bırakarak tüm ürünleri getir
           });
         } catch (error) {
           console.error('Veriler yüklenirken hata:', error);
@@ -1364,34 +1393,21 @@ export default {
     };
 
     const openAddProductModal = (category) => {
-      console.log('Opening add product modal with category:', category); // Debug log
-      
-      if (!category || !category.CategoryId) {
-        toast.error("Kategori bilgisi bulunamadı!", {
-          timeout: 3000,
-          position: "top-right",
-          icon: "❌"
-        });
-        return;
-      }
-
       newProduct.value = {
         name: '',
         description: '',
-        price: 0,
-        stockQuantity: 0,
-        categoryId: category.CategoryId, // CategoryId'yi doğrudan atıyoruz
+        price: '',
+        stockQuantity: '',
+        categoryId: category.CategoryId,
         codeType: '',
-        codeValue: null,
+        codeValue: '',
         isCodeGenerated: false
       };
-      
-      console.log('New product initialized:', newProduct.value); // Debug log
       showAddProductModal.value = true;
     };
 
     const getCategoryName = (categoryId) => {
-      const category = categories.value.find(cat => String(cat.CategoryId) === String(categoryId));
+      const category = products.value.find(cat => String(cat.CategoryId) === String(categoryId));
       return category ? category.Name : 'Bilinmeyen Kategori';
     };
 
@@ -1435,20 +1451,24 @@ export default {
     });
 
     const generateEditCode = () => {
+      const timestamp = Date.now();
+      const randomNum = Math.floor(Math.random() * 1000);
+      
       if (editingProduct.value.CodeType === 'qr') {
-        // QR kod için ürün bilgilerini JSON formatında saklayalım
+        // Create a detailed QR code content
         const codeData = {
           productId: editingProduct.value.ProductId,
-          name: editingProduct.value.Name,
-          categoryId: editingProduct.value.CategoryId,
+          productName: editingProduct.value.Name,
+          description: editingProduct.value.Description,
           price: parseFloat(editingProduct.value.Price),
-          description: editingProduct.value.Description
+          categoryId: editingProduct.value.CategoryId,
+          timestamp,
+          random: randomNum
         };
         editingProduct.value.CodeValue = JSON.stringify(codeData);
       } else {
-        // Barkod için basit bir format kullanalım: URUN-KATEGORI-ID şeklinde
-        const timestamp = Date.now().toString().slice(-6); // Son 6 hanesi yeterli
-        editingProduct.value.CodeValue = `URUN-${editingProduct.value.CategoryId}-${editingProduct.value.ProductId}-${timestamp}`;
+        // Generate barcode format: PROD-PRODUCTID-CATEGORYID-TIMESTAMP-RANDOM
+        editingProduct.value.CodeValue = `PROD-${editingProduct.value.ProductId}-${editingProduct.value.CategoryId}-${timestamp}-${randomNum}`;
       }
       editingProduct.value.IsCodeGenerated = true;
     };
@@ -1466,26 +1486,24 @@ export default {
 
       isEditingProduct.value = true;
       try {
-        // Eğer kod türü seçilmişse ve değer yoksa otomatik oluştur
-        if (editingProduct.value.CodeType && !editingProduct.value.CodeValue) {
-          generateEditCode();
-        }
-
-        // Prepare product data
+        // Prepare product data with code fields
         const productData = {
           ProductId: editingProduct.value.ProductId,
-          CompanyId: parseInt(companyId.value),
-          CategoryId: parseInt(editingProduct.value.CategoryId),
           Name: editingProduct.value.Name,
           Description: editingProduct.value.Description,
           Price: parseFloat(editingProduct.value.Price),
           StockQuantity: parseInt(editingProduct.value.StockQuantity),
+          CategoryId: editingProduct.value.CategoryId,
+          CompanyId: companyId.value,
           CodeType: editingProduct.value.CodeType || null,
           CodeValue: editingProduct.value.CodeValue || null,
           IsCodeGenerated: editingProduct.value.IsCodeGenerated ? 1 : 0
         };
 
-        const response = await store.dispatch('product/updateProduct', productData);
+        const response = await store.dispatch('product/updateProduct', {
+          product: productData,
+          companyId: companyId.value
+        });
 
         if (response.success) {
           toast.info(`✨ ${response.message}`, {
@@ -1498,7 +1516,7 @@ export default {
 
           // Refresh products list
           await store.dispatch('product/fetchProducts', {
-            companyId: parseInt(companyId.value),
+            companyId: companyId.value,
             categoryId: productData.CategoryId
           });
         }
@@ -1593,87 +1611,6 @@ export default {
       }
     };
 
-    const downloadCode = () => {
-      if (!previewProduct.value) return;
-
-      if (previewProduct.value.CodeType === 'qr') {
-        // QR kod için canvas oluştur
-        const qrContainer = document.querySelector('#qrcode canvas');
-        if (!qrContainer) {
-          console.error('QR code container not found');
-          return;
-        }
-
-        try {
-          // Canvas'ı PNG olarak indir
-          const link = document.createElement('a');
-          link.download = `${previewProduct.value.Name}-qr-code.png`;
-          link.href = qrContainer.toDataURL('image/png');
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          toast.success('QR Kod başarıyla indirildi!', {
-            timeout: 2000,
-            position: "top-right",
-            icon: "💾"
-          });
-        } catch (error) {
-          console.error('Error downloading QR code:', error);
-          toast.error('QR Kod indirilirken bir hata oluştu', {
-            timeout: 3000,
-            position: "top-right",
-            icon: "❌"
-          });
-        }
-      } else {
-        // Barkod için SVG'yi PNG'ye çevir
-        const svgElement = previewBarcodeElement.value;
-        if (!svgElement) {
-          console.error('Barcode element not found');
-          return;
-        }
-
-        try {
-          const svgData = new XMLSerializer().serializeToString(svgElement);
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          // SVG'yi image'a çevir
-          const img = new Image();
-          img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-            
-            // PNG olarak indir
-            const link = document.createElement('a');
-            link.download = `${previewProduct.value.Name}-barcode.png`;
-            link.href = canvas.toDataURL('image/png');
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            toast.success('Barkod başarıyla indirildi!', {
-              timeout: 2000,
-              position: "top-right",
-              icon: "💾"
-            });
-          };
-          img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
-        } catch (error) {
-          console.error('Error downloading barcode:', error);
-          toast.error('Barkod indirilirken bir hata oluştu', {
-            timeout: 3000,
-            position: "top-right",
-            icon: "❌"
-          });
-        }
-      }
-    };
-
     return {
       // State
       companyId,
@@ -1682,32 +1619,16 @@ export default {
       searchQuery,
       selectedCategoryFilter,
       isDarkMode,
-      flippedCardId,
-      barcodeElement,
-      editBarcodeElement,
-      previewBarcodeElement,
-      showCodePreviewModal,
-      previewProduct,
-      isAddingProduct,
-      isEditingProduct,
-      showEditProductModal,
-      showDeleteProductModal,
-      deletingProduct,
-
-      // Form states
       newCategory,
       newProduct,
-      editingProduct,
 
       // Computed
-      categories,
-      products,
-      filteredCategories,
-      filteredProducts,
+      products: filteredProducts,
       selectedCategory,
       loading,
       error,
       unsavedChanges,
+      filteredCategories,
 
       // Methods
       toggleDarkMode,
@@ -1721,6 +1642,7 @@ export default {
       filterByCategory,
       isDescriptionTooLong,
       checkDescriptionLength,
+      flippedCardId,
       toggleCard,
       editCategory,
       confirmDeleteCategory,
@@ -1734,14 +1656,23 @@ export default {
       getCategoryName,
       editProduct,
       confirmDeleteProduct,
+      showEditProductModal,
+      editingProduct,
+      isEditingProduct,
       saveProduct,
+      showDeleteProductModal,
+      deletingProduct,
       deleteProduct,
       getCategoryColor,
+      barcodeElement,
       generateCode,
       scanCode,
+      editBarcodeElement,
       generateEditCode,
-      showCodePreview,
-      downloadCode
+      showCodePreviewModal,
+      previewProduct,
+      previewBarcodeElement,
+      showCodePreview
     };
   }
 };
