@@ -59,6 +59,29 @@ const actions = {
     }
   },
 
+  // Ürün ara
+  async searchProducts({ commit, state }, { query, companyId }) {
+    try {
+      // Önce tüm ürünleri getir (eğer henüz getirilmemişse)
+      if (state.products.length === 0) {
+        await this.dispatch('product/fetchProducts', { companyId });
+      }
+
+      // Yerel olarak arama yap
+      const searchQuery = query.toLowerCase();
+      const results = state.products.filter(product => 
+        product.Name.toLowerCase().includes(searchQuery) ||
+        (product.Description && product.Description.toLowerCase().includes(searchQuery)) ||
+        (product.CodeValue && product.CodeValue.toLowerCase().includes(searchQuery))
+      );
+
+      return results;
+    } catch (error) {
+      console.error('Error searching products:', error);
+      throw error;
+    }
+  },
+
   async addProduct({ commit }, productData) {
     try {
       const response = await axios.post(`/products?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, productData);
