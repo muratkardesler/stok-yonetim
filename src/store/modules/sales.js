@@ -45,6 +45,9 @@ const mutations = {
   DELETE_ORDER(state, orderId) {
     state.orders = state.orders.filter(o => o.OrderId !== orderId);
     state.orderDetails = state.orderDetails.filter(d => d.OrderId !== orderId);
+  },
+  DELETE_ORDER_DETAIL(state, orderDetailId) {
+    state.orderDetails = state.orderDetails.filter(d => d.OrderDetailId !== orderDetailId);
   }
 };
 
@@ -103,18 +106,17 @@ const actions = {
     }
   },
 
-  // Sipariş detayı ekle
-  async addOrderDetail({ commit }, { orderDetail, orderId }) {
+  // Siparişe ürün ekle
+  async addOrderDetail({ commit }, { orderId, orderDetail }) {
     try {
       console.log('Adding order detail:', orderDetail);
 
       const detailData = {
-        OrderId: orderId.toString(),
         ProductId: orderDetail.ProductId.toString(),
-        Quantity: orderDetail.Quantity,
-        UnitPrice: orderDetail.UnitPrice,
-        Discount: orderDetail.Discount || 0,
-        Tax: orderDetail.Tax || 0
+        Quantity: parseInt(orderDetail.Quantity),
+        UnitPrice: parseFloat(orderDetail.UnitPrice),
+        Discount: parseFloat(orderDetail.Discount || 0),
+        Tax: parseFloat(orderDetail.Tax || 0)
       };
 
       const response = await axios.post(`/orders/${orderId}/details?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, detailData);
@@ -136,21 +138,19 @@ const actions = {
   },
 
   // Sipariş detayını güncelle
-  async updateOrderDetail({ commit }, { orderDetail, orderId }) {
+  async updateOrderDetail({ commit }, { orderId, orderDetailId, orderDetail }) {
     try {
       console.log('Updating order detail:', orderDetail);
 
       const detailData = {
-        OrderDetailId: orderDetail.OrderDetailId.toString(),
-        OrderId: orderId.toString(),
         ProductId: orderDetail.ProductId.toString(),
-        Quantity: orderDetail.Quantity,
-        UnitPrice: orderDetail.UnitPrice,
-        Discount: orderDetail.Discount || 0,
-        Tax: orderDetail.Tax || 0
+        Quantity: parseInt(orderDetail.Quantity),
+        UnitPrice: parseFloat(orderDetail.UnitPrice),
+        Discount: parseFloat(orderDetail.Discount || 0),
+        Tax: parseFloat(orderDetail.Tax || 0)
       };
 
-      const response = await axios.put(`/orders/${orderId}/details/${orderDetail.OrderDetailId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, detailData);
+      const response = await axios.put(`/orders/${orderId}/details/${orderDetailId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, detailData);
 
       console.log('Update order detail response:', response.data);
 
@@ -163,6 +163,29 @@ const actions = {
       }
     } catch (error) {
       console.error('Error updating order detail:', error);
+      throw error;
+    }
+  },
+
+  // Sipariş detayını sil
+  async deleteOrderDetail({ commit }, { orderId, orderDetailId }) {
+    try {
+      console.log('Deleting order detail:', orderDetailId);
+
+      const response = await axios.delete(`/orders/${orderId}/details/${orderDetailId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`);
+
+      console.log('Delete order detail response:', response.data);
+
+      if (response.data) {
+        // Silinen detayı state'den kaldır
+        commit('DELETE_ORDER_DETAIL', orderDetailId);
+        return {
+          success: true,
+          message: 'Sipariş detayı silindi!'
+        };
+      }
+    } catch (error) {
+      console.error('Error deleting order detail:', error);
       throw error;
     }
   },
