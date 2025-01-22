@@ -8,7 +8,7 @@ const state = {
 
 const mutations = {
   SET_CUSTOMERS(state, customers) {
-    state.customers = customers;
+    state.customers = customers || [];
   },
   SET_LOADING(state, loading) {
     state.loading = loading;
@@ -31,11 +31,16 @@ const mutations = {
 };
 
 const actions = {
-  // Tüm müşterileri getir
+  // Fetch all customers
   async fetchCustomers({ commit }, companyId) {
     commit('SET_LOADING', true);
     try {
-      const response = await axios.get(`/customers?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}&CompanyId=${companyId}`);
+      console.log('Fetching customers for CompanyId:', companyId.toString());
+      
+      const response = await axios.get(`/customers?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}&CompanyId=${companyId.toString()}`);
+      
+      console.log('Customers response:', response.data);
+      
       commit('SET_CUSTOMERS', response.data || []);
       return response.data;
     } catch (error) {
@@ -47,26 +52,30 @@ const actions = {
     }
   },
 
-  // Yeni müşteri ekle
+  // Create new customer
   async createCustomer({ commit }, { customer, companyId }) {
     try {
-      const response = await axios.post(`/customers?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, {
-        CompanyId: companyId,
+      const customerData = {
+        CompanyId: companyId.toString(),
         Name: customer.Name,
-        Phone: customer.Phone,
-        Email: customer.Email,
-        Address: customer.Address,
-        Notes: customer.Notes
-      });
+        ContactInfo: customer.ContactInfo || ''
+      };
 
-      if (response.data) {
-        commit('ADD_CUSTOMER', response.data);
+      console.log('Creating customer with data:', customerData);
+
+      const response = await axios.post(`/customers?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, customerData);
+
+      console.log('Create customer response:', response.data);
+
+      if (response.data && response.data.Status === "Success") {
+        commit('ADD_CUSTOMER', response.data.data);
         return {
           success: true,
-          message: 'Müşteri başarıyla eklendi!',
-          data: response.data
+          message: response.data.Message || 'Müşteri başarıyla eklendi!'
         };
       }
+      
+      return response;
     } catch (error) {
       console.error('Error creating customer:', error);
       throw error;
@@ -122,9 +131,9 @@ const actions = {
 };
 
 const getters = {
-  getCustomers: state => state.customers,
-  getLoading: state => state.loading,
-  getError: state => state.error,
+  allCustomers: state => state.customers,
+  isLoading: state => state.loading,
+  error: state => state.error,
   
   // Müşteri ID'sine göre müşteri getir
   getCustomerById: (state) => (customerId) => {
