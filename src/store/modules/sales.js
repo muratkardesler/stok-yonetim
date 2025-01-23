@@ -226,27 +226,37 @@ const actions = {
       
       // Başarılı yanıt kontrolü
       if (response.data && response.data.Status === "Success" && response.data.OrderId) {
-        // Sipariş oluşturulduğunda stokları güncelle (Pending durumunda bile)
+        const orderId = response.data.OrderId;
+        
+        // Sipariş detaylarını ekle
         if (order.cart && Array.isArray(order.cart)) {
-          for (const item of order.cart) {
-            try {
-              // Ürün bilgisini al
-              const productResponse = await axios.get(`/products/${item.ProductId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`);
-              const product = productResponse.data;
-              
-              // Yeni stok miktarını hesapla
-              const newStock = product.StockQuantity - item.quantity;
-              
-              // Stok güncelleme
-              await axios.put(`/products/${item.ProductId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, {
-                ...product,
-                StockQuantity: newStock
-              });
+          // Sepetteki ürünleri ProductId'ye göre grupla
+          const groupedItems = order.cart.reduce((acc, item) => {
+            const key = item.ProductId.toString();
+            if (!acc[key]) {
+              acc[key] = {
+                ProductId: key,
+                Quantity: 0,
+                UnitPrice: parseFloat(item.UnitPrice || item.Price || item.price || 0),
+                Discount: parseFloat(item.Discount || 0),
+                Tax: parseFloat(item.Tax || 0)
+              };
+            }
+            acc[key].Quantity += parseInt(item.Quantity || item.quantity || 0);
+            return acc;
+          }, {});
 
-              console.log(`Updated stock for product ${item.ProductId}: ${newStock}`);
+          console.log('Grouped items:', groupedItems);
+
+          // Her benzersiz ürün için tek bir istek at
+          for (const productId in groupedItems) {
+            try {
+              const item = groupedItems[productId];
+              console.log(`Adding order detail for OrderId: ${orderId}, ProductId: ${productId}, Detail:`, item);
+              await axios.post(`/orders/${orderId}/details?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, item);
             } catch (error) {
-              console.error(`Error updating stock for product ${item.ProductId}:`, error);
-              throw new Error(`Ürün stok güncellemesi başarısız: ${item.Name}`);
+              console.error(`Error adding order detail for product ${productId}:`, error);
+              throw new Error(`Ürün siparişe eklenemedi: ${productId}`);
             }
           }
         }
@@ -255,13 +265,12 @@ const actions = {
           success: true,
           data: {
             ...orderData,
-            OrderId: response.data.OrderId
+            OrderId: orderId
           },
           message: response.data.Message
         };
-      } else {
-        throw new Error('Sipariş oluşturulamadı: ' + (response.data?.Message || 'Geçersiz yanıt'));
       }
+      throw new Error('Sipariş oluşturulamadı: ' + (response.data?.Message || 'Geçersiz yanıt'));
     } catch (error) {
       console.error('Error creating order:', error);
       console.error('Error response:', error.response?.data);

@@ -130,6 +130,7 @@ export default {
     const salesChart = ref(null);
     const chartInstance = ref(null);
     const chartPeriod = ref('daily');
+    const isChartMounted = ref(false);
 
     // Computed Properties
     const orders = computed(() => store.getters['sales/getOrders']);
@@ -168,12 +169,22 @@ export default {
       
       // Collect all order details
       orders.value.forEach(order => {
-        order.OrderDetails?.forEach(detail => {
-          const key = detail.ProductId;
+        if (!order.OrderDetails) return;
+        
+        // Use Set to track unique products in this order
+        const uniqueProducts = new Set();
+        
+        order.OrderDetails.forEach(detail => {
+          const key = `${detail.ProductId}-${detail.UnitPrice}`;
+          
+          // Skip if we've already processed this product in this order
+          if (uniqueProducts.has(key)) return;
+          uniqueProducts.add(key);
+          
           if (!productMap.has(key)) {
             productMap.set(key, {
               ProductId: detail.ProductId,
-              Name: detail.ProductName,
+              Name: detail.ProductName || 'Bilinmeyen Ürün',
               TotalQuantity: 0,
               TotalAmount: 0
             });
@@ -273,24 +284,41 @@ export default {
       };
     };
 
-    const updateChart = () => {
-      if (chartInstance.value) {
-        try {
-          chartInstance.value.destroy();
-        } catch (error) {
-          console.error('Error destroying chart:', error);
-        }
-      }
-
+    const safeDestroyChart = () => {
       try {
-        const ctx = salesChart.value?.getContext('2d');
+        if (chartInstance.value) {
+          chartInstance.value.destroy();
+          chartInstance.value = null;
+        }
+      } catch (error) {
+        console.error('Error destroying chart:', error);
+      }
+    };
+
+    const updateChart = async () => {
+      try {
+        // Safely destroy existing chart
+        safeDestroyChart();
+
+        // Wait for next tick to ensure DOM is updated
+        await nextTick();
+
+        // Get canvas context
+        const canvas = salesChart.value;
+        if (!canvas) {
+          console.warn('Canvas element not found');
+          return;
+        }
+
+        const ctx = canvas.getContext('2d');
         if (!ctx) {
-          console.error('Canvas context not found');
+          console.warn('Canvas context not found');
           return;
         }
 
         const { labels, values } = getChartData();
 
+        // Create new chart instance
         chartInstance.value = new Chart(ctx, {
           type: 'line',
           data: {
@@ -322,38 +350,48 @@ export default {
             }
           }
         });
+
+        isChartMounted.value = true;
       } catch (error) {
-        console.error('Error creating chart:', error);
+        console.error('Error updating chart:', error);
+        isChartMounted.value = false;
       }
     };
 
     // Lifecycle Hooks
-    onMounted(() => {
-      nextTick(() => {
-        updateChart();
-      });
+    onMounted(async () => {
+      try {
+        await nextTick();
+        if (salesChart.value) {
+          await updateChart();
+        }
+      } catch (error) {
+        console.error('Error in onMounted:', error);
+      }
     });
 
-    watch(chartPeriod, () => {
-      nextTick(() => {
-        updateChart();
-      });
+    watch(chartPeriod, async () => {
+      try {
+        if (salesChart.value && isChartMounted.value) {
+          await updateChart();
+        }
+      } catch (error) {
+        console.error('Error in chartPeriod watch:', error);
+      }
     });
 
-    watch(orders, () => {
-      nextTick(() => {
-        updateChart();
-      });
-    });
+    watch(orders, async () => {
+      try {
+        if (salesChart.value && isChartMounted.value) {
+          await updateChart();
+        }
+      } catch (error) {
+        console.error('Error in orders watch:', error);
+      }
+    }, { deep: true });
 
     onUnmounted(() => {
-      if (chartInstance.value) {
-        try {
-          chartInstance.value.destroy();
-        } catch (error) {
-          console.error('Error destroying chart on unmount:', error);
-        }
-      }
+      safeDestroyChart();
     });
 
     return {

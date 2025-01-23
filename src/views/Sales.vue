@@ -1034,7 +1034,20 @@ export default {
 
       processing.value = true;
       try {
-        // Önce siparişi oluştur
+        // Sepetteki ürünleri grupla ve birleştir
+        const groupedCart = cart.value.reduce((acc, item) => {
+          const key = item.ProductId.toString();
+          if (!acc[key]) {
+            acc[key] = {
+              ...item,
+              quantity: 0
+            };
+          }
+          acc[key].quantity += item.quantity;
+          return acc;
+        }, {});
+
+        // Siparişi oluştur
         const orderResponse = await store.dispatch('sales/createOrder', {
           order: {
             CompanyId: companyId.value.toString(),
@@ -1043,49 +1056,14 @@ export default {
             PaymentMethod: paymentMethod.value,
             Notes: notes.value,
             Status: 'Pending',
-            cart: cart.value // Cart bilgisini ekle
+            cart: Object.values(groupedCart) // Birleştirilmiş sepeti gönder
           },
           companyId: companyId.value.toString()
         });
 
         console.log('Order creation response:', orderResponse);
 
-        // Sipariş başarıyla oluşturulduysa devam et
         if (orderResponse.success && orderResponse.data) {
-          // OrderId'yi doğru yerden al
-          const orderId = orderResponse.data.OrderId;
-          console.log('Created order with ID:', orderId);
-          
-          if (!orderId) {
-            throw new Error('Sipariş ID alınamadı');
-          }
-          
-          // Her bir sepet ürünü için sipariş detayı ekle
-          for (const item of cart.value) {
-            try {
-              console.log('Adding detail for product:', {
-                orderId: orderId,
-                productId: item.ProductId,
-                quantity: item.quantity,
-                price: item.Price
-              });
-
-              await store.dispatch('sales/addOrderDetail', {
-                orderId: orderId,
-                orderDetail: {
-                  ProductId: item.ProductId.toString(),
-                  Quantity: item.quantity,
-                  UnitPrice: item.Price,
-                  Discount: 0,
-                  Tax: 0
-                }
-              });
-            } catch (detailError) {
-              console.error('Error adding order detail:', detailError);
-              throw new Error(`Ürün eklenirken hata oluştu: ${item.Name}`);
-            }
-          }
-
           toast.success('Satış başarıyla tamamlandı!');
           closeNewSaleModal();
           fetchData();

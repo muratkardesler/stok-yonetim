@@ -194,23 +194,13 @@ export default {
         console.log('API Response:', response);
 
         if (response.Status === 'Success') {
-          // Kullanıcı bilgilerini sakla
-          const userData = {
-            username: this.form.username,
-            email: this.form.email
-          };
-          
-          // Oturum bilgilerini sakla
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('userData', JSON.stringify(userData));
-          
           // Başarılı mesajını göster
-          this.showNotification(response.Message || 'Kayıt başarılı bir şekilde oluşturuldu');
+          this.showNotification('Hesabınız başarıyla oluşturuldu! Yönlendiriliyorsunuz...');
           
-          // Dashboard'a yönlendir
+          // Login sayfasına yönlendir
           setTimeout(() => {
-            this.$router.push({ name: 'Dashboard' });
-          }, 1000);
+            this.$router.push({ name: 'Login' });
+          }, 2000);
         } else {
           throw new Error(response.Message || 'Kayıt işlemi başarısız oldu');
         }
@@ -348,34 +338,57 @@ export default {
   position: fixed;
   top: 20px;
   right: 20px;
-  padding: 1rem 2rem;
-  border-radius: 8px;
+  padding: 1.2rem 1.5rem;
+  border-radius: 12px;
   color: white;
+  min-width: 300px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
   animation: slideIn 0.3s ease-out;
   z-index: 1000;
+  font-weight: 500;
 }
 
 .notification.success {
-  background: var(--success-color);
+  background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
+  border-left: 4px solid #059669;
 }
 
 .notification.error {
-  background: var(--error-color);
+  background: linear-gradient(135deg, #F87171 0%, #EF4444 100%);
+  border-left: 4px solid #DC2626;
+}
+
+.notification::before {
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+}
+
+.notification.success::before {
+  content: "\f00c";
+  color: #ECFDF5;
+}
+
+.notification.error::before {
+  content: "\f071";
+  color: #FEF2F2;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%) translateY(-50%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
 }
 
 .submit-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
 }
 </style>
