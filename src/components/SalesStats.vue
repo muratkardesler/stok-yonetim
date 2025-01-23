@@ -119,7 +119,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue';
 import { useStore } from 'vuex';
 import Chart from 'chart.js/auto';
 
@@ -275,56 +275,85 @@ export default {
 
     const updateChart = () => {
       if (chartInstance.value) {
-        chartInstance.value.destroy();
+        try {
+          chartInstance.value.destroy();
+        } catch (error) {
+          console.error('Error destroying chart:', error);
+        }
       }
 
-      const ctx = salesChart.value.getContext('2d');
-      const { labels, values } = getChartData();
+      try {
+        const ctx = salesChart.value?.getContext('2d');
+        if (!ctx) {
+          console.error('Canvas context not found');
+          return;
+        }
 
-      chartInstance.value = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Satış Tutarı',
-            data: values,
-            borderColor: 'rgb(99, 102, 241)',
-            backgroundColor: 'rgba(99, 102, 241, 0.1)',
-            tension: 0.4,
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: false
-            }
+        const { labels, values } = getChartData();
+
+        chartInstance.value = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Satış Tutarı',
+              data: values,
+              borderColor: 'rgb(99, 102, 241)',
+              backgroundColor: 'rgba(99, 102, 241, 0.1)',
+              tension: 0.4,
+              fill: true
+            }]
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: value => formatPrice(value)
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: value => formatPrice(value)
+                }
               }
             }
           }
-        }
-      });
+        });
+      } catch (error) {
+        console.error('Error creating chart:', error);
+      }
     };
 
     // Lifecycle Hooks
     onMounted(() => {
-      updateChart();
+      nextTick(() => {
+        updateChart();
+      });
     });
 
     watch(chartPeriod, () => {
-      updateChart();
+      nextTick(() => {
+        updateChart();
+      });
     });
 
     watch(orders, () => {
-      updateChart();
+      nextTick(() => {
+        updateChart();
+      });
+    });
+
+    onUnmounted(() => {
+      if (chartInstance.value) {
+        try {
+          chartInstance.value.destroy();
+        } catch (error) {
+          console.error('Error destroying chart on unmount:', error);
+        }
+      }
     });
 
     return {

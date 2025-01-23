@@ -98,10 +98,26 @@ const actions = {
       const response = await axios.get(`/orders/${orderId}/details?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`);
       
       console.log('Order details response:', response.data);
-      commit('SET_ORDER_DETAILS', response.data || []);
-      return response.data;
+
+      if (!response.data || !Array.isArray(response.data)) {
+        console.error('Invalid response format:', response.data);
+        return [];
+      }
+
+      // Backend'den gelen detayları sayısal değerlere dönüştür
+      const formattedDetails = response.data.map(detail => ({
+        ...detail,
+        Quantity: Number(detail.Quantity || 0),
+        UnitPrice: Number(detail.UnitPrice || 0),
+        Discount: Number(detail.Discount || 0),
+        Tax: Number(detail.Tax || 0)
+      }));
+
+      commit('SET_ORDER_DETAILS', formattedDetails);
+      return formattedDetails;
     } catch (error) {
       console.error('Error fetching order details:', error);
+      console.error('Error response:', error.response?.data);
       throw error;
     }
   },
@@ -111,14 +127,18 @@ const actions = {
     try {
       console.log('Adding order detail:', orderDetail);
 
+      // Postman'deki gibi request body'yi hazırla
       const detailData = {
-        ProductId: orderDetail.ProductId.toString(),
-        Quantity: parseInt(orderDetail.Quantity),
-        UnitPrice: parseFloat(orderDetail.UnitPrice),
-        Discount: parseFloat(orderDetail.Discount || 0),
-        Tax: parseFloat(orderDetail.Tax || 0)
+        ProductId: orderDetail.ProductId.toString(), // String olarak gönder
+        Quantity: orderDetail.Quantity,
+        UnitPrice: orderDetail.UnitPrice,
+        Discount: orderDetail.Discount || 0,
+        Tax: orderDetail.Tax || 0
       };
 
+      console.log('Sending detail data:', detailData);
+
+      // OrderId'yi direkt URL'de kullan
       const response = await axios.post(`/orders/${orderId}/details?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, detailData);
 
       console.log('Add order detail response:', response.data);
@@ -190,29 +210,61 @@ const actions = {
     }
   },
 
-  // Yeni sipariş oluştur (güncellenmiş versiyon)
-  async createOrder({ commit, dispatch }, { order, companyId }) {
+  // Yeni sipariş oluştur
+  async createOrder({ commit }, { order, companyId }) {
     try {
       const orderData = {
-        CompanyId: companyId.toString(),
-        CustomerId: order.CustomerId ? order.CustomerId.toString() : "1",
-        OrderDate: new Date().toISOString(),
-        TotalAmount: order.TotalAmount,
-        Status: order.Status || 'Pending',
-        PaymentMethod: order.PaymentMethod || 'Cash',
-        Notes: order.Notes || ''
+        ...order,
+        OrderDate: new Date().toISOString()
       };
 
       console.log('Creating order with data:', orderData);
-
+      
       const response = await axios.post(`/orders?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, orderData);
-
+      
       console.log('Create order response:', response.data);
+      
+      // Başarılı yanıt kontrolü
+      if (response.data && response.data.Status === "Success" && response.data.OrderId) {
+        // Sipariş oluşturulduğunda stokları güncelle (Pending durumunda bile)
+        if (order.cart && Array.isArray(order.cart)) {
+          for (const item of order.cart) {
+            try {
+              // Ürün bilgisini al
+              const productResponse = await axios.get(`/products/${item.ProductId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`);
+              const product = productResponse.data;
+              
+              // Yeni stok miktarını hesapla
+              const newStock = product.StockQuantity - item.quantity;
+              
+              // Stok güncelleme
+              await axios.put(`/products/${item.ProductId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, {
+                ...product,
+                StockQuantity: newStock
+              });
 
-      // Axios yanıtını olduğu gibi dön
-      return response;
+              console.log(`Updated stock for product ${item.ProductId}: ${newStock}`);
+            } catch (error) {
+              console.error(`Error updating stock for product ${item.ProductId}:`, error);
+              throw new Error(`Ürün stok güncellemesi başarısız: ${item.Name}`);
+            }
+          }
+        }
+
+        return {
+          success: true,
+          data: {
+            ...orderData,
+            OrderId: response.data.OrderId
+          },
+          message: response.data.Message
+        };
+      } else {
+        throw new Error('Sipariş oluşturulamadı: ' + (response.data?.Message || 'Geçersiz yanıt'));
+      }
     } catch (error) {
       console.error('Error creating order:', error);
+      console.error('Error response:', error.response?.data);
       throw error;
     }
   },
@@ -220,7 +272,7 @@ const actions = {
   // Siparişi güncelle
   async updateOrder({ commit }, { order, companyId }) {
     try {
-      // Ensure all fields have default values if they are null/undefined
+      // Siparişi güncelle
       const updateData = {
         TotalAmount: order.TotalAmount || 0,
         Status: order.Status || 'Pending',
@@ -230,6 +282,7 @@ const actions = {
 
       console.log('Updating order with data:', updateData);
 
+      // Sipariş güncelleme isteği
       const response = await axios.put(`/orders/${order.OrderId}?client_id=${process.env.VUE_APP_CLIENT_ID}&client_secret=${process.env.VUE_APP_CLIENT_SECRET}`, updateData);
 
       console.log('Update order response:', response.data);
@@ -240,6 +293,8 @@ const actions = {
           success: true,
           message: 'Sipariş başarıyla güncellendi!'
         };
+      } else {
+        throw new Error('Sipariş güncellenemedi');
       }
     } catch (error) {
       console.error('Error updating order:', error);

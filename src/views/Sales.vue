@@ -451,7 +451,7 @@
                           {{ detail.Quantity }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          ₺{{ detail.UnitPrice.toFixed(2) }}
+                          {{ formatPrice(detail.UnitPrice) }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                           %{{ detail.Discount }}
@@ -460,7 +460,7 @@
                           %{{ detail.Tax }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          ₺{{ calculateDetailTotal(detail).toFixed(2) }}
+                          {{ formatPrice(calculateDetailTotal(detail)) }}
                         </td>
                       </tr>
                     </tbody>
@@ -902,15 +902,45 @@ export default {
     };
 
     const editOrder = async (order) => {
-      editingOrder.value = { ...order };
-      showEditOrderModal.value = true;
-      
       try {
+        // Modal'ı aç ve siparişi ayarla
+        editingOrder.value = { 
+          ...order,
+          OrderId: order.OrderId,
+          PaymentMethod: order.PaymentMethod || 'Cash',
+          Status: order.Status || 'Pending',
+          Notes: order.Notes || '',
+          TotalAmount: Number(order.TotalAmount || 0)
+        };
+        showEditOrderModal.value = true;
+
+        // Sipariş detaylarını yükle
         const details = await store.dispatch('sales/fetchOrderDetails', {
           orderId: order.OrderId,
           companyId: companyId.value
         });
-        editingOrderDetails.value = details.map(detail => ({ ...detail }));
+        
+        console.log('Fetched order details:', details);
+        
+        if (!details || !Array.isArray(details)) {
+          console.error('Invalid order details response:', details);
+          toast.error('Sipariş detayları yüklenemedi!');
+          return;
+        }
+
+        // Detayları işle ve gerekli alanları ekle
+        editingOrderDetails.value = details.map(detail => ({
+          ...detail,
+          OrderDetailId: detail.OrderDetailId,
+          ProductId: detail.ProductId,
+          ProductName: detail.ProductName,
+          Quantity: Number(detail.Quantity || 0),
+          UnitPrice: Number(detail.UnitPrice || 0),
+          Discount: Number(detail.Discount || 0),
+          Tax: Number(detail.Tax || 0)
+        }));
+
+        console.log('Processed order details:', editingOrderDetails.value);
       } catch (error) {
         console.error('Error fetching order details:', error);
         toast.error('Sipariş detayları yüklenirken bir hata oluştu!');
@@ -1004,30 +1034,67 @@ export default {
 
       processing.value = true;
       try {
-        const response = await store.dispatch('sales/createOrder', {
+        // Önce siparişi oluştur
+        const orderResponse = await store.dispatch('sales/createOrder', {
           order: {
             CompanyId: companyId.value.toString(),
             CustomerId: selectedCustomer.value?.CustomerId?.toString() || "1",
             TotalAmount: cartTotal.value,
             PaymentMethod: paymentMethod.value,
             Notes: notes.value,
-            Status: 'Pending'
+            Status: 'Pending',
+            cart: cart.value // Cart bilgisini ekle
           },
           companyId: companyId.value.toString()
         });
 
-        // Mulesoft'un yanıt formatına göre kontrol
-        if (response.data && response.data.Status === "Success") {
-          toast.success(response.data.Message || 'Satış başarıyla tamamlandı!');
+        console.log('Order creation response:', orderResponse);
+
+        // Sipariş başarıyla oluşturulduysa devam et
+        if (orderResponse.success && orderResponse.data) {
+          // OrderId'yi doğru yerden al
+          const orderId = orderResponse.data.OrderId;
+          console.log('Created order with ID:', orderId);
+          
+          if (!orderId) {
+            throw new Error('Sipariş ID alınamadı');
+          }
+          
+          // Her bir sepet ürünü için sipariş detayı ekle
+          for (const item of cart.value) {
+            try {
+              console.log('Adding detail for product:', {
+                orderId: orderId,
+                productId: item.ProductId,
+                quantity: item.quantity,
+                price: item.Price
+              });
+
+              await store.dispatch('sales/addOrderDetail', {
+                orderId: orderId,
+                orderDetail: {
+                  ProductId: item.ProductId.toString(),
+                  Quantity: item.quantity,
+                  UnitPrice: item.Price,
+                  Discount: 0,
+                  Tax: 0
+                }
+              });
+            } catch (detailError) {
+              console.error('Error adding order detail:', detailError);
+              throw new Error(`Ürün eklenirken hata oluştu: ${item.Name}`);
+            }
+          }
+
+          toast.success('Satış başarıyla tamamlandı!');
           closeNewSaleModal();
           fetchData();
         } else {
-          console.error('Unexpected response:', response);
-          toast.error('Satış tamamlanırken bir hata oluştu!');
+          throw new Error('Sipariş oluşturulamadı');
         }
       } catch (error) {
         console.error('Error completing sale:', error);
-        toast.error('Satış tamamlanırken bir hata oluştu!');
+        toast.error(error.message || 'Satış tamamlanırken bir hata oluştu!');
       } finally {
         processing.value = false;
       }
@@ -1080,19 +1147,68 @@ export default {
     };
 
     // Methods for Edit Order Modal
-    const closeEditOrderModal = () => {
-      showEditOrderModal.value = false;
-      editingOrder.value = null;
-      editingOrderDetails.value = [];
+    const closeEditOrderModal = async () => {
+      try {
+        // Bekleyen işlemlerin tamamlanmasını bekle
+        await Promise.resolve();
+        
+        // Önce modal'ı kapat
+        showEditOrderModal.value = false;
+        
+        // Sonra state'i temizle
+        setTimeout(() => {
+          editingOrder.value = null;
+          editingOrderDetails.value = [];
+        }, 300); // Modal kapanma animasyonunun tamamlanmasını bekle
+      } catch (error) {
+        console.error('Error closing modal:', error);
+      }
     };
 
     const calculateEditingOrderTotal = () => {
-      return editingOrderDetails.value.reduce((total, detail) => {
-        const subtotal = detail.Quantity * detail.UnitPrice;
-        const discount = subtotal * (detail.Discount / 100);
-        const tax = (subtotal - discount) * (detail.Tax / 100);
-        return total + (subtotal - discount + tax);
+      console.log('Calculating total for:', editingOrderDetails.value);
+      
+      if (!editingOrderDetails.value || !Array.isArray(editingOrderDetails.value) || editingOrderDetails.value.length === 0) {
+        console.log('No details to calculate total');
+        return editingOrder.value?.TotalAmount || 0;
+      }
+
+      const total = editingOrderDetails.value.reduce((total, detail) => {
+        if (!detail) {
+          console.log('Skipping null detail');
+          return total;
+        }
+        
+        const quantity = Number(detail.Quantity || 0);
+        const unitPrice = Number(detail.UnitPrice || 0);
+        const discount = Number(detail.Discount || 0);
+        const tax = Number(detail.Tax || 0);
+
+        console.log('Calculating for item:', {
+          name: detail.ProductName,
+          quantity,
+          unitPrice,
+          discount,
+          tax
+        });
+
+        const subtotal = quantity * unitPrice;
+        console.log('Subtotal:', subtotal);
+        
+        const discountAmount = subtotal * (discount / 100);
+        console.log('Discount amount:', discountAmount);
+        
+        const taxAmount = (subtotal - discountAmount) * (tax / 100);
+        console.log('Tax amount:', taxAmount);
+        
+        const itemTotal = subtotal - discountAmount + taxAmount;
+        console.log('Item total:', itemTotal);
+        
+        return total + itemTotal;
       }, 0);
+
+      console.log('Final total:', total);
+      return total;
     };
 
     const saveOrderChanges = async () => {
@@ -1100,25 +1216,39 @@ export default {
 
       savingOrder.value = true;
       try {
-        // Update order
+        // Toplam tutarı tekrar hesapla
+        const totalAmount = calculateEditingOrderTotal();
+        console.log('Saving with total amount:', totalAmount);
+
+        // Önce sipariş detaylarını güncelle
+        for (const detail of editingOrderDetails.value) {
+          console.log('Updating detail:', detail);
+          await store.dispatch('sales/updateOrderDetail', {
+            orderId: editingOrder.value.OrderId,
+            orderDetailId: detail.OrderDetailId,
+            orderDetail: {
+              ProductId: detail.ProductId.toString(),
+              Quantity: Number(detail.Quantity),
+              UnitPrice: Number(detail.UnitPrice),
+              Discount: Number(detail.Discount),
+              Tax: Number(detail.Tax)
+            }
+          });
+        }
+
+        // Sonra siparişi güncelle
         const orderResponse = await store.dispatch('sales/updateOrder', {
           order: {
-            ...editingOrder.value,
-            TotalAmount: calculateEditingOrderTotal()
+            OrderId: editingOrder.value.OrderId,
+            TotalAmount: totalAmount,
+            PaymentMethod: editingOrder.value.PaymentMethod,
+            Status: editingOrder.value.Status,
+            Notes: editingOrder.value.Notes
           },
           companyId: companyId.value
         });
 
         if (orderResponse.success) {
-          // Update order details
-          for (const detail of editingOrderDetails.value) {
-            await store.dispatch('sales/updateOrderDetail', {
-              orderDetail: detail,
-              orderId: editingOrder.value.OrderId,
-              companyId: companyId.value
-            });
-          }
-
           toast.success('Sipariş başarıyla güncellendi!');
           closeEditOrderModal();
           fetchData();
