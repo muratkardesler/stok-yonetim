@@ -719,6 +719,7 @@ import {
 } from '@headlessui/vue';
 import BarcodeScanner from '@/components/BarcodeScanner.vue';
 import SalesStats from '@/components/SalesStats.vue';
+import axios from 'axios';
 
 export default {
   name: 'Sales',
@@ -1056,7 +1057,7 @@ export default {
             PaymentMethod: paymentMethod.value,
             Notes: notes.value,
             Status: 'Pending',
-            cart: Object.values(groupedCart) // Birleştirilmiş sepeti gönder
+            cart: Object.values(groupedCart)
           },
           companyId: companyId.value.toString()
         });
@@ -1064,6 +1065,51 @@ export default {
         console.log('Order creation response:', orderResponse);
 
         if (orderResponse.success && orderResponse.data) {
+          // Her ürün için stok güncelleme işlemi
+          for (const item of Object.values(groupedCart)) {
+            try {
+              console.log(`Updating stock for product ${item.ProductId}`);
+              
+              // Yeni stok miktarını hesapla
+              const newStock = Math.max(0, item.StockQuantity - item.quantity);
+              
+              console.log(`Stock update calculation:`, {
+                productId: item.ProductId,
+                currentStock: item.StockQuantity,
+                soldQuantity: item.quantity,
+                newStock
+              });
+
+              // Stok güncelleme isteği - doğrudan PUT
+              const updateResponse = await axios.put(
+                `https://flowbridge.us-e2.cloudhub.io/api/products/${item.ProductId}?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC&CompanyId=${companyId.value}&CategoryId=${item.CategoryId.toString()}`,
+                {
+                  ProductId: item.ProductId.toString(),
+                  Name: item.Name,
+                  Description: item.Description,
+                  Price: item.Price,
+                  StockQuantity: newStock,
+                  CategoryId: item.CategoryId.toString(),
+                  CompanyId: companyId.value.toString(),
+                  CreatedAt: item.CreatedAt
+                },
+                {
+                  headers: {
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+
+              console.log(`Stock update response:`, updateResponse.data);
+            } catch (error) {
+              console.error(`Error updating stock for product ${item.ProductId}:`, error);
+              toast.error(`Ürün stoku güncellenirken hata oluştu: ${item.Name}`);
+            }
+          }
+
+          // Ürün listesini güncelle
+          await store.dispatch('product/fetchProducts', companyId.value);
+
           toast.success('Satış başarıyla tamamlandı!');
           closeNewSaleModal();
           fetchData();
