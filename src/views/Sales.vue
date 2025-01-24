@@ -1035,86 +1035,32 @@ export default {
 
       processing.value = true;
       try {
-        // Sepetteki ürünleri grupla ve birleştir
-        const groupedCart = cart.value.reduce((acc, item) => {
-          const key = item.ProductId.toString();
-          if (!acc[key]) {
-            acc[key] = {
-              ...item,
-              quantity: 0
-            };
-          }
-          acc[key].quantity += item.quantity;
-          return acc;
-        }, {});
-
         // Siparişi oluştur
-        const orderResponse = await store.dispatch('sales/createOrder', {
-          order: {
-            CompanyId: companyId.value.toString(),
-            CustomerId: selectedCustomer.value?.CustomerId?.toString() || "1",
+        const response = await axios.post(
+          `https://flowbridge.us-e2.cloudhub.io/api/orders?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
+          {
+            CompanyId: companyId.value.toString(), // string olarak gönder
+            CustomerId: (selectedCustomer.value?.CustomerId || "1").toString(), // string olarak gönder
             TotalAmount: cartTotal.value,
             PaymentMethod: paymentMethod.value,
             Notes: notes.value,
             Status: 'Pending',
-            cart: Object.values(groupedCart)
-          },
-          companyId: companyId.value.toString()
-        });
-
-        console.log('Order creation response:', orderResponse);
-
-        if (orderResponse.success && orderResponse.data) {
-          // Her ürün için stok güncelleme işlemi
-          for (const item of Object.values(groupedCart)) {
-            try {
-              console.log(`Updating stock for product ${item.ProductId}`);
-              
-              // Yeni stok miktarını hesapla
-              const newStock = Math.max(0, item.StockQuantity - item.quantity);
-              
-              console.log(`Stock update calculation:`, {
-                productId: item.ProductId,
-                currentStock: item.StockQuantity,
-                soldQuantity: item.quantity,
-                newStock
-              });
-
-              // Stok güncelleme isteği - doğrudan PUT
-              const updateResponse = await axios.put(
-                `https://flowbridge.us-e2.cloudhub.io/api/products/${item.ProductId}?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC&CompanyId=${companyId.value}&CategoryId=${item.CategoryId.toString()}`,
-                {
-                  ProductId: item.ProductId.toString(),
-                  Name: item.Name,
-                  Description: item.Description,
-                  Price: item.Price,
-                  StockQuantity: newStock,
-                  CategoryId: item.CategoryId.toString(),
-                  CompanyId: companyId.value.toString(),
-                  CreatedAt: item.CreatedAt
-                },
-                {
-                  headers: {
-                    'Content-Type': 'application/json'
-                  }
-                }
-              );
-
-              console.log(`Stock update response:`, updateResponse.data);
-            } catch (error) {
-              console.error(`Error updating stock for product ${item.ProductId}:`, error);
-              toast.error(`Ürün stoku güncellenirken hata oluştu: ${item.Name}`);
-            }
+            OrderDetails: cart.value.map(item => ({
+              ProductId: item.ProductId,
+              Quantity: item.quantity,
+              UnitPrice: item.Price,
+              Discount: 0.00,
+              Tax: 5.00 // Varsayılan KDV
+            }))
           }
+        );
 
-          // Ürün listesini güncelle
-          await store.dispatch('product/fetchProducts', companyId.value);
-
+        if (response.data.success) {
           toast.success('Satış başarıyla tamamlandı!');
           closeNewSaleModal();
           fetchData();
         } else {
-          throw new Error('Sipariş oluşturulamadı');
+          throw new Error(response.data.message || 'Sipariş oluşturulamadı');
         }
       } catch (error) {
         console.error('Error completing sale:', error);
@@ -1149,22 +1095,24 @@ export default {
 
       cancellingOrder.value = true;
       try {
-        const response = await store.dispatch('sales/updateOrder', {
-          order: {
-            ...orderToCancel.value,
-            Status: 'Cancelled'
-          },
-          companyId: companyId.value
-        });
+        // Yeni MuleSoft API'sini kullan
+        const response = await axios.post(
+          `https://flowbridge.us-e2.cloudhub.io/api/orders/cancel/${orderToCancel.value.OrderId}?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
+          {
+            companyId: companyId.value
+          }
+        );
 
-        if (response.success) {
+        if (response.data.success) {
           toast.success('Sipariş başarıyla iptal edildi!');
           closeCancelOrderModal();
           fetchData();
+        } else {
+          throw new Error(response.data.message || 'Sipariş iptal edilemedi');
         }
       } catch (error) {
         console.error('Error cancelling order:', error);
-        toast.error('Sipariş iptal edilirken bir hata oluştu!');
+        toast.error(error.message || 'Sipariş iptal edilirken bir hata oluştu!');
       } finally {
         cancellingOrder.value = false;
       }
