@@ -1039,24 +1039,30 @@ export default {
         const response = await axios.post(
           `https://flowbridge.us-e2.cloudhub.io/api/orders?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
           {
-            CompanyId: companyId.value.toString(), // string olarak gönder
-            CustomerId: (selectedCustomer.value?.CustomerId || "1").toString(), // string olarak gönder
+            CompanyId: companyId.value.toString(),
+            OrderDate: new Date().toISOString(),
+            CategoryId: cart.value[0].CategoryId.toString(), // İlk ürünün CategoryId'sini al
+            StockQuantity: cart.value.reduce((total, item) => total + item.quantity, 0),
+            Price: cartTotal.value,
+            Description: "Yeni sipariş",
+            Name: `Sipariş - ${new Date().toLocaleString()}`,
+            CustomerId: (selectedCustomer.value?.CustomerId || "1").toString(),
             TotalAmount: cartTotal.value,
             PaymentMethod: paymentMethod.value,
-            Notes: notes.value,
-            Status: 'Pending',
+            Notes: notes.value || "",
+            Status: "Pending",
             OrderDetails: cart.value.map(item => ({
               ProductId: item.ProductId,
               Quantity: item.quantity,
               UnitPrice: item.Price,
               Discount: 0.00,
-              Tax: 5.00 // Varsayılan KDV
+              Tax: 5.00
             }))
           }
         );
 
         if (response.data.success) {
-          toast.success('Satış başarıyla tamamlandı!');
+          toast.success(response.data.message || 'Satış başarıyla tamamlandı');
           closeNewSaleModal();
           fetchData();
         } else {
@@ -1064,7 +1070,7 @@ export default {
         }
       } catch (error) {
         console.error('Error completing sale:', error);
-        toast.error(error.message || 'Satış tamamlanırken bir hata oluştu!');
+        toast.error(error.response?.data?.message || error.message || 'Satış tamamlanırken bir hata oluştu!');
       } finally {
         processing.value = false;
       }
@@ -1095,16 +1101,15 @@ export default {
 
       cancellingOrder.value = true;
       try {
-        // Yeni MuleSoft API'sini kullan
         const response = await axios.post(
-          `https://flowbridge.us-e2.cloudhub.io/api/orders/cancel/${orderToCancel.value.OrderId}?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
+          `https://flowbridge.us-e2.cloudhub.io/api/orders/${orderToCancel.value.OrderId}/cancel?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
           {
-            companyId: companyId.value
+            CompanyId: companyId.value.toString() // CompanyId'yi string olarak gönder
           }
         );
 
         if (response.data.success) {
-          toast.success('Sipariş başarıyla iptal edildi!');
+          toast.success(response.data.message || 'Sipariş başarıyla iptal edildi');
           closeCancelOrderModal();
           fetchData();
         } else {
@@ -1112,7 +1117,7 @@ export default {
         }
       } catch (error) {
         console.error('Error cancelling order:', error);
-        toast.error(error.message || 'Sipariş iptal edilirken bir hata oluştu!');
+        toast.error(error.response?.data?.message || error.message || 'Sipariş iptal edilirken bir hata oluştu!');
       } finally {
         cancellingOrder.value = false;
       }
