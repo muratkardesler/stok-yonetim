@@ -1035,13 +1035,12 @@ export default {
 
       processing.value = true;
       try {
-        // Siparişi oluştur
         const response = await axios.post(
           `https://flowbridge.us-e2.cloudhub.io/api/orders?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
           {
             CompanyId: companyId.value.toString(),
-            OrderDate: new Date().toISOString(),
-            CategoryId: cart.value[0].CategoryId.toString(), // İlk ürünün CategoryId'sini al
+            OrderDate: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            CategoryId: cart.value[0].CategoryId.toString(),
             StockQuantity: cart.value.reduce((total, item) => total + item.quantity, 0),
             Price: cartTotal.value,
             Description: "Yeni sipariş",
@@ -1062,6 +1061,9 @@ export default {
         );
 
         if (response.data.success) {
+          // Ürün listesini güncelle
+          await store.dispatch('product/fetchProducts', companyId.value);
+          
           toast.success(response.data.message || 'Satış başarıyla tamamlandı');
           closeNewSaleModal();
           fetchData();
@@ -1104,11 +1106,14 @@ export default {
         const response = await axios.post(
           `https://flowbridge.us-e2.cloudhub.io/api/orders/${orderToCancel.value.OrderId}/cancel?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
           {
-            CompanyId: companyId.value.toString() // CompanyId'yi string olarak gönder
+            CompanyId: companyId.value.toString()
           }
         );
 
         if (response.data.success) {
+          // Ürün listesini güncelle
+          await store.dispatch('product/fetchProducts', companyId.value);
+          
           toast.success(response.data.message || 'Sipariş başarıyla iptal edildi');
           closeCancelOrderModal();
           fetchData();
