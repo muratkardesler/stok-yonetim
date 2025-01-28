@@ -58,6 +58,14 @@
               <i class="fas fa-plus mr-2"></i>
               Yeni Kategori
             </button>
+
+            <button 
+              @click="showNewPackageModal = true" 
+              class="btn-primary flex items-center"
+            >
+              <i class="fas fa-box mr-2"></i>
+              Yeni Paket
+            </button>
           </div>
         </div>
 
@@ -287,6 +295,97 @@
               <tr v-if="products.length === 0">
                 <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                   Henüz ürün bulunmamaktadır.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Packages Section -->
+      <div class="bg-white rounded-xl shadow-sm p-6 mt-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold text-gray-900 flex items-center">
+            <i class="fas fa-box text-primary-500 mr-3"></i>
+            Paketlerim
+          </h2>
+          <div class="flex items-center space-x-4">
+            <span class="text-sm text-gray-500">
+              Toplam {{ packages.length }} paket
+            </span>
+          </div>
+        </div>
+
+        <!-- Packages Table -->
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paket Adı</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Açıklama</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fiyat</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ürün Sayısı</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-if="isLoadingPackages">
+                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                  <div class="flex items-center justify-center">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    Yükleniyor...
+                  </div>
+                </td>
+              </tr>
+              <tr v-else-if="!packages.length">
+                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                  Henüz paket bulunmuyor
+                </td>
+              </tr>
+              <tr v-for="pkg in packages" :key="pkg.PackageId" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ pkg.Name }}</div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="text-sm text-gray-500 max-w-xs truncate">{{ pkg.Description }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ formatPrice(pkg.Price) }}</div>
+                  <div v-if="pkg.DiscountPrice" class="text-xs text-primary-600">
+                    İndirimli: {{ formatPrice(pkg.DiscountPrice) }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-500">{{ pkg.ProductCount }} ürün</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span 
+                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                    :class="{
+                      'bg-green-100 text-green-800': pkg.TotalStock > (pkg.MinStockAlert || 0),
+                      'bg-yellow-100 text-yellow-800': pkg.TotalStock <= (pkg.MinStockAlert || 0) && pkg.TotalStock > 0,
+                      'bg-red-100 text-red-800': pkg.TotalStock === 0
+                    }"
+                  >
+                    {{ pkg.TotalStock }} adet
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <button
+                    @click="editPackage(pkg)"
+                    class="text-primary-600 hover:text-primary-900 mr-3"
+                    title="Düzenle"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button
+                    @click="deletePackage(pkg.PackageId)"
+                    class="text-red-600 hover:text-red-900"
+                    title="Sil"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -829,6 +928,15 @@
         </div>
       </div>
     </div>
+
+    <!-- New Package Modal -->
+    <PackageModal
+      v-if="showNewPackageModal"
+      :show="showNewPackageModal"
+      :available-products="availableProducts"
+      @close="showNewPackageModal = false"
+      @package-created="handlePackageCreated"
+    />
   </div>
 </template>
 
@@ -840,12 +948,15 @@ import Modal from '@/components/Modal.vue';
 import { useToast } from 'vue-toastification';
 import QrcodeVue from 'qrcode.vue';
 import JsBarcode from 'jsbarcode';
+import axios from 'axios';
+import PackageModal from '@/components/PackageModal.vue';
 
 export default {
   name: 'Stock',
   components: {
     Modal,
-    QrcodeVue
+    QrcodeVue,
+    PackageModal
   },
   setup() {
     const toast = useToast();
@@ -854,14 +965,19 @@ export default {
     
     // State
     const companyId = ref(localStorage.getItem('companyIdva'));
-    console.log('Initial CompanyId:', companyId.value); // Debug log
     const showAddCategoryModal = ref(false);
     const showAddProductModal = ref(false);
+    const showNewPackageModal = ref(false);
     const searchQuery = ref('');
+    const packageSearch = ref('');
     const selectedCategoryFilter = ref('');
     const isDarkMode = ref(localStorage.getItem('darkMode') === 'true');
     const flippedCardId = ref(null);
-    
+    const packages = ref([]);
+    const availableProducts = computed(() => {
+      return store.state.product.products;
+    });
+
     // Dark mode watcher
     watch(isDarkMode, (newValue) => {
       if (newValue) {
@@ -951,6 +1067,16 @@ export default {
       }
       
       return result;
+    });
+
+    // Computed Properties
+    const filteredPackages = computed(() => {
+      if (!packageSearch.value) return packages.value;
+      
+      const query = packageSearch.value.toLowerCase();
+      return packages.value.filter(paket => 
+        paket.Name.toLowerCase().includes(query)
+      );
     });
 
     // Methods
@@ -1238,6 +1364,7 @@ export default {
             companyId: companyId.value,
             categoryId: ''
           });
+          await fetchPackages(); // Paketleri yükle
         } catch (error) {
           console.error('Veriler yüklenirken hata:', error);
         }
@@ -1674,12 +1801,88 @@ export default {
       }
     };
 
+    // Package Methods
+    const isLoadingPackages = ref(false);
+
+    const fetchPackages = async () => {
+      try {
+        isLoadingPackages.value = true;
+        const response = await axios.get('https://flowbridge.us-e2.cloudhub.io/api/orders/getPackage', {
+          params: {
+            client_id: '6f0b2e5229c7455091966ef898fd6f68',
+            client_secret: '8041a365CDfb448c88a7780b7699A6aC',
+            CompanyId: companyId.value,
+            CategoryId: selectedCategory.value?.CategoryId || 'null',
+            Status: 'Active',
+            Search: searchQuery.value || 'null'
+          }
+        });
+
+        if (response.data && response.data.packages) {
+          packages.value = response.data.packages;
+        } else {
+          packages.value = [];
+        }
+      } catch (error) {
+        console.error('Paketler yüklenirken hata:', error);
+        toast.error('Paketler yüklenirken bir hata oluştu');
+      } finally {
+        isLoadingPackages.value = false;
+      }
+    };
+
+    const editPackage = (pkg) => {
+      // TODO: Implement edit functionality
+      console.log('Edit package:', pkg);
+    };
+
+    const deletePackage = async (packageId) => {
+      if (!confirm('Bu paketi silmek istediğinize emin misiniz?')) return;
+
+      try {
+        await axios.delete(`https://flowbridge.us-e2.cloudhub.io/api/orders/packages/${packageId}`, {
+          params: {
+            client_id: '6f0b2e5229c7455091966ef898fd6f68',
+            client_secret: '8041a365CDfb448c88a7780b7699A6aC'
+          }
+        });
+        
+        toast.success('Paket başarıyla silindi');
+        await fetchPackages();
+      } catch (error) {
+        console.error('Paket silinirken hata:', error);
+        toast.error('Paket silinirken bir hata oluştu');
+      }
+    };
+
+    const viewPackageDetails = (paket) => {
+      // View package details logic will be implemented
+    };
+
+    const handlePackageCreated = async () => {
+      await fetchPackages();
+      showNewPackageModal.value = false;
+      toast.success('Paket başarıyla oluşturuldu');
+    };
+
+    // Watch for search and category changes
+    watch([searchQuery, selectedCategory], () => {
+      fetchPackages();
+    });
+
+    // Add to existing onMounted
+    onMounted(() => {
+      fetchPackages();
+    });
+
     return {
       // State
       companyId,
       showAddCategoryModal,
       showAddProductModal,
+      showNewPackageModal,
       searchQuery,
+      packageSearch,
       selectedCategoryFilter,
       isDarkMode,
       flippedCardId,
@@ -1741,7 +1944,19 @@ export default {
       scanCode,
       generateEditCode,
       showCodePreview,
-      downloadCode
+      downloadCode,
+
+      // Package methods
+      packages,
+      availableProducts,
+      handlePackageCreated,
+      fetchPackages,
+      editPackage,
+      deletePackage,
+      viewPackageDetails,
+      packageSearch,
+      filteredPackages,
+      isLoadingPackages
     };
   }
 };
