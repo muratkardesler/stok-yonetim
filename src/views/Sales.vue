@@ -71,7 +71,8 @@
             <div class="relative">
               <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
               <input 
-                v-model="searchQuery" 
+                :value="currentSearchValue"
+                @input="handleSearchInput"
                 type="text" 
                 placeholder="Sipariş ara..." 
                 class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
@@ -219,126 +220,130 @@
 
                 <!-- Product Search and Add Section -->
                 <div class="mb-6">
-                  <!-- Customer Selection -->
+                  <!-- Sale Type Tabs -->
                   <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                      Müşteri Seç
-                    </label>
-                    <div class="relative">
-                      <input
-                        type="text"
-                        v-model="customerSearch"
-                        @input="searchCustomers"
-                        placeholder="Müşteri ara..."
-                        class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                      />
-                      <div v-if="filteredCustomers.length > 0" class="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg">
-                        <ul class="max-h-60 overflow-auto rounded-md py-1 text-base">
-                          <li
-                            v-for="customer in filteredCustomers"
-                            :key="customer.CustomerId"
-                            @click="selectCustomer(customer)"
-                            class="relative cursor-pointer select-none py-2 px-3 hover:bg-gray-100"
-                          >
-                            <div>
-                              <span class="font-medium">{{ customer.Name }}</span>
-                              <p class="text-sm text-gray-500">{{ customer.Phone }}</p>
-                            </div>
-                          </li>
-                        </ul>
-                      </div>
+                    <div class="flex space-x-4 border-b">
+                      <button 
+                        @click="saleType = 'products'"
+                        class="pb-4 px-4 focus:outline-none"
+                        :class="[
+                          saleType === 'products' 
+                            ? 'border-b-2 border-primary-500 text-primary-600 font-medium'
+                            : 'text-gray-500 hover:text-gray-700'
+                        ]"
+                      >
+                        <i class="fas fa-box mr-2"></i>
+                        Ürün Satışı
+                      </button>
+                      <button 
+                        @click="saleType = 'packages'"
+                        class="pb-4 px-4 focus:outline-none"
+                        :class="[
+                          saleType === 'packages' 
+                            ? 'border-b-2 border-primary-500 text-primary-600 font-medium'
+                            : 'text-gray-500 hover:text-gray-700'
+                        ]"
+                      >
+                        <i class="fas fa-boxes mr-2"></i>
+                        Paket Satışı
+                      </button>
                     </div>
-                    <div v-if="selectedCustomer" class="mt-2 p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center justify-between">
+                  </div>
+
+                  <!-- Product/Package Search -->
+                  <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input
+                      type="text"
+                      :value="currentSearchValue"
+                      @input="handleSearchInput"
+                      :placeholder="saleType === 'products' ? 'Ürün ara veya barkod okut...' : 'Paket ara...'"
+                      class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
+                    />
+                  </div>
+
+                  <!-- Search Results -->
+                  <div v-if="saleType === 'products' && filteredProducts.length > 0" class="mt-2">
+                    <div class="bg-white rounded-lg border border-gray-200 divide-y max-h-64 overflow-y-auto">
+                      <div 
+                        v-for="product in filteredProducts" 
+                        :key="product.ProductId"
+                        class="p-3 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                        @click="addToCart(product)"
+                      >
                         <div>
-                          <h4 class="font-medium">{{ selectedCustomer.Name }}</h4>
-                          <p class="text-sm text-gray-500">{{ selectedCustomer.Phone }}</p>
-                          <p class="text-sm text-gray-500">{{ selectedCustomer.Email }}</p>
+                          <h4 class="font-medium text-gray-900">{{ product.Name }}</h4>
+                          <p class="text-sm text-gray-500">Stok: {{ product.StockQuantity }}</p>
                         </div>
-                        <button
-                          @click="selectedCustomer = null"
-                          class="text-gray-400 hover:text-gray-600"
-                        >
-                          <i class="fas fa-times"></i>
-                        </button>
+                        <div class="text-right">
+                          <div class="font-medium text-gray-900">{{ formatPrice(product.Price) }}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Ürün Ara
-                  </label>
-                  <div class="relative">
-                    <input
-                      type="text"
-                      v-model="productSearch"
-                      @input="searchProducts"
-                      placeholder="Ürün adı ile ara..."
-                      class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                    />
-                    <div v-if="filteredProducts.length > 0" class="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg">
-                      <ul class="max-h-60 overflow-auto rounded-md py-1 text-base">
-                        <li
-                          v-for="product in filteredProducts"
-                          :key="product.ProductId"
-                          @click="addToCart(product)"
-                          class="relative cursor-pointer select-none py-2 px-3 hover:bg-gray-100"
-                        >
-                          <div class="flex items-center justify-between">
-                            <div>
-                              <span class="font-medium">{{ product.Name }}</span>
-                              <p class="text-sm text-gray-500">Stok: {{ product.StockQuantity }}</p>
-                            </div>
-                            <span class="text-primary-600 font-medium">
-                              {{ formatPrice(product.Price) }}
-                            </span>
-                          </div>
-                        </li>
-                      </ul>
+                  <div v-if="saleType === 'packages' && filteredPackages.length > 0" class="mt-2">
+                    <div class="bg-white rounded-lg border border-gray-200 divide-y max-h-64 overflow-y-auto">
+                      <div 
+                        v-for="pkg in filteredPackages" 
+                        :key="pkg.PackageId"
+                        class="p-3 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                        @click="addPackageToCart(pkg)"
+                      >
+                        <div>
+                          <h4 class="font-medium text-gray-900">{{ pkg.Name }}</h4>
+                          <p class="text-sm text-gray-500">{{ pkg.ProductCount }} ürün</p>
+                        </div>
+                        <div class="text-right">
+                          <div class="font-medium text-gray-900">{{ formatPrice(pkg.Price) }}</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Shopping Cart -->
-                <div class="mb-6">
-                  <h4 class="text-sm font-medium text-gray-700 mb-2">Sepet</h4>
-                  <div class="border rounded-lg divide-y">
-                    <div v-if="cart.length === 0" class="p-4 text-center text-gray-500">
-                      Sepet boş
-                    </div>
-                    <div v-for="item in cart" :key="item.ProductId" class="p-4">
-                      <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                          <h5 class="font-medium">{{ item.Name }}</h5>
-                          <p class="text-sm text-gray-500">
-                            {{ formatPrice(item.Price) }} x {{ item.quantity }}
-                          </p>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                          <div class="flex items-center space-x-2">
-                            <button
-                              @click="decreaseQuantity(item)"
-                              class="text-gray-500 hover:text-gray-700"
-                              :disabled="item.quantity <= 1"
-                            >
-                              <i class="fas fa-minus"></i>
-                            </button>
-                            <span class="w-8 text-center">{{ item.quantity }}</span>
-                            <button
-                              @click="increaseQuantity(item)"
-                              class="text-gray-500 hover:text-gray-700"
-                              :disabled="item.quantity >= item.StockQuantity"
-                            >
-                              <i class="fas fa-plus"></i>
-                            </button>
-                          </div>
-                          <button
-                            @click="removeFromCart(item)"
-                            class="text-red-500 hover:text-red-700"
-                          >
-                            <i class="fas fa-trash"></i>
-                          </button>
-                        </div>
+                <!-- Cart Section -->
+                <div class="border rounded-lg p-4">
+                  <h4 class="font-medium text-gray-900 mb-4">Sepet</h4>
+                  
+                  <div v-if="cart.length === 0" class="text-center py-8 text-gray-500">
+                    <i class="fas fa-shopping-cart text-gray-300 text-4xl mb-2"></i>
+                    <p>Sepet boş</p>
+                  </div>
+                  
+                  <div v-else class="space-y-3">
+                    <div 
+                      v-for="item in cart" 
+                      :key="item.id"
+                      class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div>
+                        <h5 class="font-medium text-gray-900">{{ item.name }}</h5>
+                        <p class="text-sm text-gray-500">
+                          {{ item.isPackage ? 'Paket' : 'Ürün' }} - {{ formatPrice(item.price) }}
+                        </p>
+                      </div>
+                      
+                      <div class="flex items-center space-x-3">
+                        <button 
+                          @click="decreaseQuantity(item)"
+                          class="text-gray-500 hover:text-red-500"
+                        >
+                          <i class="fas fa-minus"></i>
+                        </button>
+                        <span class="w-8 text-center">{{ item.quantity }}</span>
+                        <button 
+                          @click="increaseQuantity(item)"
+                          class="text-gray-500 hover:text-green-500"
+                        >
+                          <i class="fas fa-plus"></i>
+                        </button>
+                        <button 
+                          @click="removeFromCart(item)"
+                          class="text-red-500 hover:text-red-600"
+                        >
+                          <i class="fas fa-trash"></i>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -740,7 +745,7 @@ export default {
     const companyId = ref(localStorage.getItem('companyIdva'));
     const searchQuery = ref('');
     const statusFilter = ref('');
-    const dateFilter = ref('');
+    const dateFilter = ref(new Date().toISOString().split('T')[0]);
     const showNewSaleModal = ref(false);
     const loading = ref(false);
     const processing = ref(false);
@@ -751,6 +756,10 @@ export default {
     const cart = ref([]);
     const paymentMethod = ref('Cash');
     const notes = ref('');
+    const saleType = ref('products');
+    const packageSearch = ref('');
+    const packages = ref([]);
+    const isLoadingPackages = ref(false);
 
     // Order Details Modal State
     const showOrderDetailsModal = ref(false);
@@ -808,6 +817,24 @@ export default {
       return cart.value.reduce((total, item) => {
         return total + (item.Price * item.quantity);
       }, 0);
+    });
+
+    const currentSearchValue = computed(() => {
+      return saleType.value === 'products' ? productSearch.value : packageSearch.value;
+    });
+
+    const handleSearchInput = (event) => {
+      if (saleType.value === 'products') {
+        productSearch.value = event.target.value;
+        searchProducts();
+      } else {
+        packageSearch.value = event.target.value;
+        searchPackages();
+      }
+    };
+
+    const filteredPackages = computed(() => {
+      return packages.value;
     });
 
     // Methods
@@ -1035,30 +1062,49 @@ export default {
 
       processing.value = true;
       try {
-        const response = await axios.post(
-          `https://flowbridge.us-e2.cloudhub.io/api/orders?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
-          {
-            CompanyId: companyId.value.toString(),
-            OrderDate: new Date().toISOString().slice(0, 19).replace('T', ' '),
-            CategoryId: cart.value[0].CategoryId.toString(),
-            StockQuantity: cart.value.reduce((total, item) => total + item.quantity, 0),
-            Price: cartTotal.value,
-            Description: "Yeni sipariş",
-            Name: `Sipariş - ${new Date().toLocaleString()}`,
-            CustomerId: (selectedCustomer.value?.CustomerId || "1").toString(),
-            TotalAmount: cartTotal.value,
-            PaymentMethod: paymentMethod.value,
-            Notes: notes.value || "",
-            Status: "Pending",
-            OrderDetails: cart.value.map(item => ({
-              ProductId: item.ProductId,
-              Quantity: item.quantity,
-              UnitPrice: item.Price,
-              Discount: 0.00,
-              Tax: 5.00
-            }))
-          }
-        );
+        let response;
+        
+        // Paket satışı
+        if (saleType.value === 'packages') {
+          const packageItem = cart.value[0]; // Şimdilik tek paket satışı destekliyoruz
+          response = await axios.post(
+            `https://flowbridge.us-e2.cloudhub.io/api/orders/getPackage/${packageItem.id}/sell?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
+            {
+              CompanyId: companyId.value.toString(),
+              Name: packageItem.name,
+              CustomerId: (selectedCustomer.value?.CustomerId || "1").toString(),
+              PaymentMethod: paymentMethod.value,
+              Notes: notes.value || ""
+            }
+          );
+        } 
+        // Ürün satışı
+        else {
+          response = await axios.post(
+            `https://flowbridge.us-e2.cloudhub.io/api/orders?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
+            {
+              CompanyId: companyId.value.toString(),
+              OrderDate: new Date().toISOString().slice(0, 19).replace('T', ' '),
+              CategoryId: cart.value[0].CategoryId.toString(),
+              StockQuantity: cart.value.reduce((total, item) => total + item.quantity, 0),
+              Price: cartTotal.value,
+              Description: "Yeni sipariş",
+              Name: `Sipariş - ${new Date().toLocaleString()}`,
+              CustomerId: (selectedCustomer.value?.CustomerId || "1").toString(),
+              TotalAmount: cartTotal.value,
+              PaymentMethod: paymentMethod.value,
+              Notes: notes.value || "",
+              Status: "Pending",
+              OrderDetails: cart.value.map(item => ({
+                ProductId: item.ProductId,
+                Quantity: item.quantity,
+                UnitPrice: item.Price,
+                Discount: 0.00,
+                Tax: 5.00
+              }))
+            }
+          );
+        }
 
         if (response.data.success) {
           // Ürün listesini güncelle
@@ -1289,6 +1335,92 @@ export default {
       }
     };
 
+    const fetchPackages = async () => {
+      if (packageSearch.value.length >= 2) {
+        try {
+          isLoadingPackages.value = true;
+          const response = await axios.get('https://flowbridge.us-e2.cloudhub.io/api/orders/getPackage', {
+            params: {
+              client_id: '6f0b2e5229c7455091966ef898fd6f68',
+              client_secret: '8041a365CDfb448c88a7780b7699A6aC',
+              CompanyId: companyId.value,
+              CategoryId: 'null',
+              Status: 'Active',
+              Search: packageSearch.value || 'null'
+            }
+          });
+
+          if (response.data && response.data.packages) {
+            packages.value = response.data.packages;
+          } else {
+            packages.value = [];
+          }
+        } catch (error) {
+          console.error('Paketler yüklenirken hata:', error);
+          toast.error('Paketler yüklenirken bir hata oluştu');
+          packages.value = [];
+        } finally {
+          isLoadingPackages.value = false;
+        }
+      } else {
+        packages.value = [];
+      }
+    };
+
+    const searchPackages = async () => {
+      if (packageSearch.value.length >= 2) {
+        try {
+          isLoadingPackages.value = true;
+          const response = await axios.get('https://flowbridge.us-e2.cloudhub.io/api/orders/getPackage', {
+            params: {
+              client_id: '6f0b2e5229c7455091966ef898fd6f68',
+              client_secret: '8041a365CDfb448c88a7780b7699A6aC',
+              CompanyId: companyId.value,
+              CategoryId: 'null',
+              Status: 'Active',
+              Search: packageSearch.value || 'null'
+            }
+          });
+
+          if (response.data && response.data.packages) {
+            packages.value = response.data.packages;
+          } else {
+            packages.value = [];
+          }
+        } catch (error) {
+          console.error('Paketler yüklenirken hata:', error);
+          toast.error('Paketler yüklenirken bir hata oluştu');
+          packages.value = [];
+        } finally {
+          isLoadingPackages.value = false;
+        }
+      } else {
+        packages.value = [];
+      }
+    };
+
+    const addPackageToCart = (pkg) => {
+      const existingItem = cart.value.find(item => 
+        item.id === pkg.PackageId && item.isPackage
+      );
+
+      if (existingItem) {
+        increaseQuantity(existingItem);
+      } else {
+        cart.value.push({
+          id: pkg.PackageId,
+          name: pkg.Name,
+          price: pkg.Price,
+          quantity: 1,
+          isPackage: true
+        });
+      }
+
+      packageSearch.value = '';
+      packages.value = [];
+      toast.success('Paket sepete eklendi');
+    };
+
     // Lifecycle Hooks
     onMounted(() => {
       fetchData();
@@ -1320,10 +1452,16 @@ export default {
       customerSearch,
       filteredCustomers,
       selectedCustomer,
+      saleType,
+      packageSearch,
+      packages,
+      isLoadingPackages,
 
       // Computed
       filteredOrders,
       cartTotal,
+      currentSearchValue,
+      filteredPackages,
 
       // Methods
       fetchData,
@@ -1352,6 +1490,9 @@ export default {
       handleBarcodeScan,
       searchCustomers,
       selectCustomer,
+      searchPackages,
+      addPackageToCart,
+      handleSearchInput,
     };
   }
 };
