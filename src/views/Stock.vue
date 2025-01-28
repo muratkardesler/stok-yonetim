@@ -316,80 +316,104 @@
           </div>
         </div>
 
-        <!-- Packages Table -->
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paket Adı</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Açıklama</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fiyat</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ürün Sayısı</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-if="isLoadingPackages">
-                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
-                  <div class="flex items-center justify-center">
-                    <i class="fas fa-spinner fa-spin mr-2"></i>
-                    Yükleniyor...
-                  </div>
-                </td>
-              </tr>
-              <tr v-else-if="!packages.length">
-                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
-                  Henüz paket bulunmuyor
-                </td>
-              </tr>
-              <tr v-for="pkg in packages" :key="pkg.PackageId" class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900">{{ pkg.Name }}</div>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="text-sm text-gray-500 max-w-xs truncate">{{ pkg.Description }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">{{ formatPrice(pkg.Price) }}</div>
-                  <div v-if="pkg.DiscountPrice" class="text-xs text-primary-600">
-                    İndirimli: {{ formatPrice(pkg.DiscountPrice) }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-500">{{ pkg.ProductCount }} ürün</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span 
-                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                    :class="{
-                      'bg-green-100 text-green-800': pkg.TotalStock > (pkg.MinStockAlert || 0),
-                      'bg-yellow-100 text-yellow-800': pkg.TotalStock <= (pkg.MinStockAlert || 0) && pkg.TotalStock > 0,
-                      'bg-red-100 text-red-800': pkg.TotalStock === 0
-                    }"
-                  >
-                    {{ pkg.TotalStock }} adet
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    @click="editPackage(pkg)"
-                    class="text-primary-600 hover:text-primary-900 mr-3"
-                    title="Düzenle"
-                  >
+        <!-- Loading State -->
+        <div v-if="isLoadingPackages" class="flex justify-center items-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="!packages.length" class="text-center py-12">
+          <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <i class="fas fa-box-open text-4xl text-gray-400"></i>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Henüz paket bulunmuyor</h3>
+          <p class="text-gray-500">Yeni bir paket ekleyerek başlayın</p>
+        </div>
+
+        <!-- Packages Grid -->
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div v-for="pkg in packages" :key="pkg.PackageId" 
+               class="package-card group relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
+               :class="getPackageColor(pkg.PackageId).border">
+            <!-- Package Icon Watermark -->
+            <div class="absolute -right-6 -top-6 opacity-5 transform rotate-12">
+              <i class="fas fa-box-open text-8xl" :class="getPackageColor(pkg.PackageId).text"></i>
+            </div>
+            
+            <!-- Package Content -->
+            <div class="p-6">
+              <!-- Header -->
+              <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-bold text-gray-900 group-hover:text-primary-500 transition-colors"
+                    :class="getPackageColor(pkg.PackageId).text">
+                  {{ pkg.Name }}
+                </h3>
+                <div class="flex space-x-2">
+                  <button @click.stop="editPackage(pkg)" 
+                          class="p-2 text-gray-400 hover:text-primary-500 transition-colors"
+                          :class="`hover:${getPackageColor(pkg.PackageId).text}`">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button
-                    @click="deletePackage(pkg.PackageId)"
-                    class="text-red-600 hover:text-red-900"
-                    title="Sil"
-                  >
+                  <button @click.stop="deletePackage(pkg.PackageId)"
+                          class="p-2 text-gray-400 hover:text-red-500 transition-colors">
                     <i class="fas fa-trash"></i>
                   </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+              </div>
+
+              <!-- Description -->
+              <p class="text-gray-600 mb-4 line-clamp-2">{{ pkg.Description }}</p>
+
+              <!-- Stats Grid -->
+              <div class="grid grid-cols-2 gap-4 mb-4">
+                <!-- Price -->
+                <div :class="[getPackageColor(pkg.PackageId).bg, 'rounded-lg p-3']">
+                  <div class="text-sm text-gray-500 mb-1">Fiyat</div>
+                  <div class="font-semibold text-gray-900">{{ formatPrice(pkg.Price) }}</div>
+                  <div v-if="pkg.DiscountPrice" :class="['text-xs mt-1', getPackageColor(pkg.PackageId).text]">
+                    İndirimli: {{ formatPrice(pkg.DiscountPrice) }}
+                  </div>
+                </div>
+
+                <!-- Product Count -->
+                <div :class="[getPackageColor(pkg.PackageId).bg, 'rounded-lg p-3']">
+                  <div class="text-sm text-gray-500 mb-1">Ürün Sayısı</div>
+                  <div class="font-semibold text-gray-900">{{ pkg.ProductCount }} ürün</div>
+                </div>
+              </div>
+
+              <!-- Stock Status -->
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-500">Stok Durumu</span>
+                <span 
+                  class="px-3 py-1 rounded-full text-sm font-medium"
+                  :class="{
+                    'bg-green-100 text-green-800': pkg.TotalStock > (pkg.MinStockAlert || 0),
+                    'bg-yellow-100 text-yellow-800': pkg.TotalStock <= (pkg.MinStockAlert || 0) && pkg.TotalStock > 0,
+                    'bg-red-100 text-red-800': pkg.TotalStock === 0
+                  }"
+                >
+                  {{ pkg.TotalStock }} adet
+                </span>
+              </div>
+
+              <!-- Products List -->
+              <div class="mt-4 pt-4 border-t border-gray-100">
+                <div class="text-sm font-medium text-gray-500 mb-2">Paketteki Ürünler</div>
+                <ul class="space-y-2">
+                  <li v-for="product in pkg.Products" :key="product.ProductId" 
+                      class="flex justify-between items-center text-sm">
+                    <span class="text-gray-600">{{ product.ProductName }}</span>
+                    <span :class="[getPackageColor(pkg.PackageId).text]">{{ product.Quantity }} adet</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Hover Effect Overlay -->
+            <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                 :class="getPackageColor(pkg.PackageId).gradient"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1875,6 +1899,69 @@ export default {
       fetchPackages();
     });
 
+    const getPackageColor = (packageId) => {
+      if (!packageId) return {
+        bg: 'bg-gray-50',
+        text: 'text-gray-800',
+        border: 'border border-gray-100',
+        gradient: 'bg-gradient-to-r from-gray-500/0 to-gray-500/5'
+      };
+
+      const colors = [
+        {
+          bg: 'bg-blue-50',
+          text: 'text-blue-600',
+          border: 'border border-blue-100',
+          gradient: 'bg-gradient-to-r from-blue-500/0 to-blue-500/5'
+        },
+        {
+          bg: 'bg-purple-50',
+          text: 'text-purple-600',
+          border: 'border border-purple-100',
+          gradient: 'bg-gradient-to-r from-purple-500/0 to-purple-500/5'
+        },
+        {
+          bg: 'bg-green-50',
+          text: 'text-green-600',
+          border: 'border border-green-100',
+          gradient: 'bg-gradient-to-r from-green-500/0 to-green-500/5'
+        },
+        {
+          bg: 'bg-pink-50',
+          text: 'text-pink-600',
+          border: 'border border-pink-100',
+          gradient: 'bg-gradient-to-r from-pink-500/0 to-pink-500/5'
+        },
+        {
+          bg: 'bg-yellow-50',
+          text: 'text-yellow-600',
+          border: 'border border-yellow-100',
+          gradient: 'bg-gradient-to-r from-yellow-500/0 to-yellow-500/5'
+        },
+        {
+          bg: 'bg-indigo-50',
+          text: 'text-indigo-600',
+          border: 'border border-indigo-100',
+          gradient: 'bg-gradient-to-r from-indigo-500/0 to-indigo-500/5'
+        },
+        {
+          bg: 'bg-red-50',
+          text: 'text-red-600',
+          border: 'border border-red-100',
+          gradient: 'bg-gradient-to-r from-red-500/0 to-red-500/5'
+        },
+        {
+          bg: 'bg-orange-50',
+          text: 'text-orange-600',
+          border: 'border border-orange-100',
+          gradient: 'bg-gradient-to-r from-orange-500/0 to-orange-500/5'
+        }
+      ];
+
+      const index = Math.abs(parseInt(packageId)) % colors.length;
+      return colors[index];
+    };
+
     return {
       // State
       companyId,
@@ -1956,7 +2043,8 @@ export default {
       viewPackageDetails,
       packageSearch,
       filteredPackages,
-      isLoadingPackages
+      isLoadingPackages,
+      getPackageColor
     };
   }
 };
