@@ -11,7 +11,15 @@
         <a href="#features">Özellikler</a>
         <a href="#pricing">Fiyatlar</a>
         <a href="#support">Destek</a>
-        <router-link to="/login" class="login-btn">Giriş Yap</router-link>
+        <template v-if="!user">
+          <router-link to="/login" class="login-btn">Giriş Yap</router-link>
+        </template>
+        <template v-else>
+          <router-link to="/dashboard" class="dashboard-btn">Dashboard</router-link>
+          <button @click="handleLogout" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+          </button>
+        </template>
       </div>
       
       <!-- Mobile Menu Button -->
@@ -22,6 +30,11 @@
       </div>
     </nav>
 
+    <!-- Supabase Test Component -->
+    <div class="test-container" style="margin-top: 80px; padding: 20px;">
+      <SupabaseTest />
+    </div>
+
     <!-- Hero Section -->
     <section class="hero">
       <div class="hero-content">
@@ -30,12 +43,13 @@
           Tek platformda stok takibi, sipariş yönetimi ve raporlama. 
           İşletmenizi büyütmek hiç bu kadar kolay olmamıştı.
         </p>
+        
         <div class="cta-buttons">
           <router-link to="/login" class="btn btn-primary">
             <i class="fas fa-sign-in-alt"></i> Giriş Yap
           </router-link>
           
-          <router-link to="/signup" class="btn btn-secondary">
+          <router-link to="/register" class="btn btn-secondary">
             <i class="fas fa-user-plus"></i> 14 Gün Ücretsiz Dene
           </router-link>
         </div>
@@ -140,16 +154,38 @@
 </template>
 
 <script>
+import { ref, computed } from 'vue'
+import { useStore } from 'vuex'
+import SupabaseTest from '../components/SupabaseTest.vue'
+
 export default {
   name: 'Home',
-  data() {
-    return {
-      isMenuOpen: false
-    }
+  components: {
+    SupabaseTest
   },
-  methods: {
-    toggleMenu() {
-      this.isMenuOpen = !this.isMenuOpen
+  setup() {
+    const store = useStore()
+    const isMenuOpen = ref(false)
+    
+    const user = computed(() => store.state.auth.user)
+    
+    const toggleMenu = () => {
+      isMenuOpen.value = !isMenuOpen.value
+    }
+
+    const handleLogout = async () => {
+      try {
+        await store.dispatch('auth/logout')
+      } catch (error) {
+        console.error('Logout error:', error)
+      }
+    }
+
+    return {
+      isMenuOpen,
+      toggleMenu,
+      user,
+      handleLogout
     }
   }
 }
@@ -213,6 +249,40 @@ export default {
 }
 
 .login-btn:hover {
+  transform: translateY(-2px);
+}
+
+.logout-btn {
+  padding: 0.5rem 1rem;
+  background: #EF4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: #DC2626;
+  transform: translateY(-2px);
+}
+
+.dashboard-btn {
+  padding: 0.5rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  margin-left: 1rem;
+  text-decoration: none;
+}
+
+.dashboard-btn:hover {
   transform: translateY(-2px);
 }
 

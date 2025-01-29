@@ -163,11 +163,13 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import Chart from 'chart.js/auto';
+import { useStore } from 'vuex';
 
 export default {
   name: 'Dashboard',
   setup() {
     const router = useRouter();
+    const store = useStore();
     const isMenuCollapsed = ref(false);
     const trialDaysLeft = ref(14);
     const userData = ref(JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || '{}'));
@@ -283,18 +285,7 @@ export default {
 
     const handleLogout = async () => {
       try {
-        if (chartInstance.value) {
-          chartInstance.value.destroy();
-          chartInstance.value = null;
-        }
-
-        localStorage.removeItem('token');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('userData');
-        sessionStorage.removeItem('isLoggedIn');
-        
-        await router.push({ name: 'Home' });
+        await store.dispatch('auth/logout');
       } catch (error) {
         console.error('Logout error:', error);
       }

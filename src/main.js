@@ -4,23 +4,25 @@ import router from "./router";
 import store from "./store";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
+import "@fortawesome/fontawesome-free/css/all.css";
+import "./assets/main.css"; // Tailwind CSS
 import 'animate.css';
-
-// Import Tailwind CSS
-import './assets/main.css';
 
 const app = createApp(App);
 
 const toastOptions = {
-  transition: "Vue-Toastification__bounce",
-  maxToasts: 5,
-  newestOnTop: true,
-  filterBeforeCreate: (toast, toasts) => {
-    if (toasts.filter(t => t.type === toast.type).length !== 0) {
-      return false;
-    }
-    return toast;
-  }
+  position: 'top-right',
+  timeout: 3000,
+  closeOnClick: true,
+  pauseOnFocusLoss: true,
+  pauseOnHover: true,
+  draggable: true,
+  draggablePercent: 0.6,
+  showCloseButtonOnHover: false,
+  hideProgressBar: false,
+  closeButton: 'button',
+  icon: true,
+  rtl: false
 };
 
 app.use(router);
