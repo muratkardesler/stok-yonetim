@@ -8,6 +8,7 @@ import Stock from "@/views/Stock.vue";
 import Sales from '@/views/Sales.vue'
 import ForgotPassword from '@/views/ForgotPassword.vue'
 import ResetPassword from '@/views/ResetPassword.vue'
+import SalesList from '@/views/SalesList.vue'
 
 const routes = [
   {
@@ -58,6 +59,14 @@ const routes = [
     meta: {
       requiresAuth: true,
       title: 'Satışlar'
+    }
+  },
+  {
+    path: '/sales/list',
+    name: 'sales-list',
+    component: SalesList,
+    meta: {
+      requiresAuth: true
     }
   }
 ];

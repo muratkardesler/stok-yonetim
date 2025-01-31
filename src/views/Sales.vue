@@ -1,1517 +1,1198 @@
 <template>
   <div class="min-h-screen bg-gray-50 p-4 sm:p-6">
-    <!-- Breadcrumb Navigation -->
-    <nav class="mb-6">
-      <div class="flex items-center space-x-4 bg-white p-4 rounded-xl shadow-sm">
-        <router-link 
-          to="/dashboard" 
-          class="flex items-center text-gray-600 hover:text-primary-500 transition-colors group"
-        >
-          <div class="bg-gray-50 p-2 rounded-lg group-hover:bg-primary-50 transition-colors">
-            <i class="fas fa-home text-gray-500 group-hover:text-primary-500"></i>
-          </div>
-          <span class="ml-2 font-medium">Ana Sayfa</span>
-        </router-link>
-        <div class="flex items-center text-gray-400">
-          <i class="fas fa-chevron-right text-xs"></i>
-        </div>
-        <div class="flex items-center text-primary-500">
-          <div class="bg-primary-50 p-2 rounded-lg">
-            <i class="fas fa-shopping-cart"></i>
-          </div>
-          <span class="ml-2 font-medium">Satışlar</span>
-        </div>
+    <!-- Breadcrumb -->
+    <nav class="mb-4">
+      <div class="flex items-center space-x-2 text-sm">
+        <router-link to="/" class="text-gray-600 hover:text-primary-500">Ana Sayfa</router-link>
+        <span class="text-gray-400">/</span>
+        <span class="text-primary-500">Satış</span>
       </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="space-y-6">
-      <!-- Sales Statistics -->
-      <SalesStats />
-
-      <!-- Header Section -->
-      <div class="bg-white rounded-xl shadow-sm p-6">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-          <!-- Left Side -->
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900 flex items-center">
-              <i class="fas fa-shopping-cart text-primary-500 mr-3"></i>
-              Satışlar
-            </h1>
-            <p class="mt-1 text-gray-600">
-              Satışları yönetin ve takip edin
-            </p>
-          </div>
-
-          <!-- Right Side - Action Buttons -->
-          <div class="flex flex-wrap items-center gap-3">
-            <button 
-              @click="fetchData" 
-              class="btn-icon"
-              :class="{ 'animate-spin': loading }"
-              :disabled="loading"
-            >
-              <i class="fas fa-sync-alt"></i>
-            </button>
-
-            <button 
-              @click="showNewSaleModal = true" 
-              class="btn-primary flex items-center"
-            >
-              <i class="fas fa-plus mr-2"></i>
-              Yeni Satış
-            </button>
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Sol Taraf: Ürün ve Paket Seçimi -->
+      <div class="lg:w-2/3 space-y-6">
+        <!-- Arama ve Filtreler -->
+        <div class="bg-white rounded-2xl shadow-lg p-4">
+          <div class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1">
+              <div class="relative">
+                <input 
+                  type="text" 
+                  v-model="searchQuery"
+                  placeholder="Ürün veya paket ara..."
+                  class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                  @input="searchProducts"
+                >
+                <i :class="['fas absolute left-3 top-1/2 transform -translate-y-1/2', loading ? 'fa-spinner fa-spin text-primary-500' : 'fa-search text-gray-400']"></i>
+              </div>
+            </div>
+            <div class="flex space-x-2">
+              <button @click="showBarcodeScanner = true" 
+                      class="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
+                <i class="fas fa-barcode mr-2"></i>
+                Barkod Okut
+              </button>
+              <button @click="toggleView" 
+                      class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
+                <i :class="['fas', currentView === 'products' ? 'fa-box' : 'fa-boxes']" class="mr-2"></i>
+                {{ currentView === 'products' ? 'Paketler' : 'Ürünler' }}
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Search & Filter Bar -->
-        <div class="mt-6 flex flex-col sm:flex-row gap-4">
-          <!-- Search Bar -->
-          <div class="flex-1">
-            <div class="relative">
-              <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-              <input 
-                :value="currentSearchValue"
-                @input="handleSearchInput"
-                type="text" 
-                placeholder="Sipariş ara..." 
-                class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-              />
+        <!-- Ürünler Grid -->
+        <div v-if="currentView === 'products'" class="bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-gray-900">Ürünler</h2>
+            <span class="text-sm text-gray-500">{{ filteredProducts.length }} ürün bulundu</span>
+          </div>
+          <div v-if="loading" class="flex items-center justify-center py-12">
+            <i class="fas fa-spinner fa-spin text-2xl text-primary-500"></i>
+          </div>
+          <div v-else-if="filteredProducts.length === 0" class="text-center py-12">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-search text-gray-400 text-xl"></i>
+            </div>
+            <p class="text-gray-500">Ürün bulunamadı</p>
+            <p class="text-sm text-gray-400 mt-1">Farklı bir arama terimi deneyin</p>
+          </div>
+          <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div v-for="product in filteredProducts" 
+                 :key="product.id"
+                 @click="addToCart(product)"
+                 class="group relative bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+              <div class="aspect-square rounded-lg mb-3 flex items-center justify-center"
+                   :class="getCategoryBgColor(product.category_id)">
+                <i class="fas fa-box text-2xl" :class="getCategoryTextColor(product.category_id)"></i>
+              </div>
+              <h3 class="text-sm font-medium text-gray-900 truncate">{{ product.name }}</h3>
+              <p class="text-sm font-bold text-indigo-600 mt-1">₺{{ formatPrice(product.price) }}</p>
+              <div class="absolute top-2 right-2">
+                <span :class="[
+                  'px-2 py-1 text-xs font-medium rounded-lg',
+                  product.stock <= 0 ? 'bg-red-100 text-red-700' : 
+                  product.stock <= 10 ? 'bg-orange-100 text-orange-700' : 
+                  'bg-green-100 text-green-700'
+                ]">
+                  {{ product.stock }} Adet
+                </span>
+              </div>
+              <div class="absolute inset-0 flex items-center justify-center bg-indigo-600/0 group-hover:bg-indigo-600/10 rounded-xl transition-all">
+                <button class="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg transform scale-95 group-hover:scale-100 transition-all">
+                  <i class="fas fa-plus mr-1"></i>
+                  Sepete Ekle
+                </button>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- Status Filter -->
-          <div class="sm:w-48">
-            <select
-              v-model="statusFilter"
-              class="w-full appearance-none rounded-lg border border-gray-200 py-2 pl-4 pr-10 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-            >
-              <option value="">Tüm Durumlar</option>
-              <option value="Completed">Tamamlandı</option>
-              <option value="Pending">Beklemede</option>
-              <option value="Cancelled">İptal Edildi</option>
-              <option value="Refunded">İade Edildi</option>
-            </select>
+        <!-- Paketler Grid -->
+        <div v-else class="bg-white rounded-2xl shadow-lg p-6">
+          <h2 class="text-lg font-bold text-gray-900 mb-4">Paketler</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="packageItem in packages" 
+                 :key="packageItem.id"
+                 @click="addPackageToCart(packageItem)"
+                 class="group relative bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+              <div class="absolute -top-2 -right-2">
+                <div class="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-0.5 rounded-full text-xs font-bold shadow-lg">
+                  %{{ calculateDiscountPercentage(packageItem) }} İndirim
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <h3 class="text-base font-medium text-gray-900">{{ packageItem.name }}</h3>
+                <p class="text-sm text-gray-500 mt-1">{{ packageItem.description }}</p>
+              </div>
+              
+              <div class="space-y-2">
+                <div v-for="item in packageItem.products.slice(0, 2)" 
+                     :key="item.product.id"
+                     class="flex items-center text-sm">
+                  <div class="w-6 h-6 rounded-lg flex items-center justify-center mr-2"
+                       :class="getCategoryBgColor(item.product.category_id)">
+                    <i class="fas fa-box text-xs" :class="getCategoryTextColor(item.product.category_id)"></i>
+                  </div>
+                  <span class="text-gray-600">{{ item.quantity }}x {{ item.product.name }}</span>
+                </div>
+                <div v-if="packageItem.products.length > 2" 
+                     class="text-xs text-gray-500 pl-8">
+                  +{{ packageItem.products.length - 2 }} diğer ürün
+                </div>
+              </div>
+              
+              <div class="mt-3 pt-3 border-t border-gray-100">
+                <div class="flex justify-between items-center">
+                  <div class="flex flex-col">
+                    <span class="text-xs text-gray-500 line-through">₺{{ formatPrice(calculatePackageOriginalPrice(packageItem)) }}</span>
+                    <span class="text-base font-bold text-emerald-600">₺{{ formatPrice(packageItem.price) }}</span>
+                  </div>
+                  <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg transform scale-95 group-hover:scale-100 transition-all">
+                      <i class="fas fa-plus mr-1"></i>
+                      Sepete Ekle
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bekleyen Satışlar -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-gray-900">Bekleyen Satışlar</h2>
+            <span class="text-sm text-gray-500">{{ pendingSales.length }} bekleyen satış</span>
           </div>
 
-          <!-- Date Filter -->
-          <div class="sm:w-64">
-            <div class="relative">
-              <input 
-                type="date" 
-                v-model="dateFilter"
-                class="w-full appearance-none rounded-lg border border-gray-200 py-2 pl-4 pr-10 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-              />
+          <!-- Bekleyen Satış Listesi -->
+          <div class="space-y-4">
+            <div v-for="sale in pendingSales" 
+                 :key="sale.id" 
+                 class="p-4 bg-gray-50 rounded-xl">
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.customer_name }}</h3>
+                  <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
+                </div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">
+                  Beklemede
+                </span>
+              </div>
+              
+              <!-- Satış Detayları -->
+              <div class="space-y-2 mb-3">
+                <div v-for="detail in sale.details" :key="detail.id" 
+                     class="flex justify-between items-center text-sm">
+                  <span class="text-gray-600">
+                    {{ detail.product?.name || detail.package?.name }} × {{ detail.quantity }}
+                  </span>
+                  <span class="font-medium">₺{{ formatPrice(detail.total_price) }}</span>
+                </div>
+              </div>
+
+              <div class="flex justify-between items-center pt-3 border-t border-gray-200">
+                <span class="text-sm font-bold text-gray-900">
+                  Toplam: ₺{{ formatPrice(sale.total_amount) }}
+                </span>
+                <div class="flex space-x-2">
+                  <button @click="completeSale(sale)" 
+                          class="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">
+                    Onayla
+                  </button>
+                  <button @click="cancelSale(sale)"
+                          class="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">
+                    İptal
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Sales Table -->
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sipariş No</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Müşteri</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tutar</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ödeme</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="order in filteredOrders" :key="order.OrderId" class="hover:bg-gray-50 transition-colors">
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm font-medium text-gray-900">#{{ order.OrderId }}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-500">
-                    {{ formatDate(order.OrderDate) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-900">{{ order.CustomerName || 'Genel Müşteri' }}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm font-medium text-gray-900">
-                    {{ formatPrice(order.TotalAmount) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="getStatusBadgeClass(order.Status)">
-                    {{ getStatusText(order.Status) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm text-gray-500">
-                    {{ getPaymentMethodText(order.PaymentMethod) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                  <button 
-                    @click="viewOrderDetails(order)"
-                    class="text-primary-600 hover:text-primary-900"
-                    title="Detayları Görüntüle"
-                  >
-                    <i class="fas fa-eye"></i>
-                  </button>
-                  <button 
-                    v-if="order.Status === 'Pending'"
-                    @click="editOrder(order)"
-                    class="text-blue-600 hover:text-blue-900"
-                    title="Düzenle"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button 
-                    v-if="order.Status !== 'Cancelled'"
-                    @click="confirmCancelOrder(order)"
-                    class="text-red-600 hover:text-red-900"
-                    title="İptal Et"
-                  >
-                    <i class="fas fa-times"></i>
-                  </button>
-                </td>
-              </tr>
-              <tr v-if="filteredOrders.length === 0">
-                <td colspan="7" class="px-6 py-4 text-center text-gray-500">
-                  Henüz satış bulunmamaktadır.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- Sağ Taraf: Sepet ve Satış Listesi -->
+      <div class="lg:w-1/3 space-y-6">
+        <!-- Sepet -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-bold text-gray-900">Sepet</h2>
+            <button v-if="cart.length > 0" 
+                    @click="clearCart"
+                    class="text-sm text-red-600 hover:text-red-700">
+              <i class="fas fa-trash mr-1"></i>
+              Sepeti Temizle
+            </button>
+          </div>
+
+          <div v-if="cart.length === 0" 
+               class="text-center py-8">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-shopping-cart text-gray-400 text-xl"></i>
+            </div>
+            <p class="text-gray-500">Sepetiniz boş</p>
+            <p class="text-sm text-gray-400 mt-1">Ürün eklemek için sol taraftaki ürünlere tıklayın</p>
+          </div>
+
+          <div v-else class="space-y-4">
+            <!-- Sepet Ürünleri -->
+            <div v-for="item in cart" 
+                 :key="item.id"
+                 class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center"
+                     :class="[item.type === 'package' ? 'bg-indigo-100' : getCategoryBgColor(item.category_id)]">
+                  <i class="fas" 
+                     :class="[
+                       item.type === 'package' ? 'fa-box-open text-indigo-600' : 'fa-box',
+                       item.type === 'product' ? getCategoryTextColor(item.category_id) : ''
+                     ]">
+                  </i>
+                </div>
+                <div>
+                  <h3 class="text-sm font-medium text-gray-900">{{ item.name }}</h3>
+                  <div class="flex items-center mt-1">
+                    <div class="flex items-center space-x-2">
+                      <button @click="decrementQuantity(item)"
+                              class="w-6 h-6 rounded-lg bg-white border border-gray-300 flex items-center justify-center hover:border-indigo-500 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-minus text-xs"></i>
+                      </button>
+                      <span class="text-sm text-gray-600">{{ item.quantity }}</span>
+                      <button @click="incrementQuantity(item)"
+                              class="w-6 h-6 rounded-lg bg-white border border-gray-300 flex items-center justify-center hover:border-indigo-500 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-plus text-xs"></i>
+                      </button>
+                    </div>
+                    <span class="text-xs text-gray-500 ml-2">×</span>
+                    <span class="text-xs font-medium text-gray-700 ml-2">₺{{ formatPrice(item.price) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex flex-col items-end">
+                <span class="text-sm font-bold text-gray-900">₺{{ formatPrice(item.price * item.quantity) }}</span>
+                <button @click="removeFromCart(item)" 
+                        class="text-xs text-red-600 hover:text-red-700 mt-1">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Toplam ve Ayarlar -->
+            <div class="border-t border-gray-200 pt-4 mt-4 space-y-4">
+              <!-- KDV ve İndirim Ayarları -->
+              <div class="bg-gray-50 p-4 rounded-xl space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="text-sm font-medium text-gray-700">KDV Oranı (%)</label>
+                  <select v-model="taxRate" 
+                          class="w-24 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="0">0%</option>
+                    <option value="1">1%</option>
+                    <option value="8">8%</option>
+                    <option value="18">18%</option>
+                  </select>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                  <label class="text-sm font-medium text-gray-700">İndirim Oranı (%)</label>
+                  <input type="number" 
+                         v-model="discountRate" 
+                         min="0" 
+                         max="100"
+                         class="w-24 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+              </div>
+
+              <!-- Fiyat Detayları -->
+              <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">Ara Toplam</span>
+                  <span class="font-medium text-gray-900">₺{{ formatPrice(subtotal) }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">KDV (%{{ taxRate }})</span>
+                  <span class="font-medium text-gray-900">₺{{ formatPrice(tax) }}</span>
+                </div>
+                <div v-if="discountRate > 0" class="flex justify-between text-sm">
+                  <span class="text-red-600">İndirim (%{{ discountRate }})</span>
+                  <span class="font-medium text-red-600">-₺{{ formatPrice(discount) }}</span>
+                </div>
+                <div class="flex justify-between text-base font-bold pt-2">
+                  <span class="text-gray-900">Toplam</span>
+                  <span class="text-indigo-600">₺{{ formatPrice(total) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Satış Butonu -->
+            <button @click="createSale"
+                    :disabled="cart.length === 0 || processing"
+                    class="w-full py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+              <i class="fas fa-shopping-cart mr-2"></i>
+              {{ processing ? 'İşleniyor...' : 'Satış Yap' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Son Satışlar -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold text-gray-900">Tamamlanan Satışlar</h2>
+            <span class="text-sm text-gray-500">{{ recentSales.length }} satış</span>
+          </div>
+
+          <!-- Yükleniyor -->
+          <div v-if="loadingSales" class="flex items-center justify-center py-8">
+            <i class="fas fa-spinner fa-spin text-xl text-primary-500"></i>
+          </div>
+
+          <!-- Veri Yok -->
+          <div v-else-if="recentSales.length === 0" class="text-center py-8">
+            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <i class="fas fa-receipt text-gray-400 text-lg"></i>
+            </div>
+            <p class="text-gray-500 text-sm">Henüz tamamlanan satış bulunmuyor</p>
+          </div>
+
+          <!-- Satış Listesi -->
+          <div v-else class="space-y-3">
+            <div v-for="sale in recentSales" 
+                 :key="sale.id" 
+                 @click="showSaleDetails(sale)"
+                 class="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.customer_name || 'İsimsiz Müşteri' }}</h3>
+                  <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
+                </div>
+                <span :class="[
+                  'px-2 py-1 text-xs font-medium rounded-full',
+                  sale.sale_type === 'package' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
+                ]">
+                  {{ sale.sale_type === 'package' ? 'Paket' : 'Ürün' }}
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="flex items-center text-xs text-gray-500">
+                  <i class="fas fa-shopping-cart mr-1"></i>
+                  {{ sale.details?.length || 0 }} ürün
+                </div>
+                <span class="text-sm font-bold text-indigo-600">₺{{ formatPrice(sale.total_amount) }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- New Sale Modal -->
-    <TransitionRoot appear :show="showNewSaleModal" as="template">
-      <Dialog as="div" @close="closeNewSaleModal" class="relative z-50">
-        <TransitionChild
-          as="template"
-          enter="duration-300 ease-out"
-          enter-from="opacity-0"
-          enter-to="opacity-100"
-          leave="duration-200 ease-in"
-          leave-from="opacity-100"
-          leave-to="opacity-0"
-        >
-          <div class="fixed inset-0 bg-black/25" />
-        </TransitionChild>
-
-        <div class="fixed inset-0 overflow-y-auto">
-          <div class="flex min-h-full items-center justify-center p-4">
-            <TransitionChild
-              as="template"
-              enter="duration-300 ease-out"
-              enter-from="opacity-0 scale-95"
-              enter-to="opacity-100 scale-100"
-              leave="duration-200 ease-in"
-              leave-from="opacity-100 scale-100"
-              leave-to="opacity-0 scale-95"
-            >
-              <DialogPanel class="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white p-6 shadow-xl transition-all">
-                <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900 mb-4">
-                  Yeni Satış
-                </DialogTitle>
-
-                <!-- Product Search and Add Section -->
-                <div class="mb-6">
-                  <!-- Sale Type Tabs -->
-                  <div class="mb-4">
-                    <div class="flex space-x-4 border-b">
-                      <button 
-                        @click="saleType = 'products'"
-                        class="pb-4 px-4 focus:outline-none"
-                        :class="[
-                          saleType === 'products' 
-                            ? 'border-b-2 border-primary-500 text-primary-600 font-medium'
-                            : 'text-gray-500 hover:text-gray-700'
-                        ]"
-                      >
-                        <i class="fas fa-box mr-2"></i>
-                        Ürün Satışı
-                      </button>
-                      <button 
-                        @click="saleType = 'packages'"
-                        class="pb-4 px-4 focus:outline-none"
-                        :class="[
-                          saleType === 'packages' 
-                            ? 'border-b-2 border-primary-500 text-primary-600 font-medium'
-                            : 'text-gray-500 hover:text-gray-700'
-                        ]"
-                      >
-                        <i class="fas fa-boxes mr-2"></i>
-                        Paket Satışı
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Product/Package Search -->
-                  <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input
-                      type="text"
-                      :value="currentSearchValue"
-                      @input="handleSearchInput"
-                      :placeholder="saleType === 'products' ? 'Ürün ara veya barkod okut...' : 'Paket ara...'"
-                      class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-                    />
-                  </div>
-
-                  <!-- Search Results -->
-                  <div v-if="saleType === 'products' && filteredProducts.length > 0" class="mt-2">
-                    <div class="bg-white rounded-lg border border-gray-200 divide-y max-h-64 overflow-y-auto">
-                      <div 
-                        v-for="product in filteredProducts" 
-                        :key="product.ProductId"
-                        class="p-3 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
-                        @click="addToCart(product)"
-                      >
-                        <div>
-                          <h4 class="font-medium text-gray-900">{{ product.Name }}</h4>
-                          <p class="text-sm text-gray-500">Stok: {{ product.StockQuantity }}</p>
-                        </div>
-                        <div class="text-right">
-                          <div class="font-medium text-gray-900">{{ formatPrice(product.Price) }}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div v-if="saleType === 'packages' && filteredPackages.length > 0" class="mt-2">
-                    <div class="bg-white rounded-lg border border-gray-200 divide-y max-h-64 overflow-y-auto">
-                      <div 
-                        v-for="pkg in filteredPackages" 
-                        :key="pkg.PackageId"
-                        class="p-3 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
-                        @click="addPackageToCart(pkg)"
-                      >
-                        <div>
-                          <h4 class="font-medium text-gray-900">{{ pkg.Name }}</h4>
-                          <p class="text-sm text-gray-500">{{ pkg.ProductCount }} ürün</p>
-                        </div>
-                        <div class="text-right">
-                          <div class="font-medium text-gray-900">{{ formatPrice(pkg.Price) }}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Cart Section -->
-                <div class="border rounded-lg p-4">
-                  <h4 class="font-medium text-gray-900 mb-4">Sepet</h4>
-                  
-                  <div v-if="cart.length === 0" class="text-center py-8 text-gray-500">
-                    <i class="fas fa-shopping-cart text-gray-300 text-4xl mb-2"></i>
-                    <p>Sepet boş</p>
-                  </div>
-                  
-                  <div v-else class="space-y-3">
-                    <div 
-                      v-for="item in cart" 
-                      :key="item.id"
-                      class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div>
-                        <h5 class="font-medium text-gray-900">{{ item.name }}</h5>
-                        <p class="text-sm text-gray-500">
-                          {{ item.isPackage ? 'Paket' : 'Ürün' }} - {{ formatPrice(item.price) }}
-                        </p>
-                      </div>
-                      
-                      <div class="flex items-center space-x-3">
-                        <button 
-                          @click="decreaseQuantity(item)"
-                          class="text-gray-500 hover:text-red-500"
-                        >
-                          <i class="fas fa-minus"></i>
-                        </button>
-                        <span class="w-8 text-center">{{ item.quantity }}</span>
-                        <button 
-                          @click="increaseQuantity(item)"
-                          class="text-gray-500 hover:text-green-500"
-                        >
-                          <i class="fas fa-plus"></i>
-                        </button>
-                        <button 
-                          @click="removeFromCart(item)"
-                          class="text-red-500 hover:text-red-600"
-                        >
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Payment Details -->
-                <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                      Ödeme Yöntemi
-                    </label>
-                    <select
-                      v-model="paymentMethod"
-                      class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                    >
-                      <option value="Cash">Nakit</option>
-                      <option value="CreditCard">Kredi Kartı</option>
-                      <option value="BankTransfer">Banka Havalesi</option>
-                      <option value="Other">Diğer</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                      Notlar
-                    </label>
-                    <input
-                      type="text"
-                      v-model="notes"
-                      placeholder="Sipariş notları..."
-                      class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                    />
-                  </div>
-                </div>
-
-                <!-- Total and Actions -->
-                <div class="flex items-center justify-between">
-                  <div class="text-lg font-medium">
-                    Toplam: {{ formatPrice(cartTotal) }}
-                  </div>
-                  <div class="space-x-3">
-                    <button
-                      @click="closeNewSaleModal"
-                      class="btn-secondary"
-                    >
-                      İptal
-                    </button>
-                    <button
-                      @click="completeSale"
-                      class="btn-primary"
-                      :disabled="cart.length === 0 || processing"
-                    >
-                      {{ processing ? 'İşleniyor...' : 'Satışı Tamamla' }}
-                    </button>
-                  </div>
-                </div>
-              </DialogPanel>
-            </TransitionChild>
+    <!-- Barkod Okuyucu Modal -->
+    <Modal v-if="showBarcodeScanner" @close="showBarcodeScanner = false">
+      <template #header>
+        <div class="flex items-center space-x-3">
+          <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-barcode text-indigo-600 text-xl"></i>
           </div>
+          <h3 class="text-xl font-bold text-gray-900">Barkod Okut</h3>
         </div>
-      </Dialog>
-    </TransitionRoot>
+      </template>
+      <template #body>
+        <BarcodeScanner @scanned="onBarcodeScanned" />
+      </template>
+    </Modal>
 
-    <!-- Order Details Modal -->
-    <TransitionRoot appear :show="showOrderDetailsModal" as="template">
-      <Dialog as="div" @close="closeOrderDetailsModal" class="relative z-10">
-        <div class="fixed inset-0 bg-black bg-opacity-25" />
-        <div class="fixed inset-0 overflow-y-auto">
-          <div class="flex min-h-full items-center justify-center p-4">
-            <DialogPanel class="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all dark:bg-gray-800">
-              <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-                Sipariş Detayları (#{{ selectedOrder?.OrderId }})
-              </DialogTitle>
-
-              <div class="mt-4">
-                <!-- Sipariş Bilgileri -->
-                <div class="mb-4">
-                  <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Tarih: {{ new Date(selectedOrder?.OrderDate).toLocaleString() }}
-                  </p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Durum: {{ selectedOrder?.Status }}
-                  </p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Ödeme Yöntemi: {{ selectedOrder?.PaymentMethod }}
-                  </p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Notlar: {{ selectedOrder?.Notes }}
-                  </p>
-                </div>
-
-                <!-- Ürün Listesi -->
-                <div class="mt-4">
-                  <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead>
-                      <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Ürün</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Miktar</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Birim Fiyat</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">İndirim</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">KDV</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Toplam</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                      <tr v-for="detail in orderDetails" :key="detail.OrderDetailId">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {{ detail.ProductName }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {{ detail.Quantity }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {{ formatPrice(detail.UnitPrice) }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          %{{ detail.Discount }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          %{{ detail.Tax }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {{ formatPrice(calculateDetailTotal(detail)) }}
-                        </td>
-                      </tr>
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colspan="5" class="px-6 py-4 text-right font-medium">Genel Toplam:</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                          ₺{{ selectedOrder?.TotalAmount.toFixed(2) }}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
+    <!-- Satış Modal -->
+    <Modal v-if="showSaleModal" @close="closeSaleModal">
+      <template #header>
+        <div class="flex items-center space-x-3">
+          <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-shopping-cart text-indigo-600 text-xl"></i>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900">{{ selectedSale ? 'Satış Detayları' : 'Yeni Satış' }}</h3>
+        </div>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <!-- Yeni Satış Formu -->
+          <template v-if="!selectedSale">
+            <!-- Müşteri Bilgileri -->
+            <div class="relative">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Müşteri Adı
+              </label>
+              <input type="text" 
+                     v-model="customerName"
+                     @input="searchCustomers"
+                     @focus="showCustomerSuggestions = true"
+                     @blur="() => { showCustomerSuggestions = false }"
+                     placeholder="Müşteri adı girin..."
+                     class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+              
+              <!-- Müşteri Önerileri -->
+              <div v-if="showCustomerSuggestions && filteredCustomers.length > 0"
+                   class="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200">
+                <ul class="py-1">
+                  <li v-for="customer in filteredCustomers"
+                      :key="customer.id"
+                      @mousedown="selectCustomer(customer)"
+                      class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                    <span class="text-sm text-gray-900">{{ customer.name }}</span>
+                  </li>
+                </ul>
               </div>
+            </div>
 
-              <div class="mt-4 flex justify-end space-x-2">
-                <button
-                  type="button"
-                  class="inline-flex justify-center rounded-md border border-transparent bg-red-100 px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                  @click="confirmCancelOrder"
-                  v-if="selectedOrder?.Status !== 'Cancelled'"
-                >
-                  Siparişi İptal Et
-                </button>
-                <button
-                  type="button"
-                  class="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                  @click="closeOrderDetailsModal"
-                >
-                  Kapat
-                </button>
-              </div>
-            </DialogPanel>
-          </div>
-        </div>
-      </Dialog>
-    </TransitionRoot>
-
-    <!-- Cancel Order Confirmation Modal -->
-    <TransitionRoot appear :show="showCancelOrderModal" as="template">
-      <Dialog as="div" @close="closeCancelOrderModal" class="relative z-50">
-        <TransitionChild
-          as="template"
-          enter="duration-300 ease-out"
-          enter-from="opacity-0"
-          enter-to="opacity-100"
-          leave="duration-200 ease-in"
-          leave-from="opacity-100"
-          leave-to="opacity-0"
-        >
-          <div class="fixed inset-0 bg-black/25" />
-        </TransitionChild>
-
-        <div class="fixed inset-0 overflow-y-auto">
-          <div class="flex min-h-full items-center justify-center p-4">
-            <TransitionChild
-              as="template"
-              enter="duration-300 ease-out"
-              enter-from="opacity-0 scale-95"
-              enter-to="opacity-100 scale-100"
-              leave="duration-200 ease-in"
-              leave-from="opacity-100 scale-100"
-              leave-to="opacity-0 scale-95"
-            >
-              <DialogPanel class="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left shadow-xl transition-all">
-                <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900 mb-4">
-                  Siparişi İptal Et
-                </DialogTitle>
-
-                <div class="mb-6">
-                  <p class="text-sm text-gray-500">
-                    #{{ orderToCancel?.OrderId }} numaralı siparişi iptal etmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
-                  </p>
-                </div>
-
-                <div class="flex justify-end space-x-3">
-                  <button
-                    @click="closeCancelOrderModal"
-                    class="btn-secondary"
-                  >
-                    Vazgeç
-                  </button>
-                  <button
-                    @click="cancelOrder"
-                    class="btn-danger"
-                    :disabled="cancellingOrder"
-                  >
-                    {{ cancellingOrder ? 'İptal Ediliyor...' : 'Siparişi İptal Et' }}
-                  </button>
-                </div>
-              </DialogPanel>
-            </TransitionChild>
-          </div>
-        </div>
-      </Dialog>
-    </TransitionRoot>
-
-    <!-- Edit Order Modal -->
-    <TransitionRoot appear :show="showEditOrderModal" as="template">
-      <Dialog as="div" @close="closeEditOrderModal" class="relative z-50">
-        <TransitionChild
-          as="template"
-          enter="duration-300 ease-out"
-          enter-from="opacity-0"
-          enter-to="opacity-100"
-          leave="duration-200 ease-in"
-          leave-from="opacity-100"
-          leave-to="opacity-0"
-        >
-          <div class="fixed inset-0 bg-black/25" />
-        </TransitionChild>
-
-        <div class="fixed inset-0 overflow-y-auto">
-          <div class="flex min-h-full items-center justify-center p-4">
-            <TransitionChild
-              as="template"
-              enter="duration-300 ease-out"
-              enter-from="opacity-0 scale-95"
-              enter-to="opacity-100 scale-100"
-              leave="duration-200 ease-in"
-              leave-from="opacity-100 scale-100"
-              leave-to="opacity-0 scale-95"
-            >
-              <DialogPanel class="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white p-6 shadow-xl transition-all">
-                <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900 mb-4">
-                  Sipariş Düzenle #{{ editingOrder?.OrderId }}
-                </DialogTitle>
-
-                <!-- Order Details -->
-                <div class="mb-6">
-                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Ödeme Yöntemi
-                      </label>
-                      <select
-                        v-model="editingOrder.PaymentMethod"
-                        class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                      >
-                        <option value="Cash">Nakit</option>
-                        <option value="CreditCard">Kredi Kartı</option>
-                        <option value="BankTransfer">Banka Havalesi</option>
-                        <option value="Other">Diğer</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Durum
-                      </label>
-                      <select
-                        v-model="editingOrder.Status"
-                        class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                      >
-                        <option value="Completed">Tamamlandı</option>
-                        <option value="Pending">Beklemede</option>
-                        <option value="Refunded">İade Edildi</option>
-                      </select>
-                    </div>
-                    <div class="sm:col-span-2">
-                      <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Notlar
-                      </label>
-                      <textarea
-                        v-model="editingOrder.Notes"
+            <!-- Notlar -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Notlar
+              </label>
+              <textarea v-model="saleNotes"
                         rows="3"
-                        class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                        placeholder="Sipariş notları..."
-                      ></textarea>
-                    </div>
-                  </div>
-                </div>
+                        placeholder="Satış ile ilgili notlar..."
+                        class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+            </div>
 
-                <!-- Order Items -->
-                <div class="mb-6">
-                  <h4 class="text-sm font-medium text-gray-700 mb-2">Ürünler</h4>
-                  <div class="border rounded-lg divide-y">
-                    <div v-for="detail in editingOrderDetails" :key="detail.OrderDetailId" class="p-4">
-                      <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                          <h5 class="font-medium">{{ detail.ProductName }}</h5>
-                          <p class="text-sm text-gray-500">
-                            {{ formatPrice(detail.UnitPrice) }} x {{ detail.Quantity }}
-                          </p>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                          <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                              İndirim (%)
-                            </label>
-                            <input
-                              type="number"
-                              v-model.number="detail.Discount"
-                              min="0"
-                              max="100"
-                              class="w-20 rounded-lg border border-gray-300 px-2 py-1 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                            />
-                          </div>
-                          <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                              KDV (%)
-                            </label>
-                            <input
-                              type="number"
-                              v-model.number="detail.Tax"
-                              min="0"
-                              max="100"
-                              class="w-20 rounded-lg border border-gray-300 px-2 py-1 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <!-- Özet -->
+            <div class="bg-gray-50 p-4 rounded-xl space-y-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Toplam Tutar</span>
+                <span class="font-medium text-gray-900">₺{{ formatPrice(total) }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Ürün Sayısı</span>
+                <span class="font-medium text-gray-900">{{ totalItems }} Adet</span>
+              </div>
+            </div>
 
-                <!-- Total and Actions -->
-                <div class="flex items-center justify-between">
-                  <div class="text-lg font-medium">
-                    Toplam: {{ formatPrice(calculateEditingOrderTotal()) }}
+            <!-- Butonlar -->
+            <div class="flex space-x-3">
+              <button @click="closeSaleModal"
+                      class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
+                İptal
+              </button>
+              <button @click="confirmSale"
+                      :disabled="!customerName.trim() || processing"
+                      class="flex-1 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                {{ processing ? 'İşleniyor...' : 'Onayla' }}
+              </button>
+            </div>
+          </template>
+
+          <!-- Satış Detayları -->
+          <template v-else>
+            <!-- Müşteri Bilgileri -->
+            <div class="bg-gray-50 p-4 rounded-xl">
+              <h4 class="text-sm font-medium text-gray-700 mb-2">Müşteri Bilgileri</h4>
+              <p class="text-sm text-gray-900">{{ selectedSale.extra?.customer_name || '-' }}</p>
+              <p v-if="selectedSale.extra?.notes" class="text-sm text-gray-500 mt-1">
+                {{ selectedSale.extra.notes }}
+              </p>
+            </div>
+
+            <!-- Ürün Listesi -->
+            <div>
+              <h4 class="text-sm font-medium text-gray-700 mb-2">Satın Alınan Ürünler</h4>
+              <div class="space-y-2">
+                <div v-for="detail in selectedSale.details" :key="detail.id" 
+                     class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">
+                      {{ detail.product?.name || detail.package?.name }}
+                    </p>
+                    <p class="text-xs text-gray-500">
+                      {{ detail.quantity }} adet × ₺{{ formatPrice(detail.unit_price) }}
+                    </p>
                   </div>
-                  <div class="space-x-3">
-                    <button
-                      @click="closeEditOrderModal"
-                      class="btn-secondary"
-                    >
-                      İptal
-                    </button>
-                    <button
-                      @click="saveOrderChanges"
-                      class="btn-primary"
-                      :disabled="savingOrder"
-                    >
-                      {{ savingOrder ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet' }}
-                    </button>
-                  </div>
+                  <p class="text-sm font-bold text-gray-900">
+                    ₺{{ formatPrice(detail.total_price) }}
+                  </p>
                 </div>
-              </DialogPanel>
-            </TransitionChild>
-          </div>
+              </div>
+            </div>
+
+            <!-- Fiyat Detayları -->
+            <div class="border-t pt-4">
+              <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">Ara Toplam</span>
+                  <span class="font-medium text-gray-900">
+                    ₺{{ formatPrice(calculateSubtotal(selectedSale.details)) }}
+                  </span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">KDV (%{{ selectedSale.extra?.tax_rate || 0 }})</span>
+                  <span class="font-medium text-gray-900">
+                    ₺{{ formatPrice(calculateTax(selectedSale.details, selectedSale.extra?.tax_rate)) }}
+                  </span>
+                </div>
+                <div v-if="selectedSale.extra?.discount_rate" class="flex justify-between text-sm">
+                  <span class="text-red-600">İndirim (%{{ selectedSale.extra.discount_rate }})</span>
+                  <span class="font-medium text-red-600">
+                    -₺{{ formatPrice(calculateDiscount(selectedSale.details, selectedSale.extra.discount_rate)) }}
+                  </span>
+                </div>
+                <div class="flex justify-between text-base font-bold pt-2">
+                  <span class="text-gray-900">Toplam</span>
+                  <span class="text-indigo-600">₺{{ formatPrice(selectedSale.total_amount) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Kapat Butonu -->
+            <button @click="closeSaleModal"
+                    class="w-full py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
+              Kapat
+            </button>
+          </template>
         </div>
-      </Dialog>
-    </TransitionRoot>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
-import { useStore } from 'vuex';
-import { useToast } from 'vue-toastification';
-import {
-  Dialog,
-  DialogPanel,
-  DialogTitle,
-  TransitionChild,
-  TransitionRoot,
-} from '@headlessui/vue';
-import BarcodeScanner from '@/components/BarcodeScanner.vue';
-import SalesStats from '@/components/SalesStats.vue';
-import axios from 'axios';
+import { ref, computed, onMounted } from 'vue'
+import { supabase } from '@/lib/supabaseClient'
+import Modal from '@/components/Modal.vue'
+import BarcodeScanner from '@/components/BarcodeScanner.vue'
+import { useToast } from 'vue-toastification'
 
 export default {
   name: 'Sales',
   components: {
-    Dialog,
-    DialogPanel,
-    DialogTitle,
-    TransitionChild,
-    TransitionRoot,
-    BarcodeScanner,
-    SalesStats,
+    Modal,
+    BarcodeScanner
   },
   setup() {
-    const store = useStore();
-    const toast = useToast();
-    
-    // State
-    const companyId = ref(localStorage.getItem('companyIdva'));
-    const searchQuery = ref('');
-    const statusFilter = ref('');
-    const dateFilter = ref(new Date().toISOString().split('T')[0]);
-    const showNewSaleModal = ref(false);
-    const loading = ref(false);
-    const processing = ref(false);
+    const toast = useToast()
+    const searchQuery = ref('')
+    const currentView = ref('products')
+    const showBarcodeScanner = ref(false)
+    const products = ref([])
+    const packages = ref([])
+    const cart = ref([])
+    const loading = ref(false)
+    const taxRate = ref(18)
+    const discountRate = ref(0)
+    const processing = ref(false)
+    const showSaleModal = ref(false)
+    const customerName = ref('')
+    const saleNotes = ref('')
+    const recentSales = ref([])
+    const loadingSales = ref(true)
+    const selectedSale = ref(null)
+    const pendingSales = ref([])
+    const customers = ref([])
+    const filteredCustomers = ref([])
+    const showCustomerSuggestions = ref(false)
 
-    // New Sale Modal State
-    const productSearch = ref('');
-    const filteredProducts = ref([]);
-    const cart = ref([]);
-    const paymentMethod = ref('Cash');
-    const notes = ref('');
-    const saleType = ref('products');
-    const packageSearch = ref('');
-    const packages = ref([]);
-    const isLoadingPackages = ref(false);
-
-    // Order Details Modal State
-    const showOrderDetailsModal = ref(false);
-    const selectedOrder = ref(null);
-    const orderDetails = ref([]);
-
-    // Cancel Order Modal State
-    const showCancelOrderModal = ref(false);
-    const orderToCancel = ref(null);
-    const cancellingOrder = ref(false);
-
-    // Edit Order Modal State
-    const showEditOrderModal = ref(false);
-    const editingOrder = ref(null);
-    const editingOrderDetails = ref([]);
-    const savingOrder = ref(false);
-
-    // Customer Selection State
-    const customerSearch = ref('');
-    const filteredCustomers = ref([]);
-    const selectedCustomer = ref(null);
-
-    // Computed Properties
-    const orders = computed(() => store.getters['sales/getOrders']);
-
-    const filteredOrders = computed(() => {
-      let result = [...orders.value];
-      
-      // Search filter
-      if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase();
-        result = result.filter(order => 
-          order.OrderId.toString().includes(query) ||
-          (order.CustomerName && order.CustomerName.toLowerCase().includes(query))
-        );
-      }
-      
-      // Status filter
-      if (statusFilter.value) {
-        result = result.filter(order => order.Status === statusFilter.value);
-      }
-      
-      // Date filter
-      if (dateFilter.value) {
-        const filterDate = new Date(dateFilter.value).toDateString();
-        result = result.filter(order => 
-          new Date(order.OrderDate).toDateString() === filterDate
-        );
-      }
-      
-      return result;
-    });
-
-    const cartTotal = computed(() => {
-      return cart.value.reduce((total, item) => {
-        return total + (item.Price * item.quantity);
-      }, 0);
-    });
-
-    const currentSearchValue = computed(() => {
-      return saleType.value === 'products' ? productSearch.value : packageSearch.value;
-    });
-
-    const handleSearchInput = (event) => {
-      if (saleType.value === 'products') {
-        productSearch.value = event.target.value;
-        searchProducts();
-      } else {
-        packageSearch.value = event.target.value;
-        searchPackages();
-      }
-    };
-
-    const filteredPackages = computed(() => {
-      return packages.value;
-    });
-
-    // Methods
-    const fetchData = async () => {
-      loading.value = true;
+    // Ürünleri yükle
+    const loadProducts = async () => {
       try {
-        await store.dispatch('sales/fetchOrders', companyId.value);
+        const { data, error } = await supabase
+          .from('products')
+          .select(`
+            *,
+            category:categories(*)
+          `)
+          .order('name')
+        
+        if (error) throw error
+        products.value = data
       } catch (error) {
-        console.error('Error fetching orders:', error);
-        toast.error('Siparişler yüklenirken bir hata oluştu!');
+        console.error('Error loading products:', error)
+        toast.error('Ürünler yüklenirken bir hata oluştu')
+      }
+    }
+
+    // Debounce fonksiyonu
+    const debounce = (fn, delay) => {
+      let timeoutId
+      return (...args) => {
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => fn(...args), delay)
+      }
+    }
+
+    // Debounce'lu arama fonksiyonu
+    const debouncedSearch = debounce(async () => {
+      if (!searchQuery.value.trim()) {
+        await loadProducts()
+        return
+      }
+
+      loading.value = true
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select(`
+            *,
+            category:categories(*)
+          `)
+          .ilike('name', `%${searchQuery.value}%`)
+          .order('name')
+
+        if (error) throw error
+        products.value = data
+      } catch (error) {
+        console.error('Error searching products:', error)
+        toast.error('Ürün araması yapılırken bir hata oluştu')
       } finally {
-        loading.value = false;
+        loading.value = false
       }
-    };
+    }, 300)
 
-    const formatDate = (date) => {
-      return new Date(date).toLocaleDateString('tr-TR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    };
+    // Arama fonksiyonunu debounce ile güncelle
+    const searchProducts = () => {
+      debouncedSearch()
+    }
 
-    const formatPrice = (price) => {
-      return new Intl.NumberFormat('tr-TR', {
-        style: 'currency',
-        currency: 'TRY'
-      }).format(price);
-    };
+    // Filtrelenmiş ürünler
+    const filteredProducts = computed(() => {
+      return products.value
+    })
 
-    const getStatusBadgeClass = (status) => {
-      const baseClasses = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full';
-      switch (status) {
-        case 'Completed':
-          return `${baseClasses} bg-green-100 text-green-800`;
-        case 'Pending':
-          return `${baseClasses} bg-yellow-100 text-yellow-800`;
-        case 'Cancelled':
-          return `${baseClasses} bg-red-100 text-red-800`;
-        case 'Refunded':
-          return `${baseClasses} bg-purple-100 text-purple-800`;
-        default:
-          return `${baseClasses} bg-gray-100 text-gray-800`;
-      }
-    };
-
-    const getStatusText = (status) => {
-      switch (status) {
-        case 'Completed':
-          return 'Tamamlandı';
-        case 'Pending':
-          return 'Beklemede';
-        case 'Cancelled':
-          return 'İptal Edildi';
-        case 'Refunded':
-          return 'İade Edildi';
-        default:
-          return status;
-      }
-    };
-
-    const getPaymentMethodText = (method) => {
-      switch (method) {
-        case 'Cash':
-          return 'Nakit';
-        case 'CreditCard':
-          return 'Kredi Kartı';
-        case 'BankTransfer':
-          return 'Banka Havalesi';
-        case 'Other':
-          return 'Diğer';
-        default:
-          return method;
-      }
-    };
-
-    const viewOrderDetails = async (order) => {
-      selectedOrder.value = order;
-      showOrderDetailsModal.value = true;
-      
+    // Paketleri yükle
+    const loadPackages = async () => {
       try {
-        const details = await store.dispatch('sales/fetchOrderDetails', {
-          orderId: order.OrderId,
-          companyId: companyId.value
-        });
-        orderDetails.value = details || [];
-      } catch (error) {
-        console.error('Error fetching order details:', error);
-        toast.error('Sipariş detayları yüklenirken bir hata oluştu!');
-      }
-    };
-
-    const editOrder = async (order) => {
-      try {
-        // Modal'ı aç ve siparişi ayarla
-        editingOrder.value = { 
-          ...order,
-          OrderId: order.OrderId,
-          PaymentMethod: order.PaymentMethod || 'Cash',
-          Status: order.Status || 'Pending',
-          Notes: order.Notes || '',
-          TotalAmount: Number(order.TotalAmount || 0)
-        };
-        showEditOrderModal.value = true;
-
-        // Sipariş detaylarını yükle
-        const details = await store.dispatch('sales/fetchOrderDetails', {
-          orderId: order.OrderId,
-          companyId: companyId.value
-        });
+        const { data, error } = await supabase
+          .from('packages')
+          .select(`
+            *,
+            products:package_products(
+              quantity,
+              product:products(*)
+            )
+          `)
+          .order('name')
         
-        console.log('Fetched order details:', details);
-        
-        if (!details || !Array.isArray(details)) {
-          console.error('Invalid order details response:', details);
-          toast.error('Sipariş detayları yüklenemedi!');
-          return;
-        }
-
-        // Detayları işle ve gerekli alanları ekle
-        editingOrderDetails.value = details.map(detail => ({
-          ...detail,
-          OrderDetailId: detail.OrderDetailId,
-          ProductId: detail.ProductId,
-          ProductName: detail.ProductName,
-          Quantity: Number(detail.Quantity || 0),
-          UnitPrice: Number(detail.UnitPrice || 0),
-          Discount: Number(detail.Discount || 0),
-          Tax: Number(detail.Tax || 0)
-        }));
-
-        console.log('Processed order details:', editingOrderDetails.value);
+        if (error) throw error
+        packages.value = data
       } catch (error) {
-        console.error('Error fetching order details:', error);
-        toast.error('Sipariş detayları yüklenirken bir hata oluştu!');
+        console.error('Error loading packages:', error)
+        toast.error('Paketler yüklenirken bir hata oluştu')
       }
-    };
+    }
 
-    const confirmCancelOrder = (order) => {
-      orderToCancel.value = order;
-      showCancelOrderModal.value = true;
-      showOrderDetailsModal.value = false; // Close details modal if open
-    };
-
-    // Methods for New Sale Modal
-    const searchProducts = async () => {
-      if (!productSearch.value) {
-        filteredProducts.value = [];
-        return;
-      }
-
-      try {
-        const response = await store.dispatch('product/searchProducts', {
-          query: productSearch.value,
-          companyId: companyId.value
-        });
-
-        // Stokta olan ürünleri filtrele
-        filteredProducts.value = response.filter(product => product.StockQuantity > 0);
-
-        if (filteredProducts.value.length === 0 && response.length > 0) {
-          toast.warning('Bulunan ürünlerin stokta mevcut değil!');
-        }
-      } catch (error) {
-        console.error('Error searching products:', error);
-        toast.error('Ürünler aranırken bir hata oluştu!');
-        filteredProducts.value = [];
-      }
-    };
-
+    // Sepet işlemleri
     const addToCart = (product) => {
-      const existingItem = cart.value.find(item => item.ProductId === product.ProductId);
-      
+      const existingItem = cart.value.find(item => 
+        item.type === 'product' && item.id === product.id
+      )
+
       if (existingItem) {
-        if (existingItem.quantity < product.StockQuantity) {
-          existingItem.quantity++;
-        } else {
-          toast.warning('Yeterli stok yok!');
-        }
+        existingItem.quantity++
       } else {
         cart.value.push({
-          ...product,
+          type: 'product',
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          category_id: product.category_id,
           quantity: 1
-        });
+        })
       }
-      
-      productSearch.value = '';
-      filteredProducts.value = [];
-    };
+      toast.success('Ürün sepete eklendi')
+    }
+
+    const addPackageToCart = (packageItem) => {
+      const existingItem = cart.value.find(item => 
+        item.type === 'package' && item.id === packageItem.id
+      )
+
+      if (existingItem) {
+        existingItem.quantity++
+      } else {
+        cart.value.push({
+          type: 'package',
+          id: packageItem.id,
+          name: packageItem.name,
+          price: packageItem.price,
+          quantity: 1,
+          products: packageItem.products
+        })
+      }
+      toast.success('Paket sepete eklendi')
+    }
 
     const removeFromCart = (item) => {
-      cart.value = cart.value.filter(cartItem => cartItem.ProductId !== item.ProductId);
-    };
-
-    const increaseQuantity = (item) => {
-      if (item.quantity < item.StockQuantity) {
-        item.quantity++;
-      } else {
-        toast.warning('Yeterli stok yok!');
+      const index = cart.value.findIndex(i => i.id === item.id && i.type === item.type)
+      if (index > -1) {
+        cart.value.splice(index, 1)
+        toast.success(item.type === 'package' ? 'Paket sepetten çıkarıldı' : 'Ürün sepetten çıkarıldı')
       }
-    };
+    }
 
-    const decreaseQuantity = (item) => {
-      if (item.quantity > 1) {
-        item.quantity--;
+    const incrementQuantity = (item) => {
+      const cartItem = cart.value.find(i => i.id === item.id && i.type === item.type)
+      if (cartItem) {
+        cartItem.quantity++
       }
-    };
+    }
 
-    const closeNewSaleModal = () => {
-      showNewSaleModal.value = false;
-      cart.value = [];
-      paymentMethod.value = 'Cash';
-      notes.value = '';
-      productSearch.value = '';
-      filteredProducts.value = [];
-      customerSearch.value = '';
-      filteredCustomers.value = [];
-      selectedCustomer.value = null;
-    };
+    const decrementQuantity = (item) => {
+      const cartItem = cart.value.find(i => i.id === item.id && i.type === item.type)
+      if (cartItem && cartItem.quantity > 1) {
+        cartItem.quantity--
+      }
+    }
 
-    const completeSale = async () => {
-      if (cart.value.length === 0) return;
+    const clearCart = () => {
+      cart.value = []
+      toast.success('Sepet temizlendi')
+    }
 
-      processing.value = true;
+    // Hesaplamalar
+    const subtotal = computed(() => {
+      return cart.value.reduce((total, item) => total + (Number(item.price) * item.quantity), 0)
+    })
+
+    const tax = computed(() => {
+      return subtotal.value * (Number(taxRate.value) / 100)
+    })
+
+    const discount = computed(() => {
+      const subtotalWithTax = subtotal.value + tax.value
+      return subtotalWithTax * (Number(discountRate.value) / 100)
+    })
+
+    const total = computed(() => {
+      return subtotal.value + tax.value - discount.value
+    })
+
+    const totalItems = computed(() => {
+      return cart.value.reduce((total, item) => total + item.quantity, 0)
+    })
+
+    // Yardımcı fonksiyonlar
+    const toggleView = () => {
+      currentView.value = currentView.value === 'products' ? 'packages' : 'products'
+    }
+
+    const formatPrice = (price) => {
+      return Number(price).toLocaleString('tr-TR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
+    }
+
+    const calculatePackageOriginalPrice = (packageItem) => {
+      return packageItem.products.reduce((total, item) => {
+        return total + (item.product.price * item.quantity)
+      }, 0)
+    }
+
+    const calculateDiscountPercentage = (packageItem) => {
+      const originalPrice = calculatePackageOriginalPrice(packageItem)
+      const discountAmount = originalPrice - packageItem.price
+      const discountPercentage = (discountAmount / originalPrice) * 100
+      return Math.round(discountPercentage)
+    }
+
+    const onBarcodeScanned = (barcode) => {
+      // Barkod okuma işlemleri burada yapılacak
+      console.log('Scanned barcode:', barcode)
+      showBarcodeScanner.value = false
+    }
+
+    const createSale = () => {
+      customerName.value = ''
+      saleNotes.value = ''
+      showSaleModal.value = true
+    }
+
+    const showSaleDetails = (sale) => {
+      selectedSale.value = sale
+      showSaleModal.value = true
+    }
+
+    const formatDate = (date) => {
+      return new Date(date).toLocaleString('tr-TR', {
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+
+    const loadRecentSales = async () => {
       try {
-        let response;
-        
-        // Paket satışı
-        if (saleType.value === 'packages') {
-          const packageItem = cart.value[0]; // Şimdilik tek paket satışı destekliyoruz
-          response = await axios.post(
-            `https://flowbridge.us-e2.cloudhub.io/api/orders/getPackage/${packageItem.id}/sell?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
-            {
-              CompanyId: companyId.value.toString(),
-              Name: packageItem.name,
-              CustomerId: (selectedCustomer.value?.CustomerId || "1").toString(),
-              PaymentMethod: paymentMethod.value,
-              Notes: notes.value || ""
-            }
-          );
-        } 
-        // Ürün satışı
-        else {
-          response = await axios.post(
-            `https://flowbridge.us-e2.cloudhub.io/api/orders?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
-            {
-              CompanyId: companyId.value.toString(),
-              OrderDate: new Date().toISOString().slice(0, 19).replace('T', ' '),
-              CategoryId: cart.value[0].CategoryId.toString(),
-              StockQuantity: cart.value.reduce((total, item) => total + item.quantity, 0),
-              Price: cartTotal.value,
-              Description: "Yeni sipariş",
-              Name: `Sipariş - ${new Date().toLocaleString()}`,
-              CustomerId: (selectedCustomer.value?.CustomerId || "1").toString(),
-              TotalAmount: cartTotal.value,
-              PaymentMethod: paymentMethod.value,
-              Notes: notes.value || "",
-              Status: "Pending",
-              OrderDetails: cart.value.map(item => ({
-                ProductId: item.ProductId,
-                Quantity: item.quantity,
-                UnitPrice: item.Price,
-                Discount: 0.00,
-                Tax: 5.00
-              }))
-            }
-          );
-        }
+        const { data, error } = await supabase
+          .from('sales')
+          .select(`
+            *,
+            extra:sale_details_extra(*),
+            details:sale_details(
+              *,
+              product:products(*),
+              package:packages(*)
+            )
+          `)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+          .limit(5)
 
-        if (response.data.success) {
-          // Ürün listesini güncelle
-          await store.dispatch('product/fetchProducts', companyId.value);
-          
-          toast.success(response.data.message || 'Satış başarıyla tamamlandı');
-          closeNewSaleModal();
-          fetchData();
-        } else {
-          throw new Error(response.data.message || 'Sipariş oluşturulamadı');
-        }
+        if (error) throw error
+        recentSales.value = data
       } catch (error) {
-        console.error('Error completing sale:', error);
-        toast.error(error.response?.data?.message || error.message || 'Satış tamamlanırken bir hata oluştu!');
+        console.error('Error loading recent sales:', error)
+        toast.error('Son satışlar yüklenirken bir hata oluştu')
       } finally {
-        processing.value = false;
+        loadingSales.value = false
       }
-    };
+    }
 
-    // Methods for Order Details Modal
-    const closeOrderDetailsModal = () => {
-      showOrderDetailsModal.value = false;
-      selectedOrder.value = null;
-      orderDetails.value = [];
-    };
-
-    const calculateDetailTotal = (detail) => {
-      const subtotal = detail.Quantity * detail.UnitPrice;
-      const discount = subtotal * (detail.Discount / 100);
-      const tax = (subtotal - discount) * (detail.Tax / 100);
-      return subtotal - discount + tax;
-    };
-
-    // Methods for Cancel Order Modal
-    const closeCancelOrderModal = () => {
-      showCancelOrderModal.value = false;
-      orderToCancel.value = null;
-    };
-
-    const cancelOrder = async () => {
-      if (!orderToCancel.value) return;
-
-      cancellingOrder.value = true;
+    const loadPendingSales = async () => {
       try {
-        const response = await axios.post(
-          `https://flowbridge.us-e2.cloudhub.io/api/orders/${orderToCancel.value.OrderId}/cancel?client_id=6f0b2e5229c7455091966ef898fd6f68&client_secret=8041a365CDfb448c88a7780b7699A6aC`,
-          {
-            CompanyId: companyId.value.toString()
+        const { data, error } = await supabase
+          .from('sales')
+          .select(`
+            *,
+            extra:sale_details_extra(*),
+            details:sale_details(
+              *,
+              product:products(*),
+              package:packages(*)
+            )
+          `)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        pendingSales.value = data
+      } catch (error) {
+        console.error('Error loading pending sales:', error)
+        toast.error('Bekleyen satışlar yüklenirken bir hata oluştu')
+      }
+    }
+
+    const completeSale = async (sale) => {
+      try {
+        const { error: updateError } = await supabase
+          .from('sales')
+          .update({ status: 'completed' })
+          .eq('id', sale.id)
+
+        if (updateError) throw updateError
+
+        toast.success('Satış onaylandı')
+        await loadPendingSales()
+        await loadProducts()
+        await loadRecentSales()
+      } catch (error) {
+        console.error('Error completing sale:', error)
+        toast.error('Satış onaylanırken bir hata oluştu')
+      }
+    }
+
+    const cancelSale = async (sale) => {
+      try {
+        // 1. Stokları geri al
+        for (const detail of sale.details) {
+          if (detail.product_id) {
+            const { data: product, error: getError } = await supabase
+              .from('products')
+              .select('stock')
+              .eq('id', detail.product_id)
+              .single()
+
+            if (getError) throw getError
+
+            const newStock = product.stock + detail.quantity
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({ stock: newStock })
+              .eq('id', detail.product_id)
+
+            if (updateError) throw updateError
           }
-        );
-
-        if (response.data.success) {
-          // Ürün listesini güncelle
-          await store.dispatch('product/fetchProducts', companyId.value);
-          
-          toast.success(response.data.message || 'Sipariş başarıyla iptal edildi');
-          closeCancelOrderModal();
-          fetchData();
-        } else {
-          throw new Error(response.data.message || 'Sipariş iptal edilemedi');
         }
-      } catch (error) {
-        console.error('Error cancelling order:', error);
-        toast.error(error.response?.data?.message || error.message || 'Sipariş iptal edilirken bir hata oluştu!');
-      } finally {
-        cancellingOrder.value = false;
-      }
-    };
 
-    // Methods for Edit Order Modal
-    const closeEditOrderModal = async () => {
+        // 2. Satışı iptal olarak işaretle
+        const { error: updateError } = await supabase
+          .from('sales')
+          .update({ status: 'cancelled' })
+          .eq('id', sale.id)
+
+        if (updateError) throw updateError
+
+        toast.success('Satış iptal edildi')
+        await loadPendingSales()
+        await loadProducts()
+        await loadRecentSales()
+      } catch (error) {
+        console.error('Error cancelling sale:', error)
+        toast.error('Satış iptal edilirken bir hata oluştu')
+      }
+    }
+
+    const confirmSale = async () => {
+      if (!customerName.value.trim()) {
+        toast.error('Lütfen müşteri adı girin')
+        return
+      }
+
+      processing.value = true
       try {
-        // Bekleyen işlemlerin tamamlanmasını bekle
-        await Promise.resolve();
-        
-        // Önce modal'ı kapat
-        showEditOrderModal.value = false;
-        
-        // Sonra state'i temizle
-        setTimeout(() => {
-          editingOrder.value = null;
-          editingOrderDetails.value = [];
-        }, 300); // Modal kapanma animasyonunun tamamlanmasını bekle
-      } catch (error) {
-        console.error('Error closing modal:', error);
-      }
-    };
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError) throw sessionError
+        if (!session) throw new Error('Oturum bulunamadı')
 
-    const calculateEditingOrderTotal = () => {
-      console.log('Calculating total for:', editingOrderDetails.value);
+        // Müşteri kaydetmeyi dene ama hata alırsa devam et
+        let customer = { name: customerName.value.trim() }
+        try {
+          const savedCustomer = await saveCustomer(customerName.value.trim())
+          if (savedCustomer) {
+            customer = savedCustomer
+          }
+        } catch (error) {
+          console.error('Customer save error:', error)
+          // Müşteri kaydedilemese bile satışa devam et
+        }
+
+        // 1. Satış kaydı oluştur
+        const { data: sale, error: saleError } = await supabase
+          .from('sales')
+          .insert({
+            user_id: session.user.id,
+            sale_type: cart.value.some(item => item.type === 'package') ? 'package' : 'product',
+            status: 'pending',
+            total_amount: Number(total.value)
+          })
+          .select()
+          .single()
+
+        if (saleError) throw saleError
+
+        // 2. Satış detaylarını kaydet
+        const saleDetails = cart.value.map(item => ({
+          sale_id: sale.id,
+          product_id: item.type === 'product' ? item.id : null,
+          package_id: item.type === 'package' ? item.id : null,
+          quantity: item.quantity,
+          unit_price: Number(item.price),
+          total_price: Number(item.price * item.quantity)
+        }))
+
+        const { error: detailsError } = await supabase
+          .from('sale_details')
+          .insert(saleDetails)
+
+        if (detailsError) throw detailsError
+
+        // 3. Satış ekstra detaylarını kaydet
+        const { error: extraDetailsError } = await supabase
+          .from('sale_details_extra')
+          .insert({
+            sale_id: sale.id,
+            customer_name: customer.name,
+            tax_rate: Number(taxRate.value),
+            discount_rate: Number(discountRate.value),
+            notes: saleNotes.value
+          })
+
+        if (extraDetailsError) throw extraDetailsError
+
+        // 4. Stokları güncelle
+        for (const item of cart.value) {
+          if (item.type === 'product') {
+            // Önce mevcut stok miktarını al
+            const { data: productData, error: getError } = await supabase
+              .from('products')
+              .select('stock')
+              .eq('id', item.id)
+              .single()
+
+            if (getError) throw getError
+
+            // Yeni stok miktarını hesapla
+            const newStock = productData.stock - item.quantity
+
+            // Stok güncelleme
+            const { error: stockError } = await supabase
+              .from('products')
+              .update({ stock: newStock })
+              .eq('id', item.id)
+
+            if (stockError) throw stockError
+          }
+        }
+
+        toast.success('Satış kaydı oluşturuldu')
+        showSaleModal.value = false
+        cart.value = []
+        customerName.value = ''
+        saleNotes.value = ''
+        discountRate.value = 0
+        taxRate.value = 18
+        
+        // Sayfayı yenile
+        await Promise.all([
+          loadPendingSales(),
+          loadProducts(),
+          loadRecentSales()
+        ])
+        
+      } catch (error) {
+        console.error('Error creating sale:', error)
+        toast.error('Satış oluşturulurken bir hata oluştu: ' + error.message)
+      } finally {
+        processing.value = false
+      }
+    }
+
+    // Kategori renk fonksiyonları
+    const getCategoryBgColor = (categoryId) => {
+      const colors = {
+        1: 'bg-red-100',
+        2: 'bg-blue-100',
+        3: 'bg-green-100',
+        4: 'bg-yellow-100',
+        5: 'bg-purple-100',
+        6: 'bg-pink-100',
+        7: 'bg-indigo-100',
+        8: 'bg-orange-100'
+      }
+      return colors[categoryId] || 'bg-gray-100'
+    }
+
+    const getCategoryTextColor = (categoryId) => {
+      const colors = {
+        1: 'text-red-600',
+        2: 'text-blue-600',
+        3: 'text-green-600',
+        4: 'text-yellow-600',
+        5: 'text-purple-600',
+        6: 'text-pink-600',
+        7: 'text-indigo-600',
+        8: 'text-orange-600'
+      }
+      return colors[categoryId] || 'text-gray-600'
+    }
+
+    const closeSaleModal = () => {
+      showSaleModal.value = false
+      selectedSale.value = null
+      customerName.value = ''
+      saleNotes.value = ''
+    }
+
+    // Müşterileri yükle
+    const loadCustomers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('*')
+          .order('name')
+
+        if (error) throw error
+        customers.value = data
+      } catch (error) {
+        console.error('Error loading customers:', error)
+        toast.error('Müşteriler yüklenirken bir hata oluştu')
+      }
+    }
+
+    // Müşteri ara
+    const searchCustomers = () => {
+      if (!customerName.value) {
+        filteredCustomers.value = []
+        showCustomerSuggestions.value = false
+        return
+      }
       
-      if (!editingOrderDetails.value || !Array.isArray(editingOrderDetails.value) || editingOrderDetails.value.length === 0) {
-        console.log('No details to calculate total');
-        return editingOrder.value?.TotalAmount || 0;
-      }
+      filteredCustomers.value = customers.value.filter(customer => 
+        customer.name.toLowerCase().includes(customerName.value.toLowerCase())
+      )
+      showCustomerSuggestions.value = true
+    }
 
-      const total = editingOrderDetails.value.reduce((total, detail) => {
-        if (!detail) {
-          console.log('Skipping null detail');
-          return total;
-        }
-        
-        const quantity = Number(detail.Quantity || 0);
-        const unitPrice = Number(detail.UnitPrice || 0);
-        const discount = Number(detail.Discount || 0);
-        const tax = Number(detail.Tax || 0);
-
-        console.log('Calculating for item:', {
-          name: detail.ProductName,
-          quantity,
-          unitPrice,
-          discount,
-          tax
-        });
-
-        const subtotal = quantity * unitPrice;
-        console.log('Subtotal:', subtotal);
-        
-        const discountAmount = subtotal * (discount / 100);
-        console.log('Discount amount:', discountAmount);
-        
-        const taxAmount = (subtotal - discountAmount) * (tax / 100);
-        console.log('Tax amount:', taxAmount);
-        
-        const itemTotal = subtotal - discountAmount + taxAmount;
-        console.log('Item total:', itemTotal);
-        
-        return total + itemTotal;
-      }, 0);
-
-      console.log('Final total:', total);
-      return total;
-    };
-
-    const saveOrderChanges = async () => {
-      if (!editingOrder.value) return;
-
-      savingOrder.value = true;
-      try {
-        // Toplam tutarı tekrar hesapla
-        const totalAmount = calculateEditingOrderTotal();
-        console.log('Saving with total amount:', totalAmount);
-
-        // Önce sipariş detaylarını güncelle
-        for (const detail of editingOrderDetails.value) {
-          console.log('Updating detail:', detail);
-          await store.dispatch('sales/updateOrderDetail', {
-            orderId: editingOrder.value.OrderId,
-            orderDetailId: detail.OrderDetailId,
-            orderDetail: {
-              ProductId: detail.ProductId.toString(),
-              Quantity: Number(detail.Quantity),
-              UnitPrice: Number(detail.UnitPrice),
-              Discount: Number(detail.Discount),
-              Tax: Number(detail.Tax)
-            }
-          });
-        }
-
-        // Sonra siparişi güncelle
-        const orderResponse = await store.dispatch('sales/updateOrder', {
-          order: {
-            OrderId: editingOrder.value.OrderId,
-            TotalAmount: totalAmount,
-            PaymentMethod: editingOrder.value.PaymentMethod,
-            Status: editingOrder.value.Status,
-            Notes: editingOrder.value.Notes
-          },
-          companyId: companyId.value
-        });
-
-        if (orderResponse.success) {
-          toast.success('Sipariş başarıyla güncellendi!');
-          closeEditOrderModal();
-          fetchData();
-        }
-      } catch (error) {
-        console.error('Error updating order:', error);
-        toast.error('Sipariş güncellenirken bir hata oluştu!');
-      } finally {
-        savingOrder.value = false;
-      }
-    };
-
-    // Methods for Customer Selection
-    const searchCustomers = async () => {
-      if (!customerSearch.value) {
-        filteredCustomers.value = [];
-        return;
-      }
-
-      try {
-        const response = await store.dispatch('customer/searchCustomers', {
-          query: customerSearch.value,
-          companyId: companyId.value
-        });
-        filteredCustomers.value = response || [];
-      } catch (error) {
-        console.error('Error searching customers:', error);
-        toast.error('Müşteriler aranırken bir hata oluştu!');
-      }
-    };
-
+    // Müşteri seç
     const selectCustomer = (customer) => {
-      selectedCustomer.value = customer;
-      customerSearch.value = '';
-      filteredCustomers.value = [];
-    };
+      customerName.value = customer.name
+      showCustomerSuggestions.value = false
+      filteredCustomers.value = []
+    }
 
-    // Methods for Barcode Scanner
-    const handleBarcodeScan = async (code) => {
+    // Müşteri kaydet
+    const saveCustomer = async (name) => {
       try {
-        const response = await store.dispatch('product/searchProducts', {
-          query: code,
-          companyId: companyId.value
-        });
+        // Müşteri zaten var mı kontrol et
+        const { data: existingCustomers, error: searchError } = await supabase
+          .from('customers')
+          .select('*')
+          .ilike('name', name)
+          .single()
+
+        if (!searchError && existingCustomers) {
+          return existingCustomers
+        }
+
+        // Yeni müşteri ekle
+        const { data, error } = await supabase
+          .from('customers')
+          .insert([{ 
+            name: name,
+            created_at: new Date().toISOString()
+          }])
+          .select()
+          .single()
+
+        if (error) {
+          console.error('Error saving customer:', error)
+          // Müşteri tablosu yoksa veya hata alındıysa, satışı müşteri olmadan devam ettir
+          return { name: name }
+        }
         
-        if (response && response.length > 0) {
-          const product = response[0];
-          addToCart(product);
-          toast.success('Ürün sepete eklendi!');
-        } else {
-          toast.warning('Ürün bulunamadı!');
-        }
+        return data
       } catch (error) {
-        console.error('Error searching product by barcode:', error);
-        toast.error('Ürün aranırken bir hata oluştu!');
+        console.error('Error in saveCustomer:', error)
+        // Hata durumunda satışı müşteri olmadan devam ettir
+        return { name: name }
       }
-    };
+    }
 
-    const fetchPackages = async () => {
-      if (packageSearch.value.length >= 2) {
-        try {
-          isLoadingPackages.value = true;
-          const response = await axios.get('https://flowbridge.us-e2.cloudhub.io/api/orders/getPackage', {
-            params: {
-              client_id: '6f0b2e5229c7455091966ef898fd6f68',
-              client_secret: '8041a365CDfb448c88a7780b7699A6aC',
-              CompanyId: companyId.value,
-              CategoryId: 'null',
-              Status: 'Active',
-              Search: packageSearch.value || 'null'
-            }
-          });
-
-          if (response.data && response.data.packages) {
-            packages.value = response.data.packages;
-          } else {
-            packages.value = [];
-          }
-        } catch (error) {
-          console.error('Paketler yüklenirken hata:', error);
-          toast.error('Paketler yüklenirken bir hata oluştu');
-          packages.value = [];
-        } finally {
-          isLoadingPackages.value = false;
-        }
-      } else {
-        packages.value = [];
-      }
-    };
-
-    const searchPackages = async () => {
-      if (packageSearch.value.length >= 2) {
-        try {
-          isLoadingPackages.value = true;
-          const response = await axios.get('https://flowbridge.us-e2.cloudhub.io/api/orders/getPackage', {
-            params: {
-              client_id: '6f0b2e5229c7455091966ef898fd6f68',
-              client_secret: '8041a365CDfb448c88a7780b7699A6aC',
-              CompanyId: companyId.value,
-              CategoryId: 'null',
-              Status: 'Active',
-              Search: packageSearch.value || 'null'
-            }
-          });
-
-          if (response.data && response.data.packages) {
-            packages.value = response.data.packages;
-          } else {
-            packages.value = [];
-          }
-        } catch (error) {
-          console.error('Paketler yüklenirken hata:', error);
-          toast.error('Paketler yüklenirken bir hata oluştu');
-          packages.value = [];
-        } finally {
-          isLoadingPackages.value = false;
-        }
-      } else {
-        packages.value = [];
-      }
-    };
-
-    const addPackageToCart = (pkg) => {
-      const existingItem = cart.value.find(item => 
-        item.id === pkg.PackageId && item.isPackage
-      );
-
-      if (existingItem) {
-        increaseQuantity(existingItem);
-      } else {
-        cart.value.push({
-          id: pkg.PackageId,
-          name: pkg.Name,
-          price: pkg.Price,
-          quantity: 1,
-          isPackage: true
-        });
-      }
-
-      packageSearch.value = '';
-      packages.value = [];
-      toast.success('Paket sepete eklendi');
-    };
-
-    // Lifecycle Hooks
+    // Sayfa yüklendiğinde verileri çek
     onMounted(() => {
-      fetchData();
-    });
+      loadProducts()
+      loadPackages()
+      loadRecentSales()
+      loadPendingSales()
+      loadCustomers()
+    })
 
     return {
-      // State
       searchQuery,
-      statusFilter,
-      dateFilter,
-      showNewSaleModal,
-      loading,
-      processing,
-      productSearch,
-      filteredProducts,
-      cart,
-      paymentMethod,
-      notes,
-      showOrderDetailsModal,
-      selectedOrder,
-      orderDetails,
-      showCancelOrderModal,
-      orderToCancel,
-      cancellingOrder,
-      showEditOrderModal,
-      editingOrder,
-      editingOrderDetails,
-      savingOrder,
-      customerSearch,
-      filteredCustomers,
-      selectedCustomer,
-      saleType,
-      packageSearch,
+      currentView,
+      showBarcodeScanner,
+      products,
       packages,
-      isLoadingPackages,
-
-      // Computed
-      filteredOrders,
-      cartTotal,
-      currentSearchValue,
-      filteredPackages,
-
-      // Methods
-      fetchData,
-      formatDate,
-      formatPrice,
-      getStatusBadgeClass,
-      getStatusText,
-      getPaymentMethodText,
-      viewOrderDetails,
-      editOrder,
-      confirmCancelOrder,
+      cart,
+      loading,
+      filteredProducts,
       searchProducts,
       addToCart,
-      removeFromCart,
-      increaseQuantity,
-      decreaseQuantity,
-      closeNewSaleModal,
-      completeSale,
-      closeOrderDetailsModal,
-      calculateDetailTotal,
-      closeCancelOrderModal,
-      cancelOrder,
-      closeEditOrderModal,
-      calculateEditingOrderTotal,
-      saveOrderChanges,
-      handleBarcodeScan,
-      searchCustomers,
-      selectCustomer,
-      searchPackages,
       addPackageToCart,
-      handleSearchInput,
-    };
+      removeFromCart,
+      incrementQuantity,
+      decrementQuantity,
+      clearCart,
+      subtotal,
+      tax,
+      total,
+      toggleView,
+      formatPrice,
+      calculatePackageOriginalPrice,
+      calculateDiscountPercentage,
+      onBarcodeScanned,
+      taxRate,
+      discountRate,
+      processing,
+      showSaleModal,
+      customerName,
+      saleNotes,
+      totalItems,
+      createSale,
+      showSaleDetails,
+      formatDate,
+      recentSales,
+      loadingSales,
+      getCategoryBgColor,
+      getCategoryTextColor,
+      confirmSale,
+      closeSaleModal,
+      pendingSales,
+      completeSale,
+      cancelSale,
+      customers,
+      filteredCustomers,
+      showCustomerSuggestions,
+      searchCustomers,
+      selectCustomer
+    }
   }
-};
-</script>
-
-<style scoped>
-.btn-primary {
-  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed;
 }
-
-.btn-secondary {
-  @apply inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500;
-}
-
-.btn-icon {
-  @apply inline-flex items-center p-2 border border-gray-300 rounded-md shadow-sm text-gray-500 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500;
-}
-
-.btn-danger {
-  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500;
-}
-</style> 
+</script> 
