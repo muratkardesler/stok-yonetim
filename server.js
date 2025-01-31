@@ -18,13 +18,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Statik dosyaları servis et
-app.use(express.static(path.join(__dirname, 'dist')));
+const distPath = path.join(__dirname, 'dist');
+console.log('📂 Dist klasörü yolu:', distPath);
+app.use(express.static(distPath));
 
 // İstek logları
 app.use((req, res, next) => {
     console.log(`📨 ${req.method} ${req.url}`);
     console.log('Headers:', req.headers);
-    console.log('Body:', req.body);
+    if (req.method !== 'GET') {
+        console.log('Body:', req.body);
+    }
     next();
 });
 
@@ -34,7 +38,16 @@ app.use('/api', apiMiddleware);
 
 // Tüm GET isteklerini index.html'e yönlendir (Vue Router için)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    const indexPath = path.join(distPath, 'index.html');
+    console.log('📄 index.html yolu:', indexPath);
+    
+    // index.html dosyasının varlığını kontrol et
+    if (!require('fs').existsSync(indexPath)) {
+        console.error('❌ index.html bulunamadı!');
+        return res.status(404).send('index.html not found');
+    }
+    
+    res.sendFile(indexPath);
 });
 
 // Hata yakalama
@@ -50,4 +63,5 @@ app.use((err, req, res, next) => {
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`🚀 Express sunucusu ${port} portunda çalışıyor`);
+    console.log('📁 Çalışma dizini:', __dirname);
 }); 

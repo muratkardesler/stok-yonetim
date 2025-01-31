@@ -1,4 +1,6 @@
-module.exports = {
+const { defineConfig } = require('@vue/cli-service')
+
+module.exports = defineConfig({
     transpileDependencies: true,
     devServer: {
         port: 8085,
@@ -11,6 +13,10 @@ module.exports = {
                     '^/api': '/api'
                 }
             }
-        }
+        },
+        publicPath: '/',
+        outputDir: 'dist',
+        assetsDir: 'assets',
+        productionSourceMap: false
     }
-} 
+}) 
