@@ -168,4 +168,9 @@ router.post('/signup', async (req, res) => {
     }
 });
 
+// API endpoint'leri buraya eklenecek
+router.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
 module.exports = router; 
