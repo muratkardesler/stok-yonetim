@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkstok_yonetimi"]=self["webpackChunkstok_yonetimi"]||[]).push([[828],{64828:(e,t,o)=>{o(16280),o(76918),e.exports=function(){throw new Error("ws does not work in the browser. Browser clients must use the native WebSocket object")}}}]);
+//# sourceMappingURL=828.9c4a31a0.js.map
