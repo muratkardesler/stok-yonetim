@@ -4,8 +4,20 @@ const path = require('path');
 const app = express();
 
 // CORS ayarları
+const allowedOrigins = [
+    'http://localhost:8085',
+    'https://test-stok-yonetim.onrender.com',
+    'https://stok-yonetim.onrender.com'
+];
+
 app.use(cors({
-    origin: ['http://localhost:8081', 'https://test-stok-yonetim.onrender.com', 'https://stok-yonetim.onrender.com'],
+    origin: function(origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('CORS policy violation'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
@@ -25,23 +37,22 @@ app.use(express.static(distPath));
 // İstek logları
 app.use((req, res, next) => {
     console.log(`📨 ${req.method} ${req.url}`);
-    console.log('Headers:', req.headers);
     if (req.method !== 'GET') {
         console.log('Body:', req.body);
     }
     next();
 });
 
-// API middleware
-const apiMiddleware = require('./api-middleware');
-app.use('/api', apiMiddleware);
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
 
 // Tüm GET isteklerini index.html'e yönlendir (Vue Router için)
 app.get('*', (req, res) => {
     const indexPath = path.join(distPath, 'index.html');
-    console.log('📄 index.html yolu:', indexPath);
+    console.log('📄 Serving:', indexPath);
     
-    // index.html dosyasının varlığını kontrol et
     if (!require('fs').existsSync(indexPath)) {
         console.error('❌ index.html bulunamadı!');
         return res.status(404).send('index.html not found');
@@ -60,8 +71,9 @@ app.use((err, req, res, next) => {
 });
 
 // Sunucuyu başlat
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
+const port = process.env.PORT || 10000;
+app.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Express sunucusu ${port} portunda çalışıyor`);
     console.log('📁 Çalışma dizini:', __dirname);
+    console.log('🌍 Node environment:', process.env.NODE_ENV);
 }); 
