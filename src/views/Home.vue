@@ -30,11 +30,6 @@
       </div>
     </nav>
 
-    <!-- Supabase Test Component -->
-    <div class="test-container" style="margin-top: 80px; padding: 20px;">
-      <SupabaseTest />
-    </div>
-
     <!-- Hero Section -->
     <section class="hero">
       <div class="hero-content">
@@ -156,13 +151,9 @@
 <script>
 import { ref, computed } from 'vue'
 import { useStore } from 'vuex'
-import SupabaseTest from '../components/SupabaseTest.vue'
 
 export default {
   name: 'Home',
-  components: {
-    SupabaseTest
-  },
   setup() {
     const store = useStore()
     const isMenuOpen = ref(false)
