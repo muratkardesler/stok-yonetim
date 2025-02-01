@@ -156,7 +156,7 @@
                  class="p-4 bg-gray-50 rounded-xl">
               <div class="flex justify-between items-start mb-3">
                 <div>
-                  <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.customer_name }}</h3>
+                  <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
                   <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
                 </div>
                 <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">
@@ -345,7 +345,7 @@
                  class="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
               <div class="flex justify-between items-start mb-2">
                 <div>
-                  <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.customer_name || 'İsimsiz Müşteri' }}</h3>
+                  <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
                   <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
                 </div>
                 <span :class="[
@@ -809,7 +809,8 @@ export default {
               *,
               product:products(*),
               package:packages(*)
-            )
+            ),
+            customer:customers(*)
           `)
           .eq('status', 'completed')
           .order('created_at', { ascending: false })
