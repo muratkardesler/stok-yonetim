@@ -14,15 +14,19 @@ const toastOptions = {
   position: 'top-right',
   timeout: 3000,
   closeOnClick: true,
-  pauseOnFocusLoss: true,
-  pauseOnHover: true,
+  pauseOnFocusLoss: false,
+  pauseOnHover: false,
   draggable: true,
   draggablePercent: 0.6,
-  showCloseButtonOnHover: false,
+  showCloseButtonOnHover: true,
   hideProgressBar: false,
   closeButton: 'button',
   icon: true,
-  rtl: false
+  rtl: false,
+  transition: {
+    enter: "animate__animated animate__fadeInDown",
+    leave: "animate__animated animate__fadeOutUp"
+  }
 };
 
 app.use(router);
