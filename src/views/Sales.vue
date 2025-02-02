@@ -7,7 +7,7 @@
         <button @click="toggleMenu" class="collapse-btn">
           <i :class="isMenuCollapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left'"></i>
         </button>
-      </div>
+          </div>
 
       <nav class="sidebar-nav">
         <router-link to="/dashboard" class="nav-item">
@@ -15,7 +15,7 @@
           <span>Güncel Durum</span>
         </router-link>
         <router-link to="/sales" class="nav-item active">
-          <i class="fas fa-shopping-cart"></i>
+            <i class="fas fa-shopping-cart"></i>
           <span>Satışlar</span>
         </router-link>
         <router-link to="/customers" class="nav-item">
@@ -26,7 +26,7 @@
           <i class="fas fa-box"></i>
           <span>Stok</span>
         </router-link>
-      </nav>
+    </nav>
     </aside>
 
     <!-- Ana İçerik -->
@@ -64,7 +64,7 @@
                           class="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
                     <i class="fas fa-barcode mr-2"></i>
                     Barkod Okut
-                  </button>
+            </button>
                   <button @click="toggleView" 
                           class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
                     <i :class="['fas', currentView === 'products' ? 'fa-box' : 'fa-boxes']" class="mr-2"></i>
@@ -115,11 +115,11 @@
                     <button class="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg transform scale-95 group-hover:scale-100 transition-all">
                       <i class="fas fa-plus mr-1"></i>
                       Sepete Ekle
-                    </button>
+            </button>
                   </div>
                 </div>
-              </div>
-            </div>
+          </div>
+        </div>
 
             <!-- Paketler Grid -->
             <div v-else class="bg-white rounded-2xl shadow-lg p-6">
@@ -132,14 +132,14 @@
                   <div class="absolute -top-2 -right-2">
                     <div class="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-0.5 rounded-full text-xs font-bold shadow-lg">
                       %{{ calculateDiscountPercentage(packageItem) }} İndirim
-                    </div>
-                  </div>
-                  
+            </div>
+          </div>
+
                   <div class="mb-3">
                     <h3 class="text-base font-medium text-gray-900">{{ packageItem.name }}</h3>
                     <p class="text-sm text-gray-500 mt-1">{{ packageItem.description }}</p>
-                  </div>
-                  
+          </div>
+
                   <div class="space-y-2">
                     <div v-for="item in packageItem.products.slice(0, 2)" 
                          :key="item.product.id"
@@ -147,15 +147,15 @@
                       <div class="w-6 h-6 rounded-lg flex items-center justify-center mr-2"
                            :class="getCategoryBgColor(item.product.category_id)">
                         <i class="fas fa-box text-xs" :class="getCategoryTextColor(item.product.category_id)"></i>
-                      </div>
+            </div>
                       <span class="text-gray-600">{{ item.quantity }}x {{ item.product.name }}</span>
-                    </div>
+          </div>
                     <div v-if="packageItem.products.length > 2" 
                          class="text-xs text-gray-500 pl-8">
                       +{{ packageItem.products.length - 2 }} diğer ürün
-                    </div>
-                  </div>
-                  
+        </div>
+      </div>
+
                   <div class="mt-3 pt-3 border-t border-gray-100">
                     <div class="flex justify-between items-center">
                       <div class="flex flex-col">
@@ -166,13 +166,13 @@
                         <button class="px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg transform scale-95 group-hover:scale-100 transition-all">
                           <i class="fas fa-plus mr-1"></i>
                           Sepete Ekle
-                        </button>
+                  </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
+        </div>
+      </div>
+    </div>
 
             <!-- Bekleyen Satışlar -->
             <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
@@ -223,8 +223,8 @@
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+                    </div>
+                  </div>
 
             <!-- Tüm Satışlar -->
             <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
@@ -238,8 +238,8 @@
                 <!-- Arama -->
                 <div class="flex-1">
                   <div class="relative">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       v-model="salesSearchQuery"
                       placeholder="Müşteri adına göre ara..."
                       class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
@@ -247,7 +247,7 @@
                     >
                     <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                   </div>
-                </div>
+                  </div>
 
                 <!-- Sıralama -->
                 <div class="flex space-x-2">
@@ -258,22 +258,22 @@
                     <option value="date_desc">Tarihe Göre (Yeni - Eski)</option>
                     <option value="date_asc">Tarihe Göre (Eski - Yeni)</option>
                   </select>
-                </div>
-              </div>
+                        </div>
+                        </div>
 
               <!-- Yükleniyor -->
               <div v-if="loadingAllSales" class="flex items-center justify-center py-8">
                 <i class="fas fa-spinner fa-spin text-xl text-primary-500"></i>
-              </div>
+                      </div>
 
               <!-- Veri Yok -->
               <div v-else-if="allSales.length === 0" class="text-center py-8">
                 <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <i class="fas fa-receipt text-gray-400 text-lg"></i>
-                </div>
+                    </div>
                 <p class="text-gray-500 text-sm">Satış bulunamadı</p>
                 <p v-if="salesSearchQuery" class="text-sm text-gray-400 mt-1">Farklı bir arama terimi deneyin</p>
-              </div>
+                  </div>
 
               <!-- Satış Listesi -->
               <div v-else>
@@ -283,17 +283,17 @@
                        @click="handleSaleClick(sale)"
                        class="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                     <div class="flex justify-between items-start mb-2">
-                      <div>
+                        <div>
                         <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
                         <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
-                      </div>
+                        </div>
                       <span :class="[
                         'px-2 py-1 text-xs font-medium rounded-full',
                         sale.sale_type === 'package' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
                       ]">
                         {{ sale.sale_type === 'package' ? 'Paket' : 'Ürün' }}
                       </span>
-                    </div>
+                        </div>
                     <div class="flex justify-between items-center">
                       <div class="flex items-center text-xs text-gray-500">
                         <i class="fas fa-shopping-cart mr-1"></i>
@@ -336,8 +336,8 @@
                   <i class="fas fa-trash mr-1"></i>
                   Sepeti Temizle
                 </button>
-              </div>
-
+                  </div>
+                  
               <div v-if="cart.length === 0" 
                    class="text-center py-8">
                 <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -345,14 +345,14 @@
                 </div>
                 <p class="text-gray-500">Sepetiniz boş</p>
                 <p class="text-sm text-gray-400 mt-1">Ürün eklemek için sol taraftaki ürünlere tıklayın</p>
-              </div>
-
+                      </div>
+                      
               <div v-else class="space-y-4">
                 <!-- Sepet Ürünleri -->
                 <div v-for="item in cart" 
                      :key="item.id"
                      class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                  <div class="flex items-center space-x-3">
+                      <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 rounded-lg flex items-center justify-center"
                          :class="[item.type === 'package' ? 'bg-indigo-100' : getCategoryBgColor(item.category_id)]">
                       <i class="fas" 
@@ -369,16 +369,16 @@
                           <button @click="decrementQuantity(item)"
                                   class="w-6 h-6 rounded-lg bg-white border border-gray-300 flex items-center justify-center hover:border-indigo-500 hover:text-indigo-600 transition-colors">
                             <i class="fas fa-minus text-xs"></i>
-                          </button>
+                        </button>
                           <span class="text-sm text-gray-600">{{ item.quantity }}</span>
                           <button @click="incrementQuantity(item)"
                                   class="w-6 h-6 rounded-lg bg-white border border-gray-300 flex items-center justify-center hover:border-indigo-500 hover:text-indigo-600 transition-colors">
                             <i class="fas fa-plus text-xs"></i>
-                          </button>
-                        </div>
+                        </button>
+                      </div>
                         <span class="text-xs text-gray-500 ml-2">×</span>
                         <span class="text-xs font-medium text-gray-700 ml-2">₺{{ formatPrice(item.price) }}</span>
-                      </div>
+                    </div>
                     </div>
                   </div>
                   <div class="flex flex-col items-end">
@@ -402,8 +402,8 @@
                         <option value="1">1%</option>
                         <option value="8">8%</option>
                         <option value="18">18%</option>
-                      </select>
-                    </div>
+                    </select>
+                  </div>
                     
                     <div class="flex items-center justify-between">
                       <label class="text-sm font-medium text-gray-700">İndirim Oranı (%)</label>
@@ -412,28 +412,28 @@
                              min="0" 
                              max="100"
                              class="w-24 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
                   </div>
+                </div>
 
                   <!-- Fiyat Detayları -->
                   <div class="space-y-2">
                     <div class="flex justify-between text-sm">
                       <span class="text-gray-600">Ara Toplam</span>
                       <span class="font-medium text-gray-900">₺{{ formatPrice(subtotal) }}</span>
-                    </div>
+                  </div>
                     <div class="flex justify-between text-sm">
                       <span class="text-gray-600">KDV (%{{ taxRate }})</span>
                       <span class="font-medium text-gray-900">₺{{ formatPrice(tax) }}</span>
-                    </div>
+                  </div>
                     <div v-if="discountRate > 0" class="flex justify-between text-sm">
                       <span class="text-red-600">İndirim (%{{ discountRate }})</span>
                       <span class="font-medium text-red-600">-₺{{ formatPrice(discount) }}</span>
-                    </div>
+                </div>
                     <div class="flex justify-between text-base font-bold pt-2">
                       <span class="text-gray-900">Toplam</span>
                       <span class="text-indigo-600">₺{{ formatPrice(total) }}</span>
-                    </div>
-                  </div>
+          </div>
+        </div>
                 </div>
 
                 <!-- Satış Butonu -->
@@ -450,12 +450,12 @@
             <div class="bg-white rounded-2xl shadow-lg p-6">
               <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-bold text-gray-900">Son Yapılan Satışlar</h2>
-              </div>
+                </div>
 
               <!-- Yükleniyor -->
               <div v-if="loadingSales" class="flex items-center justify-center py-8">
                 <i class="fas fa-spinner fa-spin text-xl text-primary-500"></i>
-              </div>
+                </div>
 
               <!-- Veri Yok -->
               <div v-else-if="recentSales.length === 0" class="text-center py-8">
@@ -475,19 +475,19 @@
                     <div>
                       <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
                       <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
-                    </div>
+              </div>
                     <span :class="[
                       'px-2 py-1 text-xs font-medium rounded-full',
                       sale.sale_type === 'package' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
                     ]">
                       {{ sale.sale_type === 'package' ? 'Paket' : 'Ürün' }}
                     </span>
-                  </div>
+          </div>
                   <div class="flex justify-between items-center">
                     <div class="flex items-center text-xs text-gray-500">
                       <i class="fas fa-shopping-cart mr-1"></i>
                       {{ sale.details?.length || 0 }} ürün
-                    </div>
+        </div>
                     <span class="text-sm font-bold text-indigo-600">₺{{ formatPrice(sale.total_amount) }}</span>
                   </div>
                 </div>
@@ -503,7 +503,7 @@
           <div class="flex items-center space-x-3">
             <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
               <i class="fas fa-barcode text-indigo-600 text-xl"></i>
-            </div>
+                </div>
             <h3 class="text-xl font-bold text-gray-900">Barkod Okut</h3>
           </div>
         </template>
@@ -518,7 +518,7 @@
           <div class="flex items-center space-x-3">
             <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
               <i class="fas fa-shopping-cart text-indigo-600 text-xl"></i>
-            </div>
+                </div>
             <h3 class="text-xl font-bold text-gray-900">{{ isViewingSaleDetails ? 'Satış Detayları' : 'Yeni Satış' }}</h3>
           </div>
         </template>
@@ -534,10 +534,10 @@
                 <p v-if="selectedSale.extra?.[0]?.notes" class="text-sm text-gray-500 mt-2">
                   {{ selectedSale.extra[0].notes }}
                 </p>
-              </div>
+        </div>
 
               <!-- Ürün Listesi -->
-              <div>
+                    <div>
                 <h4 class="text-sm font-medium text-gray-700 mb-2">Satın Alınan Ürünler</h4>
                 <div class="space-y-2">
                   <div v-for="detail in selectedSale.details" :key="detail.id" 
@@ -549,22 +549,22 @@
                           detail.product ? 'fa-box' : 'fa-box-open',
                           detail.product ? getCategoryTextColor(detail.product.category_id) : 'text-indigo-600'
                         ]"></i>
-                      </div>
-                      <div>
+                    </div>
+                    <div>
                         <p class="text-sm font-medium text-gray-900">
                           {{ detail.product?.name || detail.package?.name }}
                         </p>
                         <p class="text-xs text-gray-500">
                           {{ detail.quantity }} adet × ₺{{ formatPrice(detail.unit_price) }}
                         </p>
-                      </div>
+                    </div>
                     </div>
                     <p class="text-sm font-bold text-gray-900">
                       ₺{{ formatPrice(detail.total_price) }}
                     </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               <!-- Fiyat Detayları -->
               <div class="border-t pt-4">
@@ -572,7 +572,7 @@
                   <div class="flex justify-between text-sm">
                     <span class="text-gray-600">Ara Toplam</span>
                     <span class="font-medium text-gray-900">₺{{ formatPrice(selectedSale.subtotal) }}</span>
-                  </div>
+                        </div>
                   <div class="flex justify-between text-sm">
                     <span class="text-gray-600">KDV (%{{ selectedSale.taxRate }})</span>
                     <span class="font-medium text-gray-900">₺{{ formatPrice(selectedSale.tax) }}</span>
@@ -600,9 +600,9 @@
           <template v-else>
             <!-- Müşteri Bilgileri -->
             <div class="relative">
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
                 Müşteri Adı
-              </label>
+                            </label>
               <input type="text" 
                      v-model="customerName"
                      @input="searchCustomers"
@@ -622,44 +622,44 @@
                     <span class="text-sm text-gray-900">{{ customer.name }}</span>
                   </li>
                 </ul>
-              </div>
+                          </div>
             </div>
 
             <!-- Notlar -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
                 Notlar
-              </label>
+                            </label>
               <textarea v-model="saleNotes"
                         rows="3"
                         placeholder="Satış ile ilgili notlar..."
                         class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-            </div>
+                          </div>
 
             <!-- Özet -->
             <div class="bg-gray-50 p-4 rounded-xl space-y-2">
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">Toplam Tutar</span>
                 <span class="font-medium text-gray-900">₺{{ formatPrice(total) }}</span>
-              </div>
+                        </div>
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">Ürün Sayısı</span>
                 <span class="font-medium text-gray-900">{{ totalItems }} Adet</span>
-              </div>
-            </div>
+                  </div>
+                </div>
 
             <!-- Butonlar -->
             <div class="flex space-x-3">
               <button @click="closeSaleModal"
                       class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
-                İptal
-              </button>
+                      İptal
+                    </button>
               <button @click="confirmSale"
                       :disabled="!customerName.trim() || processing"
                       class="flex-1 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                 {{ processing ? 'İşleniyor...' : 'Onayla' }}
-              </button>
-            </div>
+                    </button>
+                  </div>
           </template>
         </template>
       </Modal>
@@ -1150,20 +1150,61 @@ export default {
 
     const completeSale = async (sale) => {
       try {
-        const { error: updateError } = await supabase
+        processing.value = true
+
+        // Satışı tamamla
+        const { error: saleError } = await supabase
           .from('sales')
           .update({ status: 'completed' })
           .eq('id', sale.id)
 
-        if (updateError) throw updateError
+        if (saleError) throw saleError
 
-        toast.success('Satış onaylandı')
+        // Müşteri bilgilerini güncelle
+        const { data: saleData } = await supabase
+          .from('sales')
+          .select('*, extra:sale_details_extra(*)')
+          .eq('id', sale.id)
+          .single()
+
+        if (saleData?.extra?.customer_name) {
+          const { data: customerData } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('name', saleData.extra.customer_name)
+            .single()
+
+          if (customerData) {
+            // Müşterinin tüm tamamlanmış satışlarını getir
+            const { data: allSales } = await supabase
+              .from('sales')
+              .select('total_amount')
+              .eq('status', 'completed')
+              .eq('sale_details_extra.customer_name', customerData.name)
+
+            // Toplam alışveriş tutarını hesapla
+            const totalPurchases = allSales?.reduce((sum, s) => sum + Number(s.total_amount), 0) || 0
+
+            // Müşteri bilgilerini güncelle
+            const { error: customerError } = await supabase
+              .from('customers')
+              .update({
+                total_purchases: totalPurchases,
+                last_purchase_date: new Date().toISOString()
+              })
+              .eq('id', customerData.id)
+
+            if (customerError) throw customerError
+          }
+        }
+
         await loadPendingSales()
-        await loadProducts()
-        await loadRecentSales()
+        toast.success('Satış başarıyla tamamlandı')
       } catch (error) {
         console.error('Error completing sale:', error)
-        toast.error('Satış onaylanırken bir hata oluştu')
+        toast.error('Satış tamamlanırken bir hata oluştu')
+      } finally {
+        processing.value = false
       }
     }
 
@@ -1239,7 +1280,8 @@ export default {
             user_id: session.user.id,
             sale_type: cart.value.some(item => item.type === 'package') ? 'package' : 'product',
             status: 'pending',
-            total_amount: Number(total.value)
+            total_amount: Number(total.value),
+            customer_id: customer.id
           })
           .select()
           .single()
@@ -1428,7 +1470,7 @@ export default {
         }
         
         return data
-      } catch (error) {
+        } catch (error) {
         console.error('Error in saveCustomer:', error)
         // Hata durumunda satışı müşteri olmadan devam ettir
         return { name: name }

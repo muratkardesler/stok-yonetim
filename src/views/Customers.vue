@@ -378,29 +378,46 @@
 
               <!-- Son Alışverişler -->
               <div v-if="customerSales.length > 0">
-                <h4 class="text-sm font-medium text-gray-700 mb-2">Son Alışverişler</h4>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Alışveriş Geçmişi</h4>
                 <div class="space-y-2">
                   <div v-for="sale in customerSales" 
                        :key="sale.id"
-                       class="p-3 bg-gray-50 rounded-xl">
-                    <div class="flex justify-between items-start mb-2">
-                      <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
-                      <span :class="[
-                        'px-2 py-1 text-xs font-medium rounded-full',
-                        sale.sale_type === 'package' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
-                      ]">
-                        {{ sale.sale_type === 'package' ? 'Paket' : 'Ürün' }}
-                      </span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                      <div class="flex items-center text-xs text-gray-500">
-                        <i class="fas fa-shopping-cart mr-1"></i>
-                        {{ sale.details?.length || 0 }} ürün
+                       class="p-4 bg-gray-50 rounded-xl">
+                    <div class="flex justify-between items-start mb-3">
+                      <div>
+                        <p class="text-sm font-medium text-gray-900">{{ formatDate(sale.created_at) }}</p>
+                        <span :class="[
+                          'px-2 py-1 text-xs font-medium rounded-full inline-block mt-1',
+                          sale.sale_type === 'package' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
+                        ]">
+                          {{ sale.sale_type === 'package' ? 'Paket' : 'Ürün' }}
+                        </span>
                       </div>
-                      <span class="text-sm font-bold text-indigo-600">₺{{ formatPrice(sale.total_amount) }}</span>
+                      <span class="text-lg font-bold text-indigo-600">₺{{ formatPrice(sale.total_amount) }}</span>
+                    </div>
+
+                    <!-- Satış Detayları -->
+                    <div class="space-y-2">
+                      <div v-for="detail in sale.details" :key="detail.id" 
+                           class="flex justify-between items-center p-2 bg-white rounded-lg">
+                        <div>
+                          <p class="text-sm font-medium text-gray-900">
+                            {{ detail.product?.name || detail.package?.name }}
+                          </p>
+                          <p class="text-xs text-gray-500">
+                            {{ detail.quantity }} adet × ₺{{ formatPrice(detail.unit_price) }}
+                          </p>
+                        </div>
+                        <p class="text-sm font-bold text-gray-900">
+                          ₺{{ formatPrice(detail.total_price) }}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+              <div v-else class="text-center py-4">
+                <p class="text-sm text-gray-500">Henüz alışveriş geçmişi bulunmuyor</p>
               </div>
 
               <!-- Kapat Butonu -->
@@ -624,27 +641,64 @@ export default {
       selectedCustomer.value = customer
       showCustomerDetailsModal.value = true
 
-      // Müşterinin son alışverişlerini yükle
       try {
-        const { data, error } = await supabase
+        // Müşterinin tüm satışlarını yükle
+        const { data: salesData, error: salesError } = await supabase
           .from('sales')
           .select(`
             id,
             created_at,
             sale_type,
             total_amount,
-            details:sale_details(id)
+            details:sale_details(
+              id,
+              quantity,
+              unit_price,
+              total_price,
+              product:products(name),
+              package:packages(name)
+            )
           `)
           .eq('status', 'completed')
-          .eq('sale_details_extra.customer_name', customer.name)
+          .eq('customer_id', customer.id)
           .order('created_at', { ascending: false })
-          .limit(5)
 
-        if (error) throw error
-        customerSales.value = data
+        if (salesError) throw salesError
+
+        // Satışları kaydet
+        customerSales.value = salesData || []
+
+        // Toplam alışveriş tutarını hesapla
+        const totalPurchases = customerSales.value.reduce((sum, sale) => sum + Number(sale.total_amount), 0)
+
+        // Son alışveriş tarihini bul
+        const lastPurchaseDate = customerSales.value[0]?.created_at || null
+
+        // Müşteri bilgilerini güncelle
+        const { error: updateError } = await supabase
+          .from('customers')
+          .update({
+            total_purchases: totalPurchases,
+            last_purchase_date: lastPurchaseDate
+          })
+          .eq('id', customer.id)
+
+        if (updateError) throw updateError
+
+        // Güncel müşteri bilgilerini al
+        const { data: updatedCustomer, error: customerError } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('id', customer.id)
+          .single()
+
+        if (customerError) throw customerError
+
+        // Seçili müşteriyi güncelle
+        selectedCustomer.value = updatedCustomer
       } catch (error) {
-        console.error('Error loading customer sales:', error)
-        toast.error('Müşteri alışverişleri yüklenirken bir hata oluştu')
+        console.error('Error loading customer details:', error)
+        toast.error('Müşteri detayları yüklenirken bir hata oluştu')
       }
     }
 

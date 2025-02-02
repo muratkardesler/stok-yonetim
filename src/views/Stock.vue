@@ -31,61 +31,61 @@
 
     <!-- Ana İçerik -->
     <main class="main-content">
-      <div class="min-h-screen bg-gray-50 p-4 sm:p-6">
-        <!-- Breadcrumb -->
-        <nav class="mb-4">
-          <div class="flex items-center space-x-2 text-sm">
-            <router-link to="/" class="text-gray-600 hover:text-primary-500">Ana Sayfa</router-link>
-            <span class="text-gray-400">/</span>
-            <span class="text-primary-500">Stok Yönetimi</span>
-          </div>
-        </nav>
+  <div class="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <!-- Breadcrumb -->
+    <nav class="mb-4">
+      <div class="flex items-center space-x-2 text-sm">
+        <router-link to="/" class="text-gray-600 hover:text-primary-500">Ana Sayfa</router-link>
+        <span class="text-gray-400">/</span>
+        <span class="text-primary-500">Stok Yönetimi</span>
+      </div>
+    </nav>
 
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">Stok Yönetimi</h1>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Stok Yönetimi</h1>
             <p class="mt-1 text-gray-600">Kategorileri, ürünleri ve paketleri kolayca yönetin</p>
-          </div>
-          <div class="mt-4 sm:mt-0 flex space-x-3">
-            <button @click="showAddCategoryModal = true" class="btn-primary">
-              <i class="fas fa-plus mr-2"></i>
-              Yeni Kategori
-            </button>
+      </div>
+      <div class="mt-4 sm:mt-0 flex space-x-3">
+        <button @click="showAddCategoryModal = true" class="btn-primary">
+          <i class="fas fa-plus mr-2"></i>
+          Yeni Kategori
+        </button>
             <button @click="showAddPackageModal = true" class="btn-primary">
               <i class="fas fa-box mr-2"></i>
               Yeni Paket
-            </button>
-          </div>
-        </div>
+        </button>
+      </div>
+    </div>
 
-        <!-- Search & Filter -->
-        <div class="bg-white rounded-lg shadow p-4 mb-6">
-          <div class="flex flex-col sm:flex-row gap-4">
-            <div class="flex-1">
-              <div class="relative">
-                <input 
-                  type="text" 
-                  v-model="searchQuery"
-                  placeholder="Kategori veya ürün ara..."
-                  class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                >
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-              </div>
-            </div>
-            <div class="sm:w-64">
-              <select 
-                v-model="selectedCategoryFilter"
-                class="w-full py-2 pl-3 pr-10 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-              >
-                <option value="">Tüm Kategoriler</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                  {{ cat.name }}
-                </option>
-              </select>
-            </div>
+    <!-- Search & Filter -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex-1">
+          <div class="relative">
+            <input 
+              type="text" 
+              v-model="searchQuery"
+              placeholder="Kategori veya ürün ara..."
+              class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+            >
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
           </div>
         </div>
+        <div class="sm:w-64">
+          <select 
+            v-model="selectedCategoryFilter"
+            class="w-full py-2 pl-3 pr-10 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          >
+            <option value="">Tüm Kategoriler</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+              {{ cat.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
 
         <!-- Ana Kategoriler -->
         <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
@@ -247,27 +247,27 @@
             <div v-for="packageItem in packages" :key="packageItem.id"
                  class="group bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300">
               <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-4">
                   <div class="flex items-center space-x-3">
                     <div class="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center">
                       <i class="fas fa-box-open text-indigo-600 text-xl"></i>
-                    </div>
+            </div>
                     <div>
                       <h3 class="text-lg font-semibold text-gray-900">{{ packageItem.name }}</h3>
                       <p class="text-sm text-gray-500">{{ packageItem.description }}</p>
-                    </div>
+          </div>
                   </div>
                   <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button @click="editPackage(packageItem)"
                             class="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors">
-                      <i class="fas fa-edit"></i>
-                    </button>
+              <i class="fas fa-edit"></i>
+            </button>
                     <button @click="deletePackage(packageItem)"
                             class="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors">
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </div>
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
                 
                 <div class="space-y-3 mt-6">
                   <div v-for="item in packageItem.products" :key="item.product.id"
@@ -276,7 +276,7 @@
                       <div class="w-10 h-10 rounded-lg flex items-center justify-center"
                            :class="getCategoryBgColor(item.product.category_id)">
                         <i class="fas fa-box text-lg" :class="getCategoryTextColor(item.product.category_id)"></i>
-                      </div>
+        </div>
                       <div>
                         <p class="text-sm font-medium text-gray-900">{{ item.product.name }}</p>
                         <div class="flex items-center space-x-2 mt-0.5">
@@ -363,17 +363,17 @@
                 Paket Ekle
               </div>
             </div>
-          </div>
-        </div>
+      </div>
+    </div>
 
-        <!-- Products Table -->
+    <!-- Products Table -->
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div class="px-6 py-5 border-b border-gray-100">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-4">
                 <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center">
                   <i class="fas fa-box-archive text-indigo-600 text-xl"></i>
-                </div>
+      </div>
                 <div>
                   <h2 class="text-xl font-bold text-gray-900">Ürünler</h2>
                   <p class="text-sm text-gray-500 mt-0.5">Tüm ürünlerinizi buradan yönetin</p>
@@ -387,8 +387,8 @@
             </div>
           </div>
 
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50/50">
                 <tr>
                   <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ürün Adı</th>
@@ -396,8 +396,8 @@
                   <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok Durumu</th>
                   <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fiyat</th>
                   <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
-                </tr>
-              </thead>
+            </tr>
+          </thead>
               <tbody class="bg-white divide-y divide-gray-100">
                 <tr v-for="product in filteredProducts" :key="product.id" 
                     class="hover:bg-gray-50/50 transition-colors">
@@ -409,13 +409,13 @@
                       </div>
                       <span class="text-sm font-semibold text-gray-900">{{ product.name }}</span>
                     </div>
-                  </td>
+              </td>
                   <td class="px-6 py-4">
                     <span class="px-3 py-1.5 inline-flex text-sm font-medium rounded-lg"
                           :class="getCategoryBadgeColor(product.category_id)">
-                      {{ getCategoryName(product.category_id) }}
-                    </span>
-                  </td>
+                  {{ getCategoryName(product.category_id) }}
+                </span>
+              </td>
                   <td class="px-6 py-4">
                     <div class="flex items-center space-x-2">
                       <div class="w-2 h-2 rounded-full" 
@@ -424,29 +424,29 @@
                         {{ product.stock }} Adet
                       </div>
                     </div>
-                  </td>
+              </td>
                   <td class="px-6 py-4">
                     <div class="font-mono text-sm font-bold text-emerald-600">
                       ₺{{ formatPrice(product.price) }}
                     </div>
-                  </td>
+              </td>
                   <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end space-x-2">
                       <button @click="editProduct(product)" 
                               class="p-2 rounded-lg hover:bg-indigo-50 text-indigo-600 transition-colors">
-                        <i class="fas fa-edit"></i>
-                      </button>
+                  <i class="fas fa-edit"></i>
+                </button>
                       <button @click="deleteProduct(product)" 
                               class="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors">
-                        <i class="fas fa-trash"></i>
-                      </button>
+                  <i class="fas fa-trash"></i>
+                </button>
                     </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
       </div>
     </main>
 
@@ -458,31 +458,31 @@
             <i class="fas fa-folder-tree text-white text-xl"></i>
           </div>
           <h3 class="text-xl font-bold text-gray-900">
-            {{ editingCategory ? 'Kategori Düzenle' : 'Yeni Kategori' }}
-          </h3>
+          {{ editingCategory ? 'Kategori Düzenle' : 'Yeni Kategori' }}
+        </h3>
         </div>
       </template>
       <template #body>
         <form @submit.prevent="saveCategory" class="space-y-6">
-          <div>
+            <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Kategori Adı</label>
-            <input
-              type="text"
-              v-model="categoryForm.name"
-              required
+              <input
+                type="text"
+                v-model="categoryForm.name"
+                required
               class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
               placeholder="Kategori adını girin">
-          </div>
-          <div v-if="!editingCategory">
+            </div>
+            <div v-if="!editingCategory">
             <label class="block text-sm font-medium text-gray-700 mb-1">Üst Kategori</label>
-            <select
-              v-model="categoryForm.parent_id"
+              <select
+                v-model="categoryForm.parent_id"
               class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
-              <option :value="null">Ana Kategori</option>
-              <option v-for="cat in mainCategories" :key="cat.id" :value="cat.id">
-                {{ cat.name }}
-              </option>
-            </select>
+                <option :value="null">Ana Kategori</option>
+                <option v-for="cat in mainCategories" :key="cat.id" :value="cat.id">
+                  {{ cat.name }}
+                </option>
+              </select>
           </div>
         </form>
       </template>
@@ -509,17 +509,17 @@
             <i class="fas fa-box text-xl" :class="selectedCategory ? getCategoryTextColor(selectedCategory.id) : 'text-white'"></i>
           </div>
           <h3 class="text-xl font-bold text-gray-900">
-            {{ editingProduct ? 'Ürün Düzenle' : 'Yeni Ürün' }}
-          </h3>
+          {{ editingProduct ? 'Ürün Düzenle' : 'Yeni Ürün' }}
+        </h3>
         </div>
       </template>
       <template #body>
         <form @submit.prevent="saveProduct" class="space-y-6">
-          <div>
+            <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-            <select
-              v-model="productForm.category_id"
-              required
+              <select
+                v-model="productForm.category_id"
+                required
               class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
               <option value="" disabled>Kategori Seçin</option>
               <optgroup v-for="mainCat in mainCategories" :key="mainCat.id" :label="mainCat.name">
@@ -531,10 +531,10 @@
                   ↳ {{ subCat.name }}
                 </option>
               </optgroup>
-            </select>
-          </div>
+              </select>
+            </div>
 
-          <div>
+            <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Ürün Adı</label>
             <input
               type="text"
@@ -548,16 +548,16 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Stok Miktarı</label>
               <div class="relative">
-                <input
-                  type="number"
-                  v-model.number="productForm.stock"
-                  required
-                  min="0"
+              <input
+                type="number"
+                v-model.number="productForm.stock"
+                required
+                min="0"
                   class="block w-full rounded-xl border-gray-300 pl-3 pr-12 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                   placeholder="0">
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3">
                   <span class="text-gray-500 text-sm">Adet</span>
-                </div>
+            </div>
               </div>
             </div>
 
@@ -567,12 +567,12 @@
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span class="text-gray-500 text-sm">₺</span>
                 </div>
-                <input
-                  type="number"
-                  v-model.number="productForm.price"
-                  required
-                  min="0"
-                  step="0.01"
+              <input
+                type="number"
+                v-model.number="productForm.price"
+                required
+                min="0"
+                step="0.01"
                   class="block w-full rounded-xl border-gray-300 pl-7 pr-4 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                   placeholder="0.00">
               </div>
@@ -1048,31 +1048,31 @@ export default {
     const confirmDelete = async () => {
       try {
         if (deleteType.value === 'category') {
-          const { error } = await supabase
-            .from('categories')
-            .delete()
+        const { error } = await supabase
+          .from('categories')
+          .delete()
             .eq('id', itemToDelete.value.id)
 
           if (error) {
-            console.error('Error deleting category:', error)
+        console.error('Error deleting category:', error)
             throw new Error('Kategori silinirken hata oluştu')
           }
 
           toast.success('Kategori başarıyla silindi')
           loadCategories()
         } else {
-          const { error } = await supabase
-            .from('products')
-            .delete()
+        const { error } = await supabase
+          .from('products')
+          .delete()
             .eq('id', itemToDelete.value.id)
 
           if (error) {
             console.error('Error deleting product:', error)
             throw new Error('Ürün silinirken hata oluştu')
           }
-
+        
           toast.success('Ürün başarıyla silindi')
-          loadProducts()
+        loadProducts()
           loadCategories()
         }
         closeDeleteModal()
