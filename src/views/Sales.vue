@@ -341,7 +341,7 @@
           <div v-else class="space-y-3">
             <div v-for="sale in recentSales" 
                  :key="sale.id" 
-                 @click="showSaleDetails(sale)"
+                 @click="handleSaleClick(sale)"
                  class="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
               <div class="flex justify-between items-start mb-2">
                 <div>
@@ -390,85 +390,20 @@
           <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
             <i class="fas fa-shopping-cart text-indigo-600 text-xl"></i>
           </div>
-          <h3 class="text-xl font-bold text-gray-900">{{ selectedSale ? 'Satış Detayları' : 'Yeni Satış' }}</h3>
+          <h3 class="text-xl font-bold text-gray-900">{{ isViewingSaleDetails ? 'Satış Detayları' : 'Yeni Satış' }}</h3>
         </div>
       </template>
       <template #body>
-        <div class="space-y-4">
-          <!-- Yeni Satış Formu -->
-          <template v-if="!selectedSale">
-            <!-- Müşteri Bilgileri -->
-            <div class="relative">
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Müşteri Adı
-              </label>
-              <input type="text" 
-                     v-model="customerName"
-                     @input="searchCustomers"
-                     @focus="showCustomerSuggestions = true"
-                     @blur="() => { showCustomerSuggestions = false }"
-                     placeholder="Müşteri adı girin..."
-                     class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
-              
-              <!-- Müşteri Önerileri -->
-              <div v-if="showCustomerSuggestions && filteredCustomers.length > 0"
-                   class="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200">
-                <ul class="py-1">
-                  <li v-for="customer in filteredCustomers"
-                      :key="customer.id"
-                      @mousedown="selectCustomer(customer)"
-                      class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
-                    <span class="text-sm text-gray-900">{{ customer.name }}</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- Notlar -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Notlar
-              </label>
-              <textarea v-model="saleNotes"
-                        rows="3"
-                        placeholder="Satış ile ilgili notlar..."
-                        class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-            </div>
-
-            <!-- Özet -->
-            <div class="bg-gray-50 p-4 rounded-xl space-y-2">
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Toplam Tutar</span>
-                <span class="font-medium text-gray-900">₺{{ formatPrice(total) }}</span>
-              </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Ürün Sayısı</span>
-                <span class="font-medium text-gray-900">{{ totalItems }} Adet</span>
-              </div>
-            </div>
-
-            <!-- Butonlar -->
-            <div class="flex space-x-3">
-              <button @click="closeSaleModal"
-                      class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
-                İptal
-              </button>
-              <button @click="confirmSale"
-                      :disabled="!customerName.trim() || processing"
-                      class="flex-1 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                {{ processing ? 'İşleniyor...' : 'Onayla' }}
-              </button>
-            </div>
-          </template>
-
-          <!-- Satış Detayları -->
-          <template v-else>
+        <!-- Satış Detayları -->
+        <template v-if="isViewingSaleDetails">
+          <div class="space-y-4">
             <!-- Müşteri Bilgileri -->
             <div class="bg-gray-50 p-4 rounded-xl">
               <h4 class="text-sm font-medium text-gray-700 mb-2">Müşteri Bilgileri</h4>
-              <p class="text-sm text-gray-900">{{ selectedSale.extra?.customer_name || '-' }}</p>
-              <p v-if="selectedSale.extra?.notes" class="text-sm text-gray-500 mt-1">
-                {{ selectedSale.extra.notes }}
+              <p class="text-sm text-gray-900">{{ selectedSale.extra?.[0]?.customer_name }}</p>
+              <p class="text-xs text-gray-500">{{ formatDate(selectedSale.created_at) }}</p>
+              <p v-if="selectedSale.extra?.[0]?.notes" class="text-sm text-gray-500 mt-2">
+                {{ selectedSale.extra[0].notes }}
               </p>
             </div>
 
@@ -478,13 +413,22 @@
               <div class="space-y-2">
                 <div v-for="detail in selectedSale.details" :key="detail.id" 
                      class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p class="text-sm font-medium text-gray-900">
-                      {{ detail.product?.name || detail.package?.name }}
-                    </p>
-                    <p class="text-xs text-gray-500">
-                      {{ detail.quantity }} adet × ₺{{ formatPrice(detail.unit_price) }}
-                    </p>
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                         :class="[detail.product ? getCategoryBgColor(detail.product.category_id) : 'bg-indigo-100']">
+                      <i class="fas" :class="[
+                        detail.product ? 'fa-box' : 'fa-box-open',
+                        detail.product ? getCategoryTextColor(detail.product.category_id) : 'text-indigo-600'
+                      ]"></i>
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-900">
+                        {{ detail.product?.name || detail.package?.name }}
+                      </p>
+                      <p class="text-xs text-gray-500">
+                        {{ detail.quantity }} adet × ₺{{ formatPrice(detail.unit_price) }}
+                      </p>
+                    </div>
                   </div>
                   <p class="text-sm font-bold text-gray-900">
                     ₺{{ formatPrice(detail.total_price) }}
@@ -498,25 +442,19 @@
               <div class="space-y-2">
                 <div class="flex justify-between text-sm">
                   <span class="text-gray-600">Ara Toplam</span>
-                  <span class="font-medium text-gray-900">
-                    ₺{{ formatPrice(calculateSubtotal(selectedSale.details)) }}
-                  </span>
+                  <span class="font-medium text-gray-900">₺{{ formatPrice(selectedSale.subtotal) }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
-                  <span class="text-gray-600">KDV (%{{ selectedSale.extra?.tax_rate || 0 }})</span>
-                  <span class="font-medium text-gray-900">
-                    ₺{{ formatPrice(calculateTax(selectedSale.details, selectedSale.extra?.tax_rate)) }}
-                  </span>
+                  <span class="text-gray-600">KDV (%{{ selectedSale.taxRate }})</span>
+                  <span class="font-medium text-gray-900">₺{{ formatPrice(selectedSale.tax) }}</span>
                 </div>
-                <div v-if="selectedSale.extra?.discount_rate" class="flex justify-between text-sm">
-                  <span class="text-red-600">İndirim (%{{ selectedSale.extra.discount_rate }})</span>
-                  <span class="font-medium text-red-600">
-                    -₺{{ formatPrice(calculateDiscount(selectedSale.details, selectedSale.extra.discount_rate)) }}
-                  </span>
+                <div v-if="selectedSale.discountRate > 0" class="flex justify-between text-sm">
+                  <span class="text-red-600">İndirim (%{{ selectedSale.discountRate }})</span>
+                  <span class="font-medium text-red-600">-₺{{ formatPrice(selectedSale.discount) }}</span>
                 </div>
-                <div class="flex justify-between text-base font-bold pt-2">
+                <div class="flex justify-between text-base font-bold pt-2 border-t">
                   <span class="text-gray-900">Toplam</span>
-                  <span class="text-indigo-600">₺{{ formatPrice(selectedSale.total_amount) }}</span>
+                  <span class="text-indigo-600">₺{{ formatPrice(selectedSale.total) }}</span>
                 </div>
               </div>
             </div>
@@ -526,8 +464,74 @@
                     class="w-full py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
               Kapat
             </button>
-          </template>
-        </div>
+          </div>
+        </template>
+
+        <!-- Yeni Satış Formu -->
+        <template v-else>
+          <!-- Müşteri Bilgileri -->
+          <div class="relative">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Müşteri Adı
+            </label>
+            <input type="text" 
+                   v-model="customerName"
+                   @input="searchCustomers"
+                   @focus="showCustomerSuggestions = true"
+                   @blur="() => { showCustomerSuggestions = false }"
+                   placeholder="Müşteri adı girin..."
+                   class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+            
+            <!-- Müşteri Önerileri -->
+            <div v-if="showCustomerSuggestions && filteredCustomers.length > 0"
+                 class="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200">
+              <ul class="py-1">
+                <li v-for="customer in filteredCustomers"
+                    :key="customer.id"
+                    @mousedown="selectCustomer(customer)"
+                    class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                  <span class="text-sm text-gray-900">{{ customer.name }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Notlar -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Notlar
+            </label>
+            <textarea v-model="saleNotes"
+                      rows="3"
+                      placeholder="Satış ile ilgili notlar..."
+                      class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+          </div>
+
+          <!-- Özet -->
+          <div class="bg-gray-50 p-4 rounded-xl space-y-2">
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Toplam Tutar</span>
+              <span class="font-medium text-gray-900">₺{{ formatPrice(total) }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Ürün Sayısı</span>
+              <span class="font-medium text-gray-900">{{ totalItems }} Adet</span>
+            </div>
+          </div>
+
+          <!-- Butonlar -->
+          <div class="flex space-x-3">
+            <button @click="closeSaleModal"
+                    class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
+              İptal
+            </button>
+            <button @click="confirmSale"
+                    :disabled="!customerName.trim() || processing"
+                    class="flex-1 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+              {{ processing ? 'İşleniyor...' : 'Onayla' }}
+            </button>
+          </div>
+        </template>
       </template>
     </Modal>
   </div>
@@ -568,6 +572,7 @@ export default {
     const customers = ref([])
     const filteredCustomers = ref([])
     const showCustomerSuggestions = ref(false)
+    const isViewingSaleDetails = ref(false)
 
     // Ürünleri yükle
     const loadProducts = async () => {
@@ -778,21 +783,84 @@ export default {
       showBarcodeScanner.value = false
     }
 
+    const isNewSale = computed(() => !selectedSale.value)
+
     const createSale = () => {
-      customerName.value = ''
-      saleNotes.value = ''
+      isViewingSaleDetails.value = false
+      selectedSale.value = null
       showSaleModal.value = true
     }
 
-    const showSaleDetails = (sale) => {
-      selectedSale.value = sale
-      showSaleModal.value = true
+    const handleSaleClick = async (sale) => {
+      try {
+        // Önce basit veriyi göster
+        selectedSale.value = {
+          ...sale,
+          details: [],
+          subtotal: 0,
+          tax: 0,
+          discount: 0,
+          total: sale.total_amount,
+          taxRate: sale.extra?.[0]?.tax_rate || 0,
+          discountRate: sale.extra?.[0]?.discount_rate || 0
+        }
+        isViewingSaleDetails.value = true
+        showSaleModal.value = true
+
+        // Sonra detaylı veriyi getir
+        const { data, error } = await supabase
+          .from('sales')
+          .select(`
+            *,
+            details:sale_details(
+              *,
+              product:products(
+                *,
+                category:categories(*)
+              ),
+              package:packages(*)
+            ),
+            extra:sale_details_extra(*)
+          `)
+          .eq('id', sale.id)
+          .single()
+
+        if (error) throw error
+
+        // Satış detaylarını hesapla
+        if (data) {
+          const details = data.details || []
+          const subtotal = details.reduce((sum, detail) => sum + detail.total_price, 0)
+          const taxRate = data.extra?.[0]?.tax_rate || 0
+          const discountRate = data.extra?.[0]?.discount_rate || 0
+          const tax = subtotal * (taxRate / 100)
+          const discount = subtotal * (discountRate / 100)
+          const total = subtotal + tax - discount
+
+          selectedSale.value = {
+            ...data,
+            details,
+            subtotal,
+            tax,
+            discount,
+            total,
+            taxRate,
+            discountRate
+          }
+        }
+      } catch (error) {
+        console.error('Error loading sale details:', error)
+        toast.error('Satış detayları yüklenirken bir hata oluştu')
+        closeSaleModal()
+      }
     }
 
     const formatDate = (date) => {
+      if (!date) return ''
       return new Date(date).toLocaleString('tr-TR', {
-        day: 'numeric',
+        year: 'numeric',
         month: 'long',
+        day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       })
@@ -1057,6 +1125,7 @@ export default {
     const closeSaleModal = () => {
       showSaleModal.value = false
       selectedSale.value = null
+      isViewingSaleDetails.value = false
       customerName.value = ''
       saleNotes.value = ''
     }
@@ -1177,7 +1246,6 @@ export default {
       saleNotes,
       totalItems,
       createSale,
-      showSaleDetails,
       formatDate,
       recentSales,
       loadingSales,
@@ -1192,7 +1260,10 @@ export default {
       filteredCustomers,
       showCustomerSuggestions,
       searchCustomers,
-      selectCustomer
+      selectCustomer,
+      handleSaleClick,
+      isViewingSaleDetails,
+      selectedSale
     }
   }
 }
