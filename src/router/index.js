@@ -9,6 +9,7 @@ import Sales from '@/views/Sales.vue'
 import ForgotPassword from '@/views/ForgotPassword.vue'
 import ResetPassword from '@/views/ResetPassword.vue'
 import SalesList from '@/views/SalesList.vue'
+import Customers from '@/views/Customers.vue'
 
 const routes = [
   {
@@ -67,6 +68,15 @@ const routes = [
     component: SalesList,
     meta: {
       requiresAuth: true
+    }
+  },
+  {
+    path: '/customers',
+    name: 'Customers',
+    component: Customers,
+    meta: {
+      requiresAuth: true,
+      title: 'Müşteriler'
     }
   }
 ];

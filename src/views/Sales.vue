@@ -1,137 +1,118 @@
 <template>
-  <div class="min-h-screen bg-gray-50 p-4 sm:p-6">
-    <!-- Breadcrumb -->
-    <nav class="mb-4">
-      <div class="flex items-center space-x-2 text-sm">
-        <router-link to="/" class="text-gray-600 hover:text-primary-500">Ana Sayfa</router-link>
-        <span class="text-gray-400">/</span>
-        <span class="text-primary-500">Satış</span>
+  <div class="dashboard-layout" :class="{ 'menu-collapsed': isMenuCollapsed }">
+    <!-- Sol Menü -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="logo-text">FlowBridge</span>
+        <button @click="toggleMenu" class="collapse-btn">
+          <i :class="isMenuCollapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left'"></i>
+        </button>
       </div>
-    </nav>
 
-    <div class="flex flex-col lg:flex-row gap-6">
-      <!-- Sol Taraf: Ürün ve Paket Seçimi -->
-      <div class="lg:w-2/3 space-y-6">
-        <!-- Arama ve Filtreler -->
-        <div class="bg-white rounded-2xl shadow-lg p-4">
-          <div class="flex flex-col sm:flex-row gap-4">
-            <div class="flex-1">
-              <div class="relative">
-                <input 
-                  type="text" 
-                  v-model="searchQuery"
-                  placeholder="Ürün veya paket ara..."
-                  class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                  @input="searchProducts"
-                >
-                <i :class="['fas absolute left-3 top-1/2 transform -translate-y-1/2', loading ? 'fa-spinner fa-spin text-primary-500' : 'fa-search text-gray-400']"></i>
-              </div>
-            </div>
-            <div class="flex space-x-2">
-              <button @click="showBarcodeScanner = true" 
-                      class="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
-                <i class="fas fa-barcode mr-2"></i>
-                Barkod Okut
-              </button>
-              <button @click="toggleView" 
-                      class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
-                <i :class="['fas', currentView === 'products' ? 'fa-box' : 'fa-boxes']" class="mr-2"></i>
-                {{ currentView === 'products' ? 'Paketler' : 'Ürünler' }}
-              </button>
-            </div>
-          </div>
-        </div>
+      <nav class="sidebar-nav">
+        <router-link to="/dashboard" class="nav-item">
+          <i class="fas fa-chart-line"></i>
+          <span>Güncel Durum</span>
+        </router-link>
+        <router-link to="/sales" class="nav-item active">
+          <i class="fas fa-shopping-cart"></i>
+          <span>Satışlar</span>
+        </router-link>
+        <router-link to="/customers" class="nav-item">
+          <i class="fas fa-users"></i>
+          <span>Müşteriler</span>
+        </router-link>
+        <router-link to="/stock" class="nav-item">
+          <i class="fas fa-box"></i>
+          <span>Stok</span>
+        </router-link>
+      </nav>
+    </aside>
 
-        <!-- Ürünler Grid -->
-        <div v-if="currentView === 'products'" class="bg-white rounded-2xl shadow-lg p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-gray-900">Ürünler</h2>
-            <span class="text-sm text-gray-500">{{ filteredProducts.length }} ürün bulundu</span>
+    <!-- Ana İçerik -->
+    <main class="main-content">
+      <div class="min-h-screen bg-gray-50 p-4 sm:p-6">
+        <!-- Breadcrumb -->
+        <nav class="mb-4">
+          <div class="flex items-center space-x-2 text-sm">
+            <router-link to="/" class="text-gray-600 hover:text-primary-500">Ana Sayfa</router-link>
+            <span class="text-gray-400">/</span>
+            <span class="text-primary-500">Satış</span>
           </div>
-          <div v-if="loading" class="flex items-center justify-center py-12">
-            <i class="fas fa-spinner fa-spin text-2xl text-primary-500"></i>
-          </div>
-          <div v-else-if="filteredProducts.length === 0" class="text-center py-12">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i class="fas fa-search text-gray-400 text-xl"></i>
-            </div>
-            <p class="text-gray-500">Ürün bulunamadı</p>
-            <p class="text-sm text-gray-400 mt-1">Farklı bir arama terimi deneyin</p>
-          </div>
-          <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div v-for="product in filteredProducts" 
-                 :key="product.id"
-                 @click="addToCart(product)"
-                 class="group relative bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
-              <div class="aspect-square rounded-lg mb-3 flex items-center justify-center"
-                   :class="getCategoryBgColor(product.category_id)">
-                <i class="fas fa-box text-2xl" :class="getCategoryTextColor(product.category_id)"></i>
-              </div>
-              <h3 class="text-sm font-medium text-gray-900 truncate">{{ product.name }}</h3>
-              <p class="text-sm font-bold text-indigo-600 mt-1">₺{{ formatPrice(product.price) }}</p>
-              <div class="absolute top-2 right-2">
-                <span :class="[
-                  'px-2 py-1 text-xs font-medium rounded-lg',
-                  product.stock <= 0 ? 'bg-red-100 text-red-700' : 
-                  product.stock <= 10 ? 'bg-orange-100 text-orange-700' : 
-                  'bg-green-100 text-green-700'
-                ]">
-                  {{ product.stock }} Adet
-                </span>
-              </div>
-              <div class="absolute inset-0 flex items-center justify-center bg-indigo-600/0 group-hover:bg-indigo-600/10 rounded-xl transition-all">
-                <button class="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg transform scale-95 group-hover:scale-100 transition-all">
-                  <i class="fas fa-plus mr-1"></i>
-                  Sepete Ekle
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        </nav>
 
-        <!-- Paketler Grid -->
-        <div v-else class="bg-white rounded-2xl shadow-lg p-6">
-          <h2 class="text-lg font-bold text-gray-900 mb-4">Paketler</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div v-for="packageItem in packages" 
-                 :key="packageItem.id"
-                 @click="addPackageToCart(packageItem)"
-                 class="group relative bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
-              <div class="absolute -top-2 -right-2">
-                <div class="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-0.5 rounded-full text-xs font-bold shadow-lg">
-                  %{{ calculateDiscountPercentage(packageItem) }} İndirim
-                </div>
-              </div>
-              
-              <div class="mb-3">
-                <h3 class="text-base font-medium text-gray-900">{{ packageItem.name }}</h3>
-                <p class="text-sm text-gray-500 mt-1">{{ packageItem.description }}</p>
-              </div>
-              
-              <div class="space-y-2">
-                <div v-for="item in packageItem.products.slice(0, 2)" 
-                     :key="item.product.id"
-                     class="flex items-center text-sm">
-                  <div class="w-6 h-6 rounded-lg flex items-center justify-center mr-2"
-                       :class="getCategoryBgColor(item.product.category_id)">
-                    <i class="fas fa-box text-xs" :class="getCategoryTextColor(item.product.category_id)"></i>
+        <div class="flex flex-col lg:flex-row gap-6">
+          <!-- Sol Taraf: Ürün ve Paket Seçimi -->
+          <div class="lg:w-2/3 space-y-6">
+            <!-- Arama ve Filtreler -->
+            <div class="bg-white rounded-2xl shadow-lg p-4">
+              <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex-1">
+                  <div class="relative">
+                    <input 
+                      type="text" 
+                      v-model="searchQuery"
+                      placeholder="Ürün veya paket ara..."
+                      class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                      @input="searchProducts"
+                    >
+                    <i :class="['fas absolute left-3 top-1/2 transform -translate-y-1/2', loading ? 'fa-spinner fa-spin text-primary-500' : 'fa-search text-gray-400']"></i>
                   </div>
-                  <span class="text-gray-600">{{ item.quantity }}x {{ item.product.name }}</span>
                 </div>
-                <div v-if="packageItem.products.length > 2" 
-                     class="text-xs text-gray-500 pl-8">
-                  +{{ packageItem.products.length - 2 }} diğer ürün
+                <div class="flex space-x-2">
+                  <button @click="showBarcodeScanner = true" 
+                          class="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
+                    <i class="fas fa-barcode mr-2"></i>
+                    Barkod Okut
+                  </button>
+                  <button @click="toggleView" 
+                          class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
+                    <i :class="['fas', currentView === 'products' ? 'fa-box' : 'fa-boxes']" class="mr-2"></i>
+                    {{ currentView === 'products' ? 'Paketler' : 'Ürünler' }}
+                  </button>
                 </div>
               </div>
-              
-              <div class="mt-3 pt-3 border-t border-gray-100">
-                <div class="flex justify-between items-center">
-                  <div class="flex flex-col">
-                    <span class="text-xs text-gray-500 line-through">₺{{ formatPrice(calculatePackageOriginalPrice(packageItem)) }}</span>
-                    <span class="text-base font-bold text-emerald-600">₺{{ formatPrice(packageItem.price) }}</span>
+            </div>
+
+            <!-- Ürünler Grid -->
+            <div v-if="currentView === 'products'" class="bg-white rounded-2xl shadow-lg p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-900">Ürünler</h2>
+                <span class="text-sm text-gray-500">{{ filteredProducts.length }} ürün bulundu</span>
+              </div>
+              <div v-if="loading" class="flex items-center justify-center py-12">
+                <i class="fas fa-spinner fa-spin text-2xl text-primary-500"></i>
+              </div>
+              <div v-else-if="filteredProducts.length === 0" class="text-center py-12">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i class="fas fa-search text-gray-400 text-xl"></i>
+                </div>
+                <p class="text-gray-500">Ürün bulunamadı</p>
+                <p class="text-sm text-gray-400 mt-1">Farklı bir arama terimi deneyin</p>
+              </div>
+              <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div v-for="product in filteredProducts" 
+                     :key="product.id"
+                     @click="addToCart(product)"
+                     class="group relative bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+                  <div class="aspect-square rounded-lg mb-3 flex items-center justify-center"
+                       :class="getCategoryBgColor(product.category_id)">
+                    <i class="fas fa-box text-2xl" :class="getCategoryTextColor(product.category_id)"></i>
                   </div>
-                  <div class="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button class="px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg transform scale-95 group-hover:scale-100 transition-all">
+                  <h3 class="text-sm font-medium text-gray-900 truncate">{{ product.name }}</h3>
+                  <p class="text-sm font-bold text-indigo-600 mt-1">₺{{ formatPrice(product.price) }}</p>
+                  <div class="absolute top-2 right-2">
+                    <span :class="[
+                      'px-2 py-1 text-xs font-medium rounded-lg',
+                      product.stock <= 0 ? 'bg-red-100 text-red-700' : 
+                      product.stock <= 10 ? 'bg-orange-100 text-orange-700' : 
+                      'bg-green-100 text-green-700'
+                    ]">
+                      {{ product.stock }} Adet
+                    </span>
+                  </div>
+                  <div class="absolute inset-0 flex items-center justify-center bg-indigo-600/0 group-hover:bg-indigo-600/10 rounded-xl transition-all">
+                    <button class="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg transform scale-95 group-hover:scale-100 transition-all">
                       <i class="fas fa-plus mr-1"></i>
                       Sepete Ekle
                     </button>
@@ -139,497 +120,550 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Bekleyen Satışlar -->
-        <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-gray-900">Bekleyen Satışlar</h2>
-            <span class="text-sm text-gray-500">{{ pendingSales.length }} bekleyen satış</span>
-          </div>
-
-          <!-- Bekleyen Satış Listesi -->
-          <div class="space-y-4">
-            <div v-for="sale in pendingSales" 
-                 :key="sale.id" 
-                 class="p-4 bg-gray-50 rounded-xl">
-              <div class="flex justify-between items-start mb-3">
-                <div>
-                  <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
-                  <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
-                </div>
-                <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">
-                  Beklemede
-                </span>
-              </div>
-              
-              <!-- Satış Detayları -->
-              <div class="space-y-2 mb-3">
-                <div v-for="detail in sale.details" :key="detail.id" 
-                     class="flex justify-between items-center text-sm">
-                  <span class="text-gray-600">
-                    {{ detail.product?.name || detail.package?.name }} × {{ detail.quantity }}
-                  </span>
-                  <span class="font-medium">₺{{ formatPrice(detail.total_price) }}</span>
-                </div>
-              </div>
-
-              <div class="flex justify-between items-center pt-3 border-t border-gray-200">
-                <span class="text-sm font-bold text-gray-900">
-                  Toplam: ₺{{ formatPrice(sale.total_amount) }}
-                </span>
-                <div class="flex space-x-2">
-                  <button @click="completeSale(sale)" 
-                          class="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">
-                    Onayla
-                  </button>
-                  <button @click="cancelSale(sale)"
-                          class="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">
-                    İptal
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tüm Satışlar -->
-        <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold text-gray-900">Tüm Satışlar</h2>
-            <span class="text-sm text-gray-500">{{ totalSalesCount }} satış</span>
-          </div>
-
-          <!-- Arama ve Filtreleme -->
-          <div class="flex flex-col sm:flex-row gap-4 mb-4">
-            <!-- Arama -->
-            <div class="flex-1">
-              <div class="relative">
-                <input 
-                  type="text" 
-                  v-model="salesSearchQuery"
-                  placeholder="Müşteri adına göre ara..."
-                  class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                  @input="searchSales"
-                >
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-              </div>
-            </div>
-
-            <!-- Sıralama -->
-            <div class="flex space-x-2">
-              <select 
-                v-model="sortBy"
-                @change="loadAllSales"
-                class="rounded-xl border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                <option value="date_desc">Tarihe Göre (Yeni - Eski)</option>
-                <option value="date_asc">Tarihe Göre (Eski - Yeni)</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Yükleniyor -->
-          <div v-if="loadingAllSales" class="flex items-center justify-center py-8">
-            <i class="fas fa-spinner fa-spin text-xl text-primary-500"></i>
-          </div>
-
-          <!-- Veri Yok -->
-          <div v-else-if="allSales.length === 0" class="text-center py-8">
-            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <i class="fas fa-receipt text-gray-400 text-lg"></i>
-            </div>
-            <p class="text-gray-500 text-sm">Satış bulunamadı</p>
-            <p v-if="salesSearchQuery" class="text-sm text-gray-400 mt-1">Farklı bir arama terimi deneyin</p>
-          </div>
-
-          <!-- Satış Listesi -->
-          <div v-else>
-            <div class="space-y-3">
-              <div v-for="sale in paginatedSales" 
-                   :key="sale.id" 
-                   @click="handleSaleClick(sale)"
-                   class="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                <div class="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
-                    <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
+            <!-- Paketler Grid -->
+            <div v-else class="bg-white rounded-2xl shadow-lg p-6">
+              <h2 class="text-lg font-bold text-gray-900 mb-4">Paketler</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div v-for="packageItem in packages" 
+                     :key="packageItem.id"
+                     @click="addPackageToCart(packageItem)"
+                     class="group relative bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+                  <div class="absolute -top-2 -right-2">
+                    <div class="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-0.5 rounded-full text-xs font-bold shadow-lg">
+                      %{{ calculateDiscountPercentage(packageItem) }} İndirim
+                    </div>
                   </div>
-                  <span :class="[
-                    'px-2 py-1 text-xs font-medium rounded-full',
-                    sale.sale_type === 'package' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
-                  ]">
-                    {{ sale.sale_type === 'package' ? 'Paket' : 'Ürün' }}
-                  </span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <div class="flex items-center text-xs text-gray-500">
-                    <i class="fas fa-shopping-cart mr-1"></i>
-                    {{ sale.details?.length || 0 }} ürün
+                  
+                  <div class="mb-3">
+                    <h3 class="text-base font-medium text-gray-900">{{ packageItem.name }}</h3>
+                    <p class="text-sm text-gray-500 mt-1">{{ packageItem.description }}</p>
                   </div>
-                  <span class="text-sm font-bold text-indigo-600">₺{{ formatPrice(sale.total_amount) }}</span>
+                  
+                  <div class="space-y-2">
+                    <div v-for="item in packageItem.products.slice(0, 2)" 
+                         :key="item.product.id"
+                         class="flex items-center text-sm">
+                      <div class="w-6 h-6 rounded-lg flex items-center justify-center mr-2"
+                           :class="getCategoryBgColor(item.product.category_id)">
+                        <i class="fas fa-box text-xs" :class="getCategoryTextColor(item.product.category_id)"></i>
+                      </div>
+                      <span class="text-gray-600">{{ item.quantity }}x {{ item.product.name }}</span>
+                    </div>
+                    <div v-if="packageItem.products.length > 2" 
+                         class="text-xs text-gray-500 pl-8">
+                      +{{ packageItem.products.length - 2 }} diğer ürün
+                    </div>
+                  </div>
+                  
+                  <div class="mt-3 pt-3 border-t border-gray-100">
+                    <div class="flex justify-between items-center">
+                      <div class="flex flex-col">
+                        <span class="text-xs text-gray-500 line-through">₺{{ formatPrice(calculatePackageOriginalPrice(packageItem)) }}</span>
+                        <span class="text-base font-bold text-emerald-600">₺{{ formatPrice(packageItem.price) }}</span>
+                      </div>
+                      <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg transform scale-95 group-hover:scale-100 transition-all">
+                          <i class="fas fa-plus mr-1"></i>
+                          Sepete Ekle
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Sayfalama -->
-            <div class="flex justify-center items-center space-x-2 mt-4">
-              <button @click="prevPage" 
-                      :disabled="currentPage === 1"
-                      class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fas fa-chevron-left"></i>
-              </button>
-              <span class="text-sm text-gray-600">
-                Sayfa {{ currentPage }} / {{ totalPages }}
-              </span>
-              <button @click="nextPage"
-                      :disabled="currentPage === totalPages"
-                      class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fas fa-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+            <!-- Bekleyen Satışlar -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-900">Bekleyen Satışlar</h2>
+                <span class="text-sm text-gray-500">{{ pendingSales.length }} bekleyen satış</span>
+              </div>
 
-      <!-- Sağ Taraf: Sepet ve Satış Listesi -->
-      <div class="lg:w-1/3 space-y-6">
-        <!-- Sepet -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-lg font-bold text-gray-900">Sepet</h2>
-            <button v-if="cart.length > 0" 
-                    @click="clearCart"
-                    class="text-sm text-red-600 hover:text-red-700">
-              <i class="fas fa-trash mr-1"></i>
-              Sepeti Temizle
-            </button>
-          </div>
+              <!-- Bekleyen Satış Listesi -->
+              <div class="space-y-4">
+                <div v-for="sale in pendingSales" 
+                     :key="sale.id" 
+                     class="p-4 bg-gray-50 rounded-xl">
+                  <div class="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
+                      <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">
+                      Beklemede
+                    </span>
+                  </div>
+                  
+                  <!-- Satış Detayları -->
+                  <div class="space-y-2 mb-3">
+                    <div v-for="detail in sale.details" :key="detail.id" 
+                         class="flex justify-between items-center text-sm">
+                      <span class="text-gray-600">
+                        {{ detail.product?.name || detail.package?.name }} × {{ detail.quantity }}
+                      </span>
+                      <span class="font-medium">₺{{ formatPrice(detail.total_price) }}</span>
+                    </div>
+                  </div>
 
-          <div v-if="cart.length === 0" 
-               class="text-center py-8">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i class="fas fa-shopping-cart text-gray-400 text-xl"></i>
-            </div>
-            <p class="text-gray-500">Sepetiniz boş</p>
-            <p class="text-sm text-gray-400 mt-1">Ürün eklemek için sol taraftaki ürünlere tıklayın</p>
-          </div>
-
-          <div v-else class="space-y-4">
-            <!-- Sepet Ürünleri -->
-            <div v-for="item in cart" 
-                 :key="item.id"
-                 class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-              <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-lg flex items-center justify-center"
-                     :class="[item.type === 'package' ? 'bg-indigo-100' : getCategoryBgColor(item.category_id)]">
-                  <i class="fas" 
-                     :class="[
-                       item.type === 'package' ? 'fa-box-open text-indigo-600' : 'fa-box',
-                       item.type === 'product' ? getCategoryTextColor(item.category_id) : ''
-                     ]">
-                  </i>
-                </div>
-                <div>
-                  <h3 class="text-sm font-medium text-gray-900">{{ item.name }}</h3>
-                  <div class="flex items-center mt-1">
-                    <div class="flex items-center space-x-2">
-                      <button @click="decrementQuantity(item)"
-                              class="w-6 h-6 rounded-lg bg-white border border-gray-300 flex items-center justify-center hover:border-indigo-500 hover:text-indigo-600 transition-colors">
-                        <i class="fas fa-minus text-xs"></i>
+                  <div class="flex justify-between items-center pt-3 border-t border-gray-200">
+                    <span class="text-sm font-bold text-gray-900">
+                      Toplam: ₺{{ formatPrice(sale.total_amount) }}
+                    </span>
+                    <div class="flex space-x-2">
+                      <button @click="completeSale(sale)" 
+                              class="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">
+                        Onayla
                       </button>
-                      <span class="text-sm text-gray-600">{{ item.quantity }}</span>
-                      <button @click="incrementQuantity(item)"
-                              class="w-6 h-6 rounded-lg bg-white border border-gray-300 flex items-center justify-center hover:border-indigo-500 hover:text-indigo-600 transition-colors">
-                        <i class="fas fa-plus text-xs"></i>
+                      <button @click="cancelSale(sale)"
+                              class="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">
+                        İptal
                       </button>
                     </div>
-                    <span class="text-xs text-gray-500 ml-2">×</span>
-                    <span class="text-xs font-medium text-gray-700 ml-2">₺{{ formatPrice(item.price) }}</span>
                   </div>
                 </div>
               </div>
-              <div class="flex flex-col items-end">
-                <span class="text-sm font-bold text-gray-900">₺{{ formatPrice(item.price * item.quantity) }}</span>
-                <button @click="removeFromCart(item)" 
-                        class="text-xs text-red-600 hover:text-red-700 mt-1">
-                  <i class="fas fa-trash"></i>
+            </div>
+
+            <!-- Tüm Satışlar -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-900">Tüm Satışlar</h2>
+                <span class="text-sm text-gray-500">{{ totalSalesCount }} satış</span>
+              </div>
+
+              <!-- Arama ve Filtreleme -->
+              <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                <!-- Arama -->
+                <div class="flex-1">
+                  <div class="relative">
+                    <input 
+                      type="text" 
+                      v-model="salesSearchQuery"
+                      placeholder="Müşteri adına göre ara..."
+                      class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                      @input="searchSales"
+                    >
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                  </div>
+                </div>
+
+                <!-- Sıralama -->
+                <div class="flex space-x-2">
+                  <select 
+                    v-model="sortBy"
+                    @change="loadAllSales"
+                    class="rounded-xl border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                    <option value="date_desc">Tarihe Göre (Yeni - Eski)</option>
+                    <option value="date_asc">Tarihe Göre (Eski - Yeni)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Yükleniyor -->
+              <div v-if="loadingAllSales" class="flex items-center justify-center py-8">
+                <i class="fas fa-spinner fa-spin text-xl text-primary-500"></i>
+              </div>
+
+              <!-- Veri Yok -->
+              <div v-else-if="allSales.length === 0" class="text-center py-8">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i class="fas fa-receipt text-gray-400 text-lg"></i>
+                </div>
+                <p class="text-gray-500 text-sm">Satış bulunamadı</p>
+                <p v-if="salesSearchQuery" class="text-sm text-gray-400 mt-1">Farklı bir arama terimi deneyin</p>
+              </div>
+
+              <!-- Satış Listesi -->
+              <div v-else>
+                <div class="space-y-3">
+                  <div v-for="sale in paginatedSales" 
+                       :key="sale.id" 
+                       @click="handleSaleClick(sale)"
+                       class="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div class="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
+                        <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
+                      </div>
+                      <span :class="[
+                        'px-2 py-1 text-xs font-medium rounded-full',
+                        sale.sale_type === 'package' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
+                      ]">
+                        {{ sale.sale_type === 'package' ? 'Paket' : 'Ürün' }}
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <div class="flex items-center text-xs text-gray-500">
+                        <i class="fas fa-shopping-cart mr-1"></i>
+                        {{ sale.details?.length || 0 }} ürün
+                      </div>
+                      <span class="text-sm font-bold text-indigo-600">₺{{ formatPrice(sale.total_amount) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sayfalama -->
+                <div class="flex justify-center items-center space-x-2 mt-4">
+                  <button @click="prevPage" 
+                          :disabled="currentPage === 1"
+                          class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-chevron-left"></i>
+                  </button>
+                  <span class="text-sm text-gray-600">
+                    Sayfa {{ currentPage }} / {{ totalPages }}
+                  </span>
+                  <button @click="nextPage"
+                          :disabled="currentPage === totalPages"
+                          class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sağ Taraf: Sepet ve Satış Listesi -->
+          <div class="lg:w-1/3 space-y-6">
+            <!-- Sepet -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-bold text-gray-900">Sepet</h2>
+                <button v-if="cart.length > 0" 
+                        @click="clearCart"
+                        class="text-sm text-red-600 hover:text-red-700">
+                  <i class="fas fa-trash mr-1"></i>
+                  Sepeti Temizle
+                </button>
+              </div>
+
+              <div v-if="cart.length === 0" 
+                   class="text-center py-8">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i class="fas fa-shopping-cart text-gray-400 text-xl"></i>
+                </div>
+                <p class="text-gray-500">Sepetiniz boş</p>
+                <p class="text-sm text-gray-400 mt-1">Ürün eklemek için sol taraftaki ürünlere tıklayın</p>
+              </div>
+
+              <div v-else class="space-y-4">
+                <!-- Sepet Ürünleri -->
+                <div v-for="item in cart" 
+                     :key="item.id"
+                     class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center"
+                         :class="[item.type === 'package' ? 'bg-indigo-100' : getCategoryBgColor(item.category_id)]">
+                      <i class="fas" 
+                         :class="[
+                           item.type === 'package' ? 'fa-box-open text-indigo-600' : 'fa-box',
+                           item.type === 'product' ? getCategoryTextColor(item.category_id) : ''
+                         ]">
+                      </i>
+                    </div>
+                    <div>
+                      <h3 class="text-sm font-medium text-gray-900">{{ item.name }}</h3>
+                      <div class="flex items-center mt-1">
+                        <div class="flex items-center space-x-2">
+                          <button @click="decrementQuantity(item)"
+                                  class="w-6 h-6 rounded-lg bg-white border border-gray-300 flex items-center justify-center hover:border-indigo-500 hover:text-indigo-600 transition-colors">
+                            <i class="fas fa-minus text-xs"></i>
+                          </button>
+                          <span class="text-sm text-gray-600">{{ item.quantity }}</span>
+                          <button @click="incrementQuantity(item)"
+                                  class="w-6 h-6 rounded-lg bg-white border border-gray-300 flex items-center justify-center hover:border-indigo-500 hover:text-indigo-600 transition-colors">
+                            <i class="fas fa-plus text-xs"></i>
+                          </button>
+                        </div>
+                        <span class="text-xs text-gray-500 ml-2">×</span>
+                        <span class="text-xs font-medium text-gray-700 ml-2">₺{{ formatPrice(item.price) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex flex-col items-end">
+                    <span class="text-sm font-bold text-gray-900">₺{{ formatPrice(item.price * item.quantity) }}</span>
+                    <button @click="removeFromCart(item)" 
+                            class="text-xs text-red-600 hover:text-red-700 mt-1">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Toplam ve Ayarlar -->
+                <div class="border-t border-gray-200 pt-4 mt-4 space-y-4">
+                  <!-- KDV ve İndirim Ayarları -->
+                  <div class="bg-gray-50 p-4 rounded-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                      <label class="text-sm font-medium text-gray-700">KDV Oranı (%)</label>
+                      <select v-model="taxRate" 
+                              class="w-24 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="0">0%</option>
+                        <option value="1">1%</option>
+                        <option value="8">8%</option>
+                        <option value="18">18%</option>
+                      </select>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                      <label class="text-sm font-medium text-gray-700">İndirim Oranı (%)</label>
+                      <input type="number" 
+                             v-model="discountRate" 
+                             min="0" 
+                             max="100"
+                             class="w-24 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                  </div>
+
+                  <!-- Fiyat Detayları -->
+                  <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-600">Ara Toplam</span>
+                      <span class="font-medium text-gray-900">₺{{ formatPrice(subtotal) }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-600">KDV (%{{ taxRate }})</span>
+                      <span class="font-medium text-gray-900">₺{{ formatPrice(tax) }}</span>
+                    </div>
+                    <div v-if="discountRate > 0" class="flex justify-between text-sm">
+                      <span class="text-red-600">İndirim (%{{ discountRate }})</span>
+                      <span class="font-medium text-red-600">-₺{{ formatPrice(discount) }}</span>
+                    </div>
+                    <div class="flex justify-between text-base font-bold pt-2">
+                      <span class="text-gray-900">Toplam</span>
+                      <span class="text-indigo-600">₺{{ formatPrice(total) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Satış Butonu -->
+                <button @click="createSale"
+                        :disabled="cart.length === 0 || processing"
+                        class="w-full py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                  <i class="fas fa-shopping-cart mr-2"></i>
+                  {{ processing ? 'İşleniyor...' : 'Satış Yap' }}
                 </button>
               </div>
             </div>
 
-            <!-- Toplam ve Ayarlar -->
-            <div class="border-t border-gray-200 pt-4 mt-4 space-y-4">
-              <!-- KDV ve İndirim Ayarları -->
-              <div class="bg-gray-50 p-4 rounded-xl space-y-3">
-                <div class="flex items-center justify-between">
-                  <label class="text-sm font-medium text-gray-700">KDV Oranı (%)</label>
-                  <select v-model="taxRate" 
-                          class="w-24 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="0">0%</option>
-                    <option value="1">1%</option>
-                    <option value="8">8%</option>
-                    <option value="18">18%</option>
-                  </select>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                  <label class="text-sm font-medium text-gray-700">İndirim Oranı (%)</label>
-                  <input type="number" 
-                         v-model="discountRate" 
-                         min="0" 
-                         max="100"
-                         class="w-24 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                </div>
+            <!-- Son Satışlar -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-900">Son Yapılan Satışlar</h2>
               </div>
 
-              <!-- Fiyat Detayları -->
-              <div class="space-y-2">
-                <div class="flex justify-between text-sm">
-                  <span class="text-gray-600">Ara Toplam</span>
-                  <span class="font-medium text-gray-900">₺{{ formatPrice(subtotal) }}</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                  <span class="text-gray-600">KDV (%{{ taxRate }})</span>
-                  <span class="font-medium text-gray-900">₺{{ formatPrice(tax) }}</span>
-                </div>
-                <div v-if="discountRate > 0" class="flex justify-between text-sm">
-                  <span class="text-red-600">İndirim (%{{ discountRate }})</span>
-                  <span class="font-medium text-red-600">-₺{{ formatPrice(discount) }}</span>
-                </div>
-                <div class="flex justify-between text-base font-bold pt-2">
-                  <span class="text-gray-900">Toplam</span>
-                  <span class="text-indigo-600">₺{{ formatPrice(total) }}</span>
-                </div>
+              <!-- Yükleniyor -->
+              <div v-if="loadingSales" class="flex items-center justify-center py-8">
+                <i class="fas fa-spinner fa-spin text-xl text-primary-500"></i>
               </div>
-            </div>
 
-            <!-- Satış Butonu -->
-            <button @click="createSale"
-                    :disabled="cart.length === 0 || processing"
-                    class="w-full py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-              <i class="fas fa-shopping-cart mr-2"></i>
-              {{ processing ? 'İşleniyor...' : 'Satış Yap' }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Son Satışlar -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold text-gray-900">Son Yapılan Satışlar</h2>
-          </div>
-
-          <!-- Yükleniyor -->
-          <div v-if="loadingSales" class="flex items-center justify-center py-8">
-            <i class="fas fa-spinner fa-spin text-xl text-primary-500"></i>
-          </div>
-
-          <!-- Veri Yok -->
-          <div v-else-if="recentSales.length === 0" class="text-center py-8">
-            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <i class="fas fa-receipt text-gray-400 text-lg"></i>
-            </div>
-            <p class="text-gray-500 text-sm">Henüz satış bulunmuyor</p>
-          </div>
-
-          <!-- Son 5 Satış Listesi -->
-          <div v-else class="space-y-3">
-            <div v-for="sale in recentSales" 
-                 :key="sale.id" 
-                 @click="handleSaleClick(sale)"
-                 class="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-              <div class="flex justify-between items-start mb-2">
-                <div>
-                  <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
-                  <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
+              <!-- Veri Yok -->
+              <div v-else-if="recentSales.length === 0" class="text-center py-8">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i class="fas fa-receipt text-gray-400 text-lg"></i>
                 </div>
-                <span :class="[
-                  'px-2 py-1 text-xs font-medium rounded-full',
-                  sale.sale_type === 'package' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
-                ]">
-                  {{ sale.sale_type === 'package' ? 'Paket' : 'Ürün' }}
-                </span>
+                <p class="text-gray-500 text-sm">Henüz satış bulunmuyor</p>
               </div>
-              <div class="flex justify-between items-center">
-                <div class="flex items-center text-xs text-gray-500">
-                  <i class="fas fa-shopping-cart mr-1"></i>
-                  {{ sale.details?.length || 0 }} ürün
+
+              <!-- Son 5 Satış Listesi -->
+              <div v-else class="space-y-3">
+                <div v-for="sale in recentSales" 
+                     :key="sale.id" 
+                     @click="handleSaleClick(sale)"
+                     class="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                  <div class="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
+                      <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
+                    </div>
+                    <span :class="[
+                      'px-2 py-1 text-xs font-medium rounded-full',
+                      sale.sale_type === 'package' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
+                    ]">
+                      {{ sale.sale_type === 'package' ? 'Paket' : 'Ürün' }}
+                    </span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <div class="flex items-center text-xs text-gray-500">
+                      <i class="fas fa-shopping-cart mr-1"></i>
+                      {{ sale.details?.length || 0 }} ürün
+                    </div>
+                    <span class="text-sm font-bold text-indigo-600">₺{{ formatPrice(sale.total_amount) }}</span>
+                  </div>
                 </div>
-                <span class="text-sm font-bold text-indigo-600">₺{{ formatPrice(sale.total_amount) }}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Barkod Okuyucu Modal -->
-    <Modal v-if="showBarcodeScanner" @close="showBarcodeScanner = false">
-      <template #header>
-        <div class="flex items-center space-x-3">
-          <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-            <i class="fas fa-barcode text-indigo-600 text-xl"></i>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900">Barkod Okut</h3>
-        </div>
-      </template>
-      <template #body>
-        <BarcodeScanner @scanned="onBarcodeScanned" />
-      </template>
-    </Modal>
-
-    <!-- Satış Modal -->
-    <Modal v-if="showSaleModal" @close="closeSaleModal">
-      <template #header>
-        <div class="flex items-center space-x-3">
-          <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-            <i class="fas fa-shopping-cart text-indigo-600 text-xl"></i>
-          </div>
-          <h3 class="text-xl font-bold text-gray-900">{{ isViewingSaleDetails ? 'Satış Detayları' : 'Yeni Satış' }}</h3>
-        </div>
-      </template>
-      <template #body>
-        <!-- Satış Detayları -->
-        <template v-if="isViewingSaleDetails">
-          <div class="space-y-4">
-            <!-- Müşteri Bilgileri -->
-            <div class="bg-gray-50 p-4 rounded-xl">
-              <h4 class="text-sm font-medium text-gray-700 mb-2">Müşteri Bilgileri</h4>
-              <p class="text-sm text-gray-900">{{ selectedSale.extra?.[0]?.customer_name }}</p>
-              <p class="text-xs text-gray-500">{{ formatDate(selectedSale.created_at) }}</p>
-              <p v-if="selectedSale.extra?.[0]?.notes" class="text-sm text-gray-500 mt-2">
-                {{ selectedSale.extra[0].notes }}
-              </p>
+      <!-- Barkod Okuyucu Modal -->
+      <Modal v-if="showBarcodeScanner" @close="showBarcodeScanner = false">
+        <template #header>
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <i class="fas fa-barcode text-indigo-600 text-xl"></i>
             </div>
+            <h3 class="text-xl font-bold text-gray-900">Barkod Okut</h3>
+          </div>
+        </template>
+        <template #body>
+          <BarcodeScanner @scanned="onBarcodeScanned" />
+        </template>
+      </Modal>
 
-            <!-- Ürün Listesi -->
-            <div>
-              <h4 class="text-sm font-medium text-gray-700 mb-2">Satın Alınan Ürünler</h4>
-              <div class="space-y-2">
-                <div v-for="detail in selectedSale.details" :key="detail.id" 
-                     class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center"
-                         :class="[detail.product ? getCategoryBgColor(detail.product.category_id) : 'bg-indigo-100']">
-                      <i class="fas" :class="[
-                        detail.product ? 'fa-box' : 'fa-box-open',
-                        detail.product ? getCategoryTextColor(detail.product.category_id) : 'text-indigo-600'
-                      ]"></i>
+      <!-- Satış Modal -->
+      <Modal v-if="showSaleModal" @close="closeSaleModal">
+        <template #header>
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <i class="fas fa-shopping-cart text-indigo-600 text-xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900">{{ isViewingSaleDetails ? 'Satış Detayları' : 'Yeni Satış' }}</h3>
+          </div>
+        </template>
+        <template #body>
+          <!-- Satış Detayları -->
+          <template v-if="isViewingSaleDetails">
+            <div class="space-y-4">
+              <!-- Müşteri Bilgileri -->
+              <div class="bg-gray-50 p-4 rounded-xl">
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Müşteri Bilgileri</h4>
+                <p class="text-sm text-gray-900">{{ selectedSale.extra?.[0]?.customer_name }}</p>
+                <p class="text-xs text-gray-500">{{ formatDate(selectedSale.created_at) }}</p>
+                <p v-if="selectedSale.extra?.[0]?.notes" class="text-sm text-gray-500 mt-2">
+                  {{ selectedSale.extra[0].notes }}
+                </p>
+              </div>
+
+              <!-- Ürün Listesi -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Satın Alınan Ürünler</h4>
+                <div class="space-y-2">
+                  <div v-for="detail in selectedSale.details" :key="detail.id" 
+                       class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                           :class="[detail.product ? getCategoryBgColor(detail.product.category_id) : 'bg-indigo-100']">
+                        <i class="fas" :class="[
+                          detail.product ? 'fa-box' : 'fa-box-open',
+                          detail.product ? getCategoryTextColor(detail.product.category_id) : 'text-indigo-600'
+                        ]"></i>
+                      </div>
+                      <div>
+                        <p class="text-sm font-medium text-gray-900">
+                          {{ detail.product?.name || detail.package?.name }}
+                        </p>
+                        <p class="text-xs text-gray-500">
+                          {{ detail.quantity }} adet × ₺{{ formatPrice(detail.unit_price) }}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">
-                        {{ detail.product?.name || detail.package?.name }}
-                      </p>
-                      <p class="text-xs text-gray-500">
-                        {{ detail.quantity }} adet × ₺{{ formatPrice(detail.unit_price) }}
-                      </p>
-                    </div>
+                    <p class="text-sm font-bold text-gray-900">
+                      ₺{{ formatPrice(detail.total_price) }}
+                    </p>
                   </div>
-                  <p class="text-sm font-bold text-gray-900">
-                    ₺{{ formatPrice(detail.total_price) }}
-                  </p>
                 </div>
+              </div>
+
+              <!-- Fiyat Detayları -->
+              <div class="border-t pt-4">
+                <div class="space-y-2">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Ara Toplam</span>
+                    <span class="font-medium text-gray-900">₺{{ formatPrice(selectedSale.subtotal) }}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">KDV (%{{ selectedSale.taxRate }})</span>
+                    <span class="font-medium text-gray-900">₺{{ formatPrice(selectedSale.tax) }}</span>
+                  </div>
+                  <div v-if="selectedSale.discountRate > 0" class="flex justify-between text-sm">
+                    <span class="text-red-600">İndirim (%{{ selectedSale.discountRate }})</span>
+                    <span class="font-medium text-red-600">-₺{{ formatPrice(selectedSale.discount) }}</span>
+                  </div>
+                  <div class="flex justify-between text-base font-bold pt-2 border-t">
+                    <span class="text-gray-900">Toplam</span>
+                    <span class="text-indigo-600">₺{{ formatPrice(selectedSale.total) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Kapat Butonu -->
+              <button @click="closeSaleModal"
+                      class="w-full py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
+                Kapat
+              </button>
+            </div>
+          </template>
+
+          <!-- Yeni Satış Formu -->
+          <template v-else>
+            <!-- Müşteri Bilgileri -->
+            <div class="relative">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Müşteri Adı
+              </label>
+              <input type="text" 
+                     v-model="customerName"
+                     @input="searchCustomers"
+                     @focus="showCustomerSuggestions = true"
+                     @blur="() => { showCustomerSuggestions = false }"
+                     placeholder="Müşteri adı girin..."
+                     class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+              
+              <!-- Müşteri Önerileri -->
+              <div v-if="showCustomerSuggestions && filteredCustomers.length > 0"
+                   class="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200">
+                <ul class="py-1">
+                  <li v-for="customer in filteredCustomers"
+                      :key="customer.id"
+                      @mousedown="selectCustomer(customer)"
+                      class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                    <span class="text-sm text-gray-900">{{ customer.name }}</span>
+                  </li>
+                </ul>
               </div>
             </div>
 
-            <!-- Fiyat Detayları -->
-            <div class="border-t pt-4">
-              <div class="space-y-2">
-                <div class="flex justify-between text-sm">
-                  <span class="text-gray-600">Ara Toplam</span>
-                  <span class="font-medium text-gray-900">₺{{ formatPrice(selectedSale.subtotal) }}</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                  <span class="text-gray-600">KDV (%{{ selectedSale.taxRate }})</span>
-                  <span class="font-medium text-gray-900">₺{{ formatPrice(selectedSale.tax) }}</span>
-                </div>
-                <div v-if="selectedSale.discountRate > 0" class="flex justify-between text-sm">
-                  <span class="text-red-600">İndirim (%{{ selectedSale.discountRate }})</span>
-                  <span class="font-medium text-red-600">-₺{{ formatPrice(selectedSale.discount) }}</span>
-                </div>
-                <div class="flex justify-between text-base font-bold pt-2 border-t">
-                  <span class="text-gray-900">Toplam</span>
-                  <span class="text-indigo-600">₺{{ formatPrice(selectedSale.total) }}</span>
-                </div>
+            <!-- Notlar -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Notlar
+              </label>
+              <textarea v-model="saleNotes"
+                        rows="3"
+                        placeholder="Satış ile ilgili notlar..."
+                        class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <!-- Özet -->
+            <div class="bg-gray-50 p-4 rounded-xl space-y-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Toplam Tutar</span>
+                <span class="font-medium text-gray-900">₺{{ formatPrice(total) }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Ürün Sayısı</span>
+                <span class="font-medium text-gray-900">{{ totalItems }} Adet</span>
               </div>
             </div>
 
-            <!-- Kapat Butonu -->
-            <button @click="closeSaleModal"
-                    class="w-full py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
-              Kapat
-            </button>
-          </div>
+            <!-- Butonlar -->
+            <div class="flex space-x-3">
+              <button @click="closeSaleModal"
+                      class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
+                İptal
+              </button>
+              <button @click="confirmSale"
+                      :disabled="!customerName.trim() || processing"
+                      class="flex-1 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                {{ processing ? 'İşleniyor...' : 'Onayla' }}
+              </button>
+            </div>
+          </template>
         </template>
-
-        <!-- Yeni Satış Formu -->
-        <template v-else>
-          <!-- Müşteri Bilgileri -->
-          <div class="relative">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Müşteri Adı
-            </label>
-            <input type="text" 
-                   v-model="customerName"
-                   @input="searchCustomers"
-                   @focus="showCustomerSuggestions = true"
-                   @blur="() => { showCustomerSuggestions = false }"
-                   placeholder="Müşteri adı girin..."
-                   class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
-            
-            <!-- Müşteri Önerileri -->
-            <div v-if="showCustomerSuggestions && filteredCustomers.length > 0"
-                 class="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200">
-              <ul class="py-1">
-                <li v-for="customer in filteredCustomers"
-                    :key="customer.id"
-                    @mousedown="selectCustomer(customer)"
-                    class="px-4 py-2 hover:bg-gray-50 cursor-pointer">
-                  <span class="text-sm text-gray-900">{{ customer.name }}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <!-- Notlar -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Notlar
-            </label>
-            <textarea v-model="saleNotes"
-                      rows="3"
-                      placeholder="Satış ile ilgili notlar..."
-                      class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-          </div>
-
-          <!-- Özet -->
-          <div class="bg-gray-50 p-4 rounded-xl space-y-2">
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">Toplam Tutar</span>
-              <span class="font-medium text-gray-900">₺{{ formatPrice(total) }}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">Ürün Sayısı</span>
-              <span class="font-medium text-gray-900">{{ totalItems }} Adet</span>
-            </div>
-          </div>
-
-          <!-- Butonlar -->
-          <div class="flex space-x-3">
-            <button @click="closeSaleModal"
-                    class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
-              İptal
-            </button>
-            <button @click="confirmSale"
-                    :disabled="!customerName.trim() || processing"
-                    class="flex-1 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-              {{ processing ? 'İşleniyor...' : 'Onayla' }}
-            </button>
-          </div>
-        </template>
-      </template>
-    </Modal>
+      </Modal>
+    </main>
   </div>
 </template>
 
@@ -677,6 +711,7 @@ export default {
     const sortBy = ref('date_desc')
     const allSales = ref([])
     const loadingAllSales = ref(true)
+    const isMenuCollapsed = ref(false)
 
     // Ürünleri yükle
     const loadProducts = async () => {
@@ -1400,6 +1435,10 @@ export default {
       }
     }
 
+    const toggleMenu = () => {
+      isMenuCollapsed.value = !isMenuCollapsed.value
+    }
+
     // Sayfa yüklendiğinde verileri çek
     onMounted(async () => {
       await Promise.all([
@@ -1474,8 +1513,130 @@ export default {
       nextPage,
       prevPage,
       paginatedSales,
-      filteredSales
+      filteredSales,
+      isMenuCollapsed,
+      toggleMenu,
     }
   }
 }
-</script> 
+</script>
+
+<style scoped>
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--background-light);
+}
+
+.sidebar {
+  width: 260px;
+  background: white;
+  border-right: 1px solid var(--border-color);
+  transition: width 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-collapsed .sidebar {
+  width: 80px;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.menu-collapsed .logo-text {
+  display: none;
+}
+
+.collapse-btn {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.sidebar-nav {
+  padding: 1rem 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  color: var(--text-color);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  gap: 1rem;
+}
+
+.nav-item:hover, .nav-item.active {
+  background: var(--background-light);
+  color: var(--primary-color);
+}
+
+.nav-item i {
+  font-size: 1.25rem;
+  width: 24px;
+}
+
+.menu-collapsed .nav-item span {
+  display: none;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    z-index: 100;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .sidebar-header {
+    display: none;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 0.5rem;
+  }
+
+  .nav-item {
+    flex-direction: column;
+    padding: 0.5rem;
+    text-align: center;
+    gap: 0.25rem;
+  }
+
+  .nav-item span {
+    font-size: 0.75rem;
+  }
+
+  .main-content {
+    padding: 1rem;
+    margin-bottom: 60px;
+  }
+}
+</style> 

@@ -18,6 +18,10 @@
           <i class="fas fa-shopping-cart"></i>
           <span>Satışlar</span>
         </router-link>
+        <router-link to="/customers" class="nav-item">
+          <i class="fas fa-users"></i>
+          <span>Müşteriler</span>
+        </router-link>
         <router-link to="/expenses" class="nav-item">
           <i class="fas fa-file-invoice-dollar"></i>
           <span>Giderler</span>

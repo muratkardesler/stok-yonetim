@@ -1,420 +1,454 @@
 <template>
-  <div class="min-h-screen bg-gray-50 p-4 sm:p-6">
-    <!-- Breadcrumb -->
-    <nav class="mb-4">
-      <div class="flex items-center space-x-2 text-sm">
-        <router-link to="/" class="text-gray-600 hover:text-primary-500">Ana Sayfa</router-link>
-        <span class="text-gray-400">/</span>
-        <span class="text-primary-500">Stok Yönetimi</span>
-      </div>
-    </nav>
-
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Stok Yönetimi</h1>
-        <p class="mt-1 text-gray-600">Kategorileri, ürünleri ve paketleri kolayca yönetin</p>
-      </div>
-      <div class="mt-4 sm:mt-0 flex space-x-3">
-        <button @click="showAddCategoryModal = true" class="btn-primary">
-          <i class="fas fa-plus mr-2"></i>
-          Yeni Kategori
-        </button>
-        <button @click="showAddPackageModal = true" class="btn-primary">
-          <i class="fas fa-box mr-2"></i>
-          Yeni Paket
+  <div class="dashboard-layout" :class="{ 'menu-collapsed': isMenuCollapsed }">
+    <!-- Sol Menü -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="logo-text">FlowBridge</span>
+        <button @click="toggleMenu" class="collapse-btn">
+          <i :class="isMenuCollapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left'"></i>
         </button>
       </div>
-    </div>
 
-    <!-- Search & Filter -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-      <div class="flex flex-col sm:flex-row gap-4">
-        <div class="flex-1">
-          <div class="relative">
-            <input 
-              type="text" 
-              v-model="searchQuery"
-              placeholder="Kategori veya ürün ara..."
-              class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-            >
-            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+      <nav class="sidebar-nav">
+        <router-link to="/dashboard" class="nav-item">
+          <i class="fas fa-chart-line"></i>
+          <span>Güncel Durum</span>
+        </router-link>
+        <router-link to="/sales" class="nav-item">
+          <i class="fas fa-shopping-cart"></i>
+          <span>Satışlar</span>
+        </router-link>
+        <router-link to="/customers" class="nav-item">
+          <i class="fas fa-users"></i>
+          <span>Müşteriler</span>
+        </router-link>
+        <router-link to="/stock" class="nav-item active">
+          <i class="fas fa-box"></i>
+          <span>Stok</span>
+        </router-link>
+      </nav>
+    </aside>
+
+    <!-- Ana İçerik -->
+    <main class="main-content">
+      <div class="min-h-screen bg-gray-50 p-4 sm:p-6">
+        <!-- Breadcrumb -->
+        <nav class="mb-4">
+          <div class="flex items-center space-x-2 text-sm">
+            <router-link to="/" class="text-gray-600 hover:text-primary-500">Ana Sayfa</router-link>
+            <span class="text-gray-400">/</span>
+            <span class="text-primary-500">Stok Yönetimi</span>
+          </div>
+        </nav>
+
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Stok Yönetimi</h1>
+            <p class="mt-1 text-gray-600">Kategorileri, ürünleri ve paketleri kolayca yönetin</p>
+          </div>
+          <div class="mt-4 sm:mt-0 flex space-x-3">
+            <button @click="showAddCategoryModal = true" class="btn-primary">
+              <i class="fas fa-plus mr-2"></i>
+              Yeni Kategori
+            </button>
+            <button @click="showAddPackageModal = true" class="btn-primary">
+              <i class="fas fa-box mr-2"></i>
+              Yeni Paket
+            </button>
           </div>
         </div>
-        <div class="sm:w-64">
-          <select 
-            v-model="selectedCategoryFilter"
-            class="w-full py-2 pl-3 pr-10 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-          >
-            <option value="">Tüm Kategoriler</option>
-            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-              {{ cat.name }}
-            </option>
-          </select>
-        </div>
-      </div>
-    </div>
 
-    <!-- Ana Kategoriler -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-      <div v-for="(mainCategory, index) in mainCategories" :key="mainCategory.id" 
-           class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:shadow-xl">
-        <!-- Ana Kategori Header -->
-        <div :class="[
-          getCategoryHeaderColor(index),
-          {'rounded-b-2xl': !isExpandedCategory(mainCategory.id)}
-        ]" class="p-4">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                <i class="fas fa-layer-group text-white text-xl"></i>
-              </div>
-              <div>
-                <h3 class="text-xl font-bold text-white">{{ mainCategory.name }}</h3>
-                <div class="flex items-center space-x-2 mt-1">
-                  <div class="flex items-center space-x-1 bg-white/20 rounded-full px-2.5 py-0.5">
-                    <i class="fas fa-folder-tree text-white/90 text-xs"></i>
-                    <span class="text-white/90 text-xs">{{ getSubCategories(mainCategory.id).length }} Alt Kategori</span>
-                  </div>
-                  <div class="flex items-center space-x-1 bg-white/20 rounded-full px-2.5 py-0.5">
-                    <i class="fas fa-box text-white/90 text-xs"></i>
-                    <span class="text-white/90 text-xs">{{ getTotalProductCount(mainCategory.id) }} Ürün</span>
-                  </div>
-                </div>
+        <!-- Search & Filter -->
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+          <div class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1">
+              <div class="relative">
+                <input 
+                  type="text" 
+                  v-model="searchQuery"
+                  placeholder="Kategori veya ürün ara..."
+                  class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                >
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
               </div>
             </div>
-            <div class="flex items-center space-x-1.5">
-              <button @click.stop="openAddProductModal(mainCategory)" 
-                      class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
-                <i class="fas fa-plus text-white text-sm"></i>
-              </button>
-              <button @click.stop="editCategory(mainCategory)" 
-                      class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
-                <i class="fas fa-edit text-white text-sm"></i>
-              </button>
-              <button @click.stop="deleteCategory(mainCategory)" 
-                      class="p-2 rounded-lg bg-white/10 hover:bg-red-400 transition-colors">
-                <i class="fas fa-trash text-white text-sm"></i>
-              </button>
-              <button @click.stop="toggleCategory(mainCategory.id)" 
-                      class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
-                <i class="fas text-white text-sm" :class="getCategoryChevronIcon(mainCategory.id)"></i>
-              </button>
+            <div class="sm:w-64">
+              <select 
+                v-model="selectedCategoryFilter"
+                class="w-full py-2 pl-3 pr-10 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="">Tüm Kategoriler</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                  {{ cat.name }}
+                </option>
+              </select>
             </div>
           </div>
         </div>
 
-        <!-- Alt Kategoriler -->
-        <transition
-          enter-active-class="transition ease-out duration-200"
-          enter-from-class="transform opacity-0 -translate-y-2"
-          enter-to-class="transform opacity-100 translate-y-0"
-          leave-active-class="transition ease-in duration-150"
-          leave-from-class="transform opacity-100 translate-y-0"
-          leave-to-class="transform opacity-0 -translate-y-2"
-        >
-          <div v-if="isExpandedCategory(mainCategory.id)" 
-               class="divide-y divide-gray-100 bg-white">
-            <div class="p-3 bg-gray-50/80">
+        <!-- Ana Kategoriler -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+          <div v-for="(mainCategory, index) in mainCategories" :key="mainCategory.id" 
+               class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:shadow-xl">
+            <!-- Ana Kategori Header -->
+            <div :class="[
+              getCategoryHeaderColor(index),
+              {'rounded-b-2xl': !isExpandedCategory(mainCategory.id)}
+            ]" class="p-4">
               <div class="flex items-center justify-between">
-                <h4 class="text-sm font-medium text-gray-600">Alt Kategoriler</h4>
-                <button @click="openAddSubCategory(mainCategory)" 
-                        :class="getCategoryButtonStyle(mainCategory.id)"
-                        class="text-xs px-2 py-1 rounded-lg hover:bg-opacity-10 transition-colors">
-                  <i class="fas fa-plus mr-1"></i>
-                  Alt Kategori Ekle
-                </button>
-              </div>
-            </div>
-            
-            <div class="space-y-0.5 p-2">
-              <div v-for="subCategory in getSubCategories(mainCategory.id)" 
-                   :key="subCategory.id"
-                   class="relative group">
-                <!-- Tree branch line -->
-                <div class="absolute left-4 top-0 bottom-0 w-px bg-gray-200 group-hover:bg-gray-300"></div>
-                
-                <div class="relative flex items-center pl-8 pr-3 py-2 rounded-lg hover:bg-gray-50 transition-all duration-200">
-                  <!-- Tree branch connector -->
-                  <div class="absolute left-4 top-1/2 w-3 h-px bg-gray-200 group-hover:bg-gray-300"></div>
-                  
-                  <div class="flex-1 flex items-center min-w-0">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-2"
-                         :class="getCategoryBgColor(mainCategory.id)">
-                      <i class="fas fa-box text-sm" :class="getCategoryTextColor(mainCategory.id)"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h4 class="text-sm font-medium text-gray-900 truncate">{{ subCategory.name }}</h4>
-                      <p class="text-xs text-gray-500 mt-0.5">{{ getCategoryProductCount(subCategory.id) }} Ürün</p>
+                <div class="flex items-center space-x-3">
+                  <div class="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <i class="fas fa-layer-group text-white text-xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-bold text-white">{{ mainCategory.name }}</h3>
+                    <div class="flex items-center space-x-2 mt-1">
+                      <div class="flex items-center space-x-1 bg-white/20 rounded-full px-2.5 py-0.5">
+                        <i class="fas fa-folder-tree text-white/90 text-xs"></i>
+                        <span class="text-white/90 text-xs">{{ getSubCategories(mainCategory.id).length }} Alt Kategori</span>
+                      </div>
+                      <div class="flex items-center space-x-1 bg-white/20 rounded-full px-2.5 py-0.5">
+                        <i class="fas fa-box text-white/90 text-xs"></i>
+                        <span class="text-white/90 text-xs">{{ getTotalProductCount(mainCategory.id) }} Ürün</span>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button @click="openAddProductModal(subCategory)" 
-                            class="p-1.5 rounded-md hover:bg-gray-100"
-                            :class="getCategoryTextColor(mainCategory.id)">
-                      <i class="fas fa-plus text-xs"></i>
-                    </button>
-                    <button @click="editCategory(subCategory)" 
-                            class="p-1.5 rounded-md hover:bg-gray-100 text-gray-500">
-                      <i class="fas fa-edit text-xs"></i>
-                    </button>
-                    <button @click="deleteCategory(subCategory)" 
-                            class="p-1.5 rounded-md hover:bg-red-50 text-red-500">
-                      <i class="fas fa-trash text-xs"></i>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                  <button @click.stop="openAddProductModal(mainCategory)" 
+                          class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+                    <i class="fas fa-plus text-white text-sm"></i>
+                  </button>
+                  <button @click.stop="editCategory(mainCategory)" 
+                          class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+                    <i class="fas fa-edit text-white text-sm"></i>
+                  </button>
+                  <button @click.stop="deleteCategory(mainCategory)" 
+                          class="p-2 rounded-lg bg-white/10 hover:bg-red-400 transition-colors">
+                    <i class="fas fa-trash text-white text-sm"></i>
+                  </button>
+                  <button @click.stop="toggleCategory(mainCategory.id)" 
+                          class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+                    <i class="fas text-white text-sm" :class="getCategoryChevronIcon(mainCategory.id)"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Alt Kategoriler -->
+            <transition
+              enter-active-class="transition ease-out duration-200"
+              enter-from-class="transform opacity-0 -translate-y-2"
+              enter-to-class="transform opacity-100 translate-y-0"
+              leave-active-class="transition ease-in duration-150"
+              leave-from-class="transform opacity-100 translate-y-0"
+              leave-to-class="transform opacity-0 -translate-y-2"
+            >
+              <div v-if="isExpandedCategory(mainCategory.id)" 
+                   class="divide-y divide-gray-100 bg-white">
+                <div class="p-3 bg-gray-50/80">
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-medium text-gray-600">Alt Kategoriler</h4>
+                    <button @click="openAddSubCategory(mainCategory)" 
+                            :class="getCategoryButtonStyle(mainCategory.id)"
+                            class="text-xs px-2 py-1 rounded-lg hover:bg-opacity-10 transition-colors">
+                      <i class="fas fa-plus mr-1"></i>
+                      Alt Kategori Ekle
                     </button>
                   </div>
                 </div>
+                
+                <div class="space-y-0.5 p-2">
+                  <div v-for="subCategory in getSubCategories(mainCategory.id)" 
+                       :key="subCategory.id"
+                       class="relative group">
+                    <!-- Tree branch line -->
+                    <div class="absolute left-4 top-0 bottom-0 w-px bg-gray-200 group-hover:bg-gray-300"></div>
+                    
+                    <div class="relative flex items-center pl-8 pr-3 py-2 rounded-lg hover:bg-gray-50 transition-all duration-200">
+                      <!-- Tree branch connector -->
+                      <div class="absolute left-4 top-1/2 w-3 h-px bg-gray-200 group-hover:bg-gray-300"></div>
+                      
+                      <div class="flex-1 flex items-center min-w-0">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-2"
+                             :class="getCategoryBgColor(mainCategory.id)">
+                          <i class="fas fa-box text-sm" :class="getCategoryTextColor(mainCategory.id)"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <h4 class="text-sm font-medium text-gray-900 truncate">{{ subCategory.name }}</h4>
+                          <p class="text-xs text-gray-500 mt-0.5">{{ getCategoryProductCount(subCategory.id) }} Ürün</p>
+                        </div>
+                      </div>
+                      
+                      <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button @click="openAddProductModal(subCategory)" 
+                                class="p-1.5 rounded-md hover:bg-gray-100"
+                                :class="getCategoryTextColor(mainCategory.id)">
+                          <i class="fas fa-plus text-xs"></i>
+                        </button>
+                        <button @click="editCategory(subCategory)" 
+                                class="p-1.5 rounded-md hover:bg-gray-100 text-gray-500">
+                          <i class="fas fa-edit text-xs"></i>
+                        </button>
+                        <button @click="deleteCategory(subCategory)" 
+                                class="p-1.5 rounded-md hover:bg-red-50 text-red-500">
+                          <i class="fas fa-trash text-xs"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Empty state for no subcategories -->
+                  <div v-if="getSubCategories(mainCategory.id).length === 0" 
+                       class="py-3 px-8 text-center">
+                    <p class="text-sm text-gray-500">Henüz alt kategori bulunmuyor</p>
+                  </div>
+                </div>
               </div>
-              
-              <!-- Empty state for no subcategories -->
-              <div v-if="getSubCategories(mainCategory.id).length === 0" 
-                   class="py-3 px-8 text-center">
-                <p class="text-sm text-gray-500">Henüz alt kategori bulunmuyor</p>
-              </div>
+            </transition>
+          </div>
+
+          <!-- Yeni Ana Kategori Kartı -->
+          <div @click="showAddCategoryModal = true" 
+               class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl border-2 border-dashed border-indigo-200 p-8 flex flex-col items-center justify-center space-y-4 cursor-pointer hover:bg-indigo-100/70 transition-all group">
+            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+              <i class="fas fa-plus text-2xl text-indigo-600"></i>
+            </div>
+            <div class="text-center">
+              <p class="text-xl font-semibold text-gray-900">Yeni Ana Kategori</p>
+              <p class="text-sm text-gray-500 mt-1">Yeni bir kategori oluşturun</p>
             </div>
           </div>
-        </transition>
-      </div>
-
-      <!-- Yeni Ana Kategori Kartı -->
-      <div @click="showAddCategoryModal = true" 
-           class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl border-2 border-dashed border-indigo-200 p-8 flex flex-col items-center justify-center space-y-4 cursor-pointer hover:bg-indigo-100/70 transition-all group">
-        <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-          <i class="fas fa-plus text-2xl text-indigo-600"></i>
         </div>
-        <div class="text-center">
-          <p class="text-xl font-semibold text-gray-900">Yeni Ana Kategori</p>
-          <p class="text-sm text-gray-500 mt-1">Yeni bir kategori oluşturun</p>
-        </div>
-      </div>
-    </div>
 
-    <!-- Packages Section -->
-    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
-      <div class="px-6 py-5 border-b border-gray-100">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center">
-              <i class="fas fa-box-open text-indigo-600 text-xl"></i>
-            </div>
-            <div>
-              <h2 class="text-xl font-bold text-gray-900">Paketler</h2>
-              <p class="text-sm text-gray-500 mt-0.5">Özel ürün paketlerinizi buradan yönetin</p>
-            </div>
-          </div>
-          <button @click="showAddPackageModal = true" 
-                  class="inline-flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 group">
-            <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
-            <span>Yeni Paket</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="packageItem in packages" :key="packageItem.id"
-             class="group bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300">
-          <div class="p-6">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center">
+        <!-- Packages Section -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+          <div class="px-6 py-5 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center">
                   <i class="fas fa-box-open text-indigo-600 text-xl"></i>
                 </div>
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-900">{{ packageItem.name }}</h3>
-                  <p class="text-sm text-gray-500">{{ packageItem.description }}</p>
+                  <h2 class="text-xl font-bold text-gray-900">Paketler</h2>
+                  <p class="text-sm text-gray-500 mt-0.5">Özel ürün paketlerinizi buradan yönetin</p>
                 </div>
               </div>
-              <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button @click="editPackage(packageItem)"
-                        class="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button @click="deletePackage(packageItem)"
-                        class="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
+              <button @click="showAddPackageModal = true" 
+                      class="inline-flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 group">
+                <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
+                <span>Yeni Paket</span>
+              </button>
             </div>
-            
-            <div class="space-y-3 mt-6">
-              <div v-for="item in packageItem.products" :key="item.product.id"
-                   class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-indigo-200 transition-colors">
-                <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 rounded-lg flex items-center justify-center"
-                       :class="getCategoryBgColor(item.product.category_id)">
-                    <i class="fas fa-box text-lg" :class="getCategoryTextColor(item.product.category_id)"></i>
+          </div>
+
+          <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div v-for="packageItem in packages" :key="packageItem.id"
+                 class="group bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300">
+              <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center">
+                      <i class="fas fa-box-open text-indigo-600 text-xl"></i>
+                    </div>
+                    <div>
+                      <h3 class="text-lg font-semibold text-gray-900">{{ packageItem.name }}</h3>
+                      <p class="text-sm text-gray-500">{{ packageItem.description }}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p class="text-sm font-medium text-gray-900">{{ item.product.name }}</p>
-                    <div class="flex items-center space-x-2 mt-0.5">
-                      <span class="text-xs text-gray-500">{{ item.quantity }} Adet</span>
-                      <span class="text-xs font-medium text-indigo-600">
-                        ₺{{ formatPrice(item.product.price * item.quantity) }}
+                  <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button @click="editPackage(packageItem)"
+                            class="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button @click="deletePackage(packageItem)"
+                            class="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="space-y-3 mt-6">
+                  <div v-for="item in packageItem.products" :key="item.product.id"
+                       class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-indigo-200 transition-colors">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-10 h-10 rounded-lg flex items-center justify-center"
+                           :class="getCategoryBgColor(item.product.category_id)">
+                        <i class="fas fa-box text-lg" :class="getCategoryTextColor(item.product.category_id)"></i>
+                      </div>
+                      <div>
+                        <p class="text-sm font-medium text-gray-900">{{ item.product.name }}</p>
+                        <div class="flex items-center space-x-2 mt-0.5">
+                          <span class="text-xs text-gray-500">{{ item.quantity }} Adet</span>
+                          <span class="text-xs font-medium text-indigo-600">
+                            ₺{{ formatPrice(item.product.price * item.quantity) }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-lg">
+                        {{ getCategoryName(item.product.category_id) }}
                       </span>
                     </div>
                   </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                  <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-lg">
-                    {{ getCategoryName(item.product.category_id) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="mt-6 pt-4 border-t border-gray-100">
-              <div class="relative">
-                <!-- İndirim Etiketi -->
-                <div class="absolute -top-3 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-1 rounded-full transform rotate-3 shadow-lg">
-                  <div class="flex items-center space-x-1">
-                    <i class="fas fa-tag text-xs"></i>
-                    <span class="font-bold">%{{ calculateDiscountPercentage(packageItem) }}</span>
-                    <span class="text-xs">İNDİRİM</span>
-                  </div>
-                </div>
-
-                <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4">
-                  <div class="flex flex-col space-y-3">
-                    <!-- Normal Fiyat -->
-                    <div class="flex justify-between items-center">
-                      <span class="text-sm font-medium text-gray-600">Normal Fiyat</span>
-                      <div class="flex items-center">
-                        <span class="line-through text-gray-500 text-lg">₺{{ formatPrice(calculatePackageOriginalPrice(packageItem)) }}</span>
+                
+                <div class="mt-6 pt-4 border-t border-gray-100">
+                  <div class="relative">
+                    <!-- İndirim Etiketi -->
+                    <div class="absolute -top-3 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-1 rounded-full transform rotate-3 shadow-lg">
+                      <div class="flex items-center space-x-1">
+                        <i class="fas fa-tag text-xs"></i>
+                        <span class="font-bold">%{{ calculateDiscountPercentage(packageItem) }}</span>
+                        <span class="text-xs">İNDİRİM</span>
                       </div>
                     </div>
 
-                    <!-- İndirimli Fiyat -->
-                    <div class="flex justify-between items-center pb-2">
-                      <div>
-                        <span class="text-base font-bold text-gray-900">İndirimli Fiyat</span>
-                        <div class="flex items-center mt-0.5">
-                          <span class="text-xs text-gray-500">KDV Dahil</span>
-                        </div>
-                      </div>
-                      <div class="text-right">
-                        <div class="flex flex-col items-end">
-                          <span class="text-3xl font-bold text-red-600">₺{{ formatPrice(packageItem.price) }}</span>
-                          <div class="text-xs text-gray-500 mt-1">
-                            Kazancınız: ₺{{ formatPrice(calculatePackageOriginalPrice(packageItem) - packageItem.price) }}
+                    <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4">
+                      <div class="flex flex-col space-y-3">
+                        <!-- Normal Fiyat -->
+                        <div class="flex justify-between items-center">
+                          <span class="text-sm font-medium text-gray-600">Normal Fiyat</span>
+                          <div class="flex items-center">
+                            <span class="line-through text-gray-500 text-lg">₺{{ formatPrice(calculatePackageOriginalPrice(packageItem)) }}</span>
                           </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <!-- Ürün Sayısı -->
-                    <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                      <span class="text-sm text-gray-600">Toplam Ürün</span>
-                      <span class="text-sm font-medium text-gray-900">
-                        {{ packageItem.products.reduce((total, item) => total + item.quantity, 0) }} Adet
-                      </span>
+                        <!-- İndirimli Fiyat -->
+                        <div class="flex justify-between items-center pb-2">
+                          <div>
+                            <span class="text-base font-bold text-gray-900">İndirimli Fiyat</span>
+                            <div class="flex items-center mt-0.5">
+                              <span class="text-xs text-gray-500">KDV Dahil</span>
+                            </div>
+                          </div>
+                          <div class="text-right">
+                            <div class="flex flex-col items-end">
+                              <span class="text-3xl font-bold text-red-600">₺{{ formatPrice(packageItem.price) }}</span>
+                              <div class="text-xs text-gray-500 mt-1">
+                                Kazancınız: ₺{{ formatPrice(calculatePackageOriginalPrice(packageItem) - packageItem.price) }}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Ürün Sayısı -->
+                        <div class="flex justify-between items-center pt-2 border-t border-gray-200">
+                          <span class="text-sm text-gray-600">Toplam Ürün</span>
+                          <span class="text-sm font-medium text-gray-900">
+                            {{ packageItem.products.reduce((total, item) => total + item.quantity, 0) }} Adet
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- New Package Card -->
-        <div @click="showAddPackageModal = true"
-             class="group bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl border-2 border-dashed border-indigo-200 p-8 flex flex-col items-center justify-center space-y-4 cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all duration-300">
-          <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-            <i class="fas fa-box-open text-3xl text-indigo-600 group-hover:text-indigo-700 transition-colors"></i>
-          </div>
-          <div class="text-center">
-            <p class="text-xl font-semibold text-gray-900">Yeni Paket</p>
-            <p class="text-sm text-gray-500 mt-2">Özel bir ürün paketi oluşturun</p>
-          </div>
-          <div class="mt-2 px-4 py-2 bg-white/50 rounded-full text-indigo-600 text-sm font-medium group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-            <i class="fas fa-plus mr-1"></i>
-            Paket Ekle
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Products Table -->
-    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-      <div class="px-6 py-5 border-b border-gray-100">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center">
-              <i class="fas fa-box-archive text-indigo-600 text-xl"></i>
-            </div>
-            <div>
-              <h2 class="text-xl font-bold text-gray-900">Ürünler</h2>
-              <p class="text-sm text-gray-500 mt-0.5">Tüm ürünlerinizi buradan yönetin</p>
+            <!-- New Package Card -->
+            <div @click="showAddPackageModal = true"
+                 class="group bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl border-2 border-dashed border-indigo-200 p-8 flex flex-col items-center justify-center space-y-4 cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all duration-300">
+              <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                <i class="fas fa-box-open text-3xl text-indigo-600 group-hover:text-indigo-700 transition-colors"></i>
+              </div>
+              <div class="text-center">
+                <p class="text-xl font-semibold text-gray-900">Yeni Paket</p>
+                <p class="text-sm text-gray-500 mt-2">Özel bir ürün paketi oluşturun</p>
+              </div>
+              <div class="mt-2 px-4 py-2 bg-white/50 rounded-full text-indigo-600 text-sm font-medium group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                <i class="fas fa-plus mr-1"></i>
+                Paket Ekle
+              </div>
             </div>
           </div>
-          <button @click="showAddProductModal = true" 
-                  class="inline-flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 group">
-            <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
-            <span>Yeni Ürün</span>
-          </button>
+        </div>
+
+        <!-- Products Table -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div class="px-6 py-5 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center">
+                  <i class="fas fa-box-archive text-indigo-600 text-xl"></i>
+                </div>
+                <div>
+                  <h2 class="text-xl font-bold text-gray-900">Ürünler</h2>
+                  <p class="text-sm text-gray-500 mt-0.5">Tüm ürünlerinizi buradan yönetin</p>
+                </div>
+              </div>
+              <button @click="showAddProductModal = true" 
+                      class="inline-flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 group">
+                <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
+                <span>Yeni Ürün</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50/50">
+                <tr>
+                  <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ürün Adı</th>
+                  <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                  <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok Durumu</th>
+                  <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fiyat</th>
+                  <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-100">
+                <tr v-for="product in filteredProducts" :key="product.id" 
+                    class="hover:bg-gray-50/50 transition-colors">
+                  <td class="px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                           :class="getCategoryBgColor(product.category_id)">
+                        <i class="fas fa-box" :class="getCategoryTextColor(product.category_id)"></i>
+                      </div>
+                      <span class="text-sm font-semibold text-gray-900">{{ product.name }}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="px-3 py-1.5 inline-flex text-sm font-medium rounded-lg"
+                          :class="getCategoryBadgeColor(product.category_id)">
+                      {{ getCategoryName(product.category_id) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex items-center space-x-2">
+                      <div class="w-2 h-2 rounded-full" 
+                           :class="[product.stock <= 0 ? 'bg-red-500' : product.stock <= 10 ? 'bg-orange-500' : 'bg-green-500']"></div>
+                      <div class="font-mono text-sm" :class="getStockColor(product.stock)">
+                        {{ product.stock }} Adet
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="font-mono text-sm font-bold text-emerald-600">
+                      ₺{{ formatPrice(product.price) }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end space-x-2">
+                      <button @click="editProduct(product)" 
+                              class="p-2 rounded-lg hover:bg-indigo-50 text-indigo-600 transition-colors">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button @click="deleteProduct(product)" 
+                              class="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50/50">
-            <tr>
-              <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ürün Adı</th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok Durumu</th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fiyat</th>
-              <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-100">
-            <tr v-for="product in filteredProducts" :key="product.id" 
-                class="hover:bg-gray-50/50 transition-colors">
-              <td class="px-6 py-4">
-                <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 rounded-xl flex items-center justify-center"
-                       :class="getCategoryBgColor(product.category_id)">
-                    <i class="fas fa-box" :class="getCategoryTextColor(product.category_id)"></i>
-                  </div>
-                  <span class="text-sm font-semibold text-gray-900">{{ product.name }}</span>
-                </div>
-              </td>
-              <td class="px-6 py-4">
-                <span class="px-3 py-1.5 inline-flex text-sm font-medium rounded-lg"
-                      :class="getCategoryBadgeColor(product.category_id)">
-                  {{ getCategoryName(product.category_id) }}
-                </span>
-              </td>
-              <td class="px-6 py-4">
-                <div class="flex items-center space-x-2">
-                  <div class="w-2 h-2 rounded-full" 
-                       :class="[product.stock <= 0 ? 'bg-red-500' : product.stock <= 10 ? 'bg-orange-500' : 'bg-green-500']"></div>
-                  <div class="font-mono text-sm" :class="getStockColor(product.stock)">
-                    {{ product.stock }} Adet
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4">
-                <div class="font-mono text-sm font-bold text-emerald-600">
-                  ₺{{ formatPrice(product.price) }}
-                </div>
-              </td>
-              <td class="px-6 py-4 text-right">
-                <div class="flex items-center justify-end space-x-2">
-                  <button @click="editProduct(product)" 
-                          class="p-2 rounded-lg hover:bg-indigo-50 text-indigo-600 transition-colors">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button @click="deleteProduct(product)" 
-                          class="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </main>
 
     <!-- Category Modal -->
     <Modal v-if="showAddCategoryModal" @close="closeAddCategoryModal">
@@ -789,6 +823,12 @@ export default {
       price: 0,
       products: []
     })
+
+    const isMenuCollapsed = ref(false)
+
+    const toggleMenu = () => {
+      isMenuCollapsed.value = !isMenuCollapsed.value
+    }
 
     const toggleCategory = (categoryId) => {
       // Önce tüm kategorileri kapat
@@ -1528,7 +1568,9 @@ export default {
       removeProductFromPackage,
       calculateTotalPrice,
       calculatePackageOriginalPrice,
-      calculateDiscountPercentage
+      calculateDiscountPercentage,
+      isMenuCollapsed,
+      toggleMenu
     }
   }
 }
