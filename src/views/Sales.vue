@@ -193,6 +193,103 @@
             </div>
           </div>
         </div>
+
+        <!-- Tüm Satışlar -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold text-gray-900">Tüm Satışlar</h2>
+            <span class="text-sm text-gray-500">{{ totalSalesCount }} satış</span>
+          </div>
+
+          <!-- Arama ve Filtreleme -->
+          <div class="flex flex-col sm:flex-row gap-4 mb-4">
+            <!-- Arama -->
+            <div class="flex-1">
+              <div class="relative">
+                <input 
+                  type="text" 
+                  v-model="salesSearchQuery"
+                  placeholder="Müşteri adına göre ara..."
+                  class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                  @input="searchSales"
+                >
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              </div>
+            </div>
+
+            <!-- Sıralama -->
+            <div class="flex space-x-2">
+              <select 
+                v-model="sortBy"
+                @change="loadAllSales"
+                class="rounded-xl border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                <option value="date_desc">Tarihe Göre (Yeni - Eski)</option>
+                <option value="date_asc">Tarihe Göre (Eski - Yeni)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Yükleniyor -->
+          <div v-if="loadingAllSales" class="flex items-center justify-center py-8">
+            <i class="fas fa-spinner fa-spin text-xl text-primary-500"></i>
+          </div>
+
+          <!-- Veri Yok -->
+          <div v-else-if="allSales.length === 0" class="text-center py-8">
+            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <i class="fas fa-receipt text-gray-400 text-lg"></i>
+            </div>
+            <p class="text-gray-500 text-sm">Satış bulunamadı</p>
+            <p v-if="salesSearchQuery" class="text-sm text-gray-400 mt-1">Farklı bir arama terimi deneyin</p>
+          </div>
+
+          <!-- Satış Listesi -->
+          <div v-else>
+            <div class="space-y-3">
+              <div v-for="sale in paginatedSales" 
+                   :key="sale.id" 
+                   @click="handleSaleClick(sale)"
+                   class="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 class="text-sm font-medium text-gray-900">{{ sale.extra?.[0]?.customer_name }}</h3>
+                    <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
+                  </div>
+                  <span :class="[
+                    'px-2 py-1 text-xs font-medium rounded-full',
+                    sale.sale_type === 'package' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'
+                  ]">
+                    {{ sale.sale_type === 'package' ? 'Paket' : 'Ürün' }}
+                  </span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <div class="flex items-center text-xs text-gray-500">
+                    <i class="fas fa-shopping-cart mr-1"></i>
+                    {{ sale.details?.length || 0 }} ürün
+                  </div>
+                  <span class="text-sm font-bold text-indigo-600">₺{{ formatPrice(sale.total_amount) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sayfalama -->
+            <div class="flex justify-center items-center space-x-2 mt-4">
+              <button @click="prevPage" 
+                      :disabled="currentPage === 1"
+                      class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <span class="text-sm text-gray-600">
+                Sayfa {{ currentPage }} / {{ totalPages }}
+              </span>
+              <button @click="nextPage"
+                      :disabled="currentPage === totalPages"
+                      class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Sağ Taraf: Sepet ve Satış Listesi -->
@@ -320,8 +417,7 @@
         <!-- Son Satışlar -->
         <div class="bg-white rounded-2xl shadow-lg p-6">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold text-gray-900">Tamamlanan Satışlar</h2>
-            <span class="text-sm text-gray-500">{{ recentSales.length }} satış</span>
+            <h2 class="text-lg font-bold text-gray-900">Son Yapılan Satışlar</h2>
           </div>
 
           <!-- Yükleniyor -->
@@ -334,10 +430,10 @@
             <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <i class="fas fa-receipt text-gray-400 text-lg"></i>
             </div>
-            <p class="text-gray-500 text-sm">Henüz tamamlanan satış bulunmuyor</p>
+            <p class="text-gray-500 text-sm">Henüz satış bulunmuyor</p>
           </div>
 
-          <!-- Satış Listesi -->
+          <!-- Son 5 Satış Listesi -->
           <div v-else class="space-y-3">
             <div v-for="sale in recentSales" 
                  :key="sale.id" 
@@ -573,6 +669,14 @@ export default {
     const filteredCustomers = ref([])
     const showCustomerSuggestions = ref(false)
     const isViewingSaleDetails = ref(false)
+    const showingAllSales = ref(false)
+    const currentPage = ref(1)
+    const pageSize = ref(10)
+    const totalSalesCount = ref(0)
+    const salesSearchQuery = ref('')
+    const sortBy = ref('date_desc')
+    const allSales = ref([])
+    const loadingAllSales = ref(true)
 
     // Ürünleri yükle
     const loadProducts = async () => {
@@ -868,6 +972,7 @@ export default {
 
     const loadRecentSales = async () => {
       try {
+        loadingSales.value = true
         const { data, error } = await supabase
           .from('sales')
           .select(`
@@ -877,8 +982,7 @@ export default {
               *,
               product:products(*),
               package:packages(*)
-            ),
-            customer:customers(*)
+            )
           `)
           .eq('status', 'completed')
           .order('created_at', { ascending: false })
@@ -891,6 +995,97 @@ export default {
         toast.error('Son satışlar yüklenirken bir hata oluştu')
       } finally {
         loadingSales.value = false
+      }
+    }
+
+    // Filtrelenmiş satışları computed olarak tanımla
+    const filteredSales = computed(() => {
+      if (!salesSearchQuery.value.trim()) {
+        return allSales.value
+      }
+      const searchTerm = salesSearchQuery.value.toLowerCase().trim()
+      return allSales.value.filter(sale => 
+        sale.extra?.[0]?.customer_name?.toLowerCase().includes(searchTerm)
+      )
+    })
+
+    const loadAllSales = async () => {
+      try {
+        loadingAllSales.value = true
+
+        // Tüm satışları tek seferde çek
+        const { data, error } = await supabase
+          .from('sales')
+          .select(`
+            id,
+            created_at,
+            sale_type,
+            status,
+            total_amount,
+            details:sale_details(
+              id,
+              quantity,
+              unit_price,
+              total_price,
+              product:products(
+                id,
+                name,
+                category_id
+              ),
+              package:packages(
+                id,
+                name
+              )
+            ),
+            extra:sale_details_extra(
+              id,
+              customer_name,
+              tax_rate,
+              discount_rate,
+              notes
+            )
+          `)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: sortBy.value === 'date_asc' })
+
+        if (error) throw error
+        allSales.value = data || []
+        totalSalesCount.value = data?.length || 0
+
+      } catch (error) {
+        console.error('Error loading all sales:', error)
+        toast.error('Satışlar yüklenirken bir hata oluştu')
+      } finally {
+        loadingAllSales.value = false
+      }
+    }
+
+    // Sayfalama için computed değerler
+    const paginatedSales = computed(() => {
+      const start = (currentPage.value - 1) * pageSize.value
+      const end = start + pageSize.value
+      return filteredSales.value.slice(start, end)
+    })
+
+    // totalPages computed'ını güncelle
+    const totalPages = computed(() => Math.ceil(filteredSales.value.length / pageSize.value))
+
+    // Arama fonksiyonunu güncelle
+    const searchSales = () => {
+      currentPage.value = 1 // Aramada ilk sayfaya dön
+    }
+
+    const nextPage = () => {
+      if (currentPage.value < totalPages.value) {
+        currentPage.value++
+        loadAllSales()
+      }
+    }
+
+    const prevPage = () => {
+      if (currentPage.value > 1) {
+        currentPage.value--
+        loadAllSales()
       }
     }
 
@@ -1206,12 +1401,15 @@ export default {
     }
 
     // Sayfa yüklendiğinde verileri çek
-    onMounted(() => {
-      loadProducts()
-      loadPackages()
-      loadRecentSales()
-      loadPendingSales()
-      loadCustomers()
+    onMounted(async () => {
+      await Promise.all([
+        loadProducts(),
+        loadPackages(),
+        loadRecentSales(),
+        loadPendingSales(),
+        loadCustomers(),
+        loadAllSales() // Tüm satışları da yükle
+      ])
     })
 
     return {
@@ -1263,7 +1461,20 @@ export default {
       selectCustomer,
       handleSaleClick,
       isViewingSaleDetails,
-      selectedSale
+      selectedSale,
+      showingAllSales,
+      currentPage,
+      totalPages,
+      totalSalesCount,
+      salesSearchQuery,
+      sortBy,
+      allSales,
+      loadingAllSales,
+      loadAllSales,
+      nextPage,
+      prevPage,
+      paginatedSales,
+      filteredSales
     }
   }
 }
