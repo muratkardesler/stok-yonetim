@@ -193,18 +193,23 @@ export default {
           .from('sales')
           .select(`
             *,
-            customers (
-              name,
-              email,
-              phone
+            extra:sale_details_extra(*),
+            details:sale_details(
+              *,
+              product:products(*),
+              package:packages(*)
             )
           `)
           .eq('user_id', user.id) // Kullanıcı bazlı filtreleme
           .order('created_at', { ascending: false })
 
-        if (error) throw error
+        if (error) {
+          console.error('Satış sorgu hatası:', error)
+          throw error
+        }
 
         sales.value = data || []
+        console.log('Kullanıcının satışları:', data)
       } catch (error) {
         console.error('Satışlar getirilirken hata:', error)
         toast.error('Satışlar yüklenirken bir hata oluştu')
