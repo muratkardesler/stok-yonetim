@@ -437,7 +437,12 @@ export default {
           }
         })
 
-        if (error) throw error
+        if (error) {
+          if (error.message.includes('User already registered')) {
+            throw new Error('Bu e-posta adresi ile daha önce kayıt yapılmış. Lütfen farklı bir e-posta adresi kullanın.')
+          }
+          throw error
+        }
 
         toast.success('Kayıt başarılı! Lütfen e-posta adresinizi doğrulayın.', {
           timeout: 5000,
