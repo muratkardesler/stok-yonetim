@@ -438,10 +438,18 @@ export default {
         })
 
         if (error) {
-          if (error.message.includes('User already registered')) {
+          // Supabase'in kendi hata mesajlarını kontrol edelim
+          if (error.message.includes('User already registered') || 
+              error.message.includes('Email already registered') ||
+              error.message.includes('already exists')) {
             throw new Error('Bu e-posta adresi ile daha önce kayıt yapılmış. Lütfen farklı bir e-posta adresi kullanın.')
           }
           throw error
+        }
+
+        // Eğer data.user null ise ve hata da yoksa, kullanıcı zaten kayıtlıdır
+        if (!data?.user) {
+          throw new Error('Bu e-posta adresi ile daha önce kayıt yapılmış. Lütfen farklı bir e-posta adresi kullanın.')
         }
 
         toast.success('Kayıt başarılı! Lütfen e-posta adresinizi doğrulayın.', {
