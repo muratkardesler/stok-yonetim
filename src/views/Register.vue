@@ -343,7 +343,12 @@ export default {
         },
         phone: { 
           required: helpers.withMessage('Telefon numarası zorunludur', required),
-          validPhone: helpers.withMessage('Geçerli bir telefon numarası giriniz', helpers.regex(/^\d{10}$/))
+          validPhone: helpers.withMessage('Geçerli bir telefon numarası giriniz', (value) => {
+            // Sadece rakamları al
+            const numbers = value.replace(/\D/g, '')
+            // 10 haneli numara kontrolü
+            return numbers.length === 10
+          })
         }
       }
     }
@@ -390,15 +395,21 @@ export default {
 
     // Format phone number
     const formatPhoneNumber = () => {
+      // Sadece rakamları al
       let phone = form.value.phone.replace(/\D/g, '')
+      
+      // Maksimum 10 rakam
       if (phone.length > 10) {
         phone = phone.slice(0, 10)
       }
+      
+      // Formatlama: XXX XXX XXXX
       if (phone.length >= 6) {
         phone = phone.slice(0, 3) + ' ' + phone.slice(3, 6) + ' ' + phone.slice(6)
       } else if (phone.length >= 3) {
         phone = phone.slice(0, 3) + ' ' + phone.slice(3)
       }
+      
       form.value.phone = phone
     }
 
