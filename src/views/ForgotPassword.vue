@@ -72,7 +72,7 @@ export default {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(
           email.value,
           {
-            redirectTo: window.location.origin + '/reset-password',
+            redirectTo: `${window.location.origin}/reset-password`,
             captchaToken: undefined
           }
         )

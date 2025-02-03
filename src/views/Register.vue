@@ -432,7 +432,8 @@ export default {
               company_email: form.value.companyEmail,
               phone: form.value.phone,
               address: form.value.address
-            }
+            },
+            emailRedirectTo: window.location.origin
           }
         })
 
