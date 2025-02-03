@@ -422,6 +422,22 @@ export default {
       try {
         console.log('Kayıt işlemi başlatılıyor:', form.value.email)
 
+        // E-posta kontrolü
+        const { data: emailExists, error: checkError } = await supabase
+          .rpc('check_email_exists', {
+            email_to_check: form.value.email
+          })
+
+        if (checkError) {
+          console.error('E-posta kontrolü hatası:', checkError)
+          throw checkError
+        }
+
+        if (emailExists) {
+          console.log('E-posta adresi zaten kayıtlı')
+          throw new Error('Bu e-posta adresi ile daha önce kayıt yapılmış. Lütfen farklı bir e-posta adresi kullanın.')
+        }
+
         // Register with Supabase
         const { data, error } = await supabase.auth.signUp({
           email: form.value.email,
@@ -441,20 +457,14 @@ export default {
 
         console.log('Kayıt cevabı:', { data, error })
 
-        // Supabase'in yanıtını kontrol edelim
         if (error) {
           console.error('Kayıt hatası:', error)
-          // Eğer hata mesajı "User already registered" içeriyorsa
-          if (error.message.includes('User already registered')) {
-            throw new Error('Bu e-posta adresi ile daha önce kayıt yapılmış. Lütfen farklı bir e-posta adresi kullanın.')
-          }
           throw error
         }
 
-        // Eğer data.user null ise veya session null ise, e-posta zaten kayıtlıdır
-        if (!data?.user || !data?.session) {
-          console.log('E-posta adresi zaten kayıtlı veya doğrulama gerekiyor')
-          throw new Error('Bu e-posta adresi ile daha önce kayıt yapılmış veya doğrulama bekliyor. Lütfen e-postanızı kontrol edin.')
+        if (!data?.user) {
+          console.log('Kullanıcı verisi eksik:', data)
+          throw new Error('Kayıt işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.')
         }
 
         toast.success('Kayıt başarılı! Lütfen e-posta adresinizi doğrulayın.', {
