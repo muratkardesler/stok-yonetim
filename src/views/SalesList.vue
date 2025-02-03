@@ -182,13 +182,9 @@ export default {
     const fetchSales = async () => {
       try {
         loading.value = true
-
-        // Önce mevcut kullanıcıyı al
         const { data: { user }, error: userError } = await supabase.auth.getUser()
-        
         if (userError) throw userError
 
-        // Sadece giriş yapan kullanıcının satışlarını getir
         const { data, error } = await supabase
           .from('sales')
           .select(`
@@ -200,16 +196,11 @@ export default {
               package:packages(*)
             )
           `)
-          .eq('user_id', user.id) // Kullanıcı bazlı filtreleme
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false })
 
-        if (error) {
-          console.error('Satış sorgu hatası:', error)
-          throw error
-        }
-
+        if (error) throw error
         sales.value = data || []
-        console.log('Kullanıcının satışları:', data)
       } catch (error) {
         console.error('Satışlar getirilirken hata:', error)
         toast.error('Satışlar yüklenirken bir hata oluştu')

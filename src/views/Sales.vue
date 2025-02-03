@@ -1008,18 +1008,21 @@ export default {
     const loadRecentSales = async () => {
       try {
         loadingSales.value = true
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError) throw userError
+
         const { data, error } = await supabase
           .from('sales')
           .select(`
             *,
-            extra:sale_details_extra(*),
             details:sale_details(
               *,
               product:products(*),
               package:packages(*)
-            )
+            ),
+            extra:sale_details_extra(*)
           `)
-          .eq('status', 'completed')
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(5)
 
@@ -1033,22 +1036,12 @@ export default {
       }
     }
 
-    // Filtrelenmiş satışları computed olarak tanımla
-    const filteredSales = computed(() => {
-      if (!salesSearchQuery.value.trim()) {
-        return allSales.value
-      }
-      const searchTerm = salesSearchQuery.value.toLowerCase().trim()
-      return allSales.value.filter(sale => 
-        sale.extra?.[0]?.customer_name?.toLowerCase().includes(searchTerm)
-      )
-    })
-
     const loadAllSales = async () => {
       try {
         loadingAllSales.value = true
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError) throw userError
 
-        // Tüm satışları tek seferde çek
         const { data, error } = await supabase
           .from('sales')
           .select(`
@@ -1080,13 +1073,13 @@ export default {
               notes
             )
           `)
+          .eq('user_id', user.id)
           .eq('status', 'completed')
           .order('created_at', { ascending: sortBy.value === 'date_asc' })
 
         if (error) throw error
         allSales.value = data || []
         totalSalesCount.value = data?.length || 0
-
       } catch (error) {
         console.error('Error loading all sales:', error)
         toast.error('Satışlar yüklenirken bir hata oluştu')
@@ -1094,6 +1087,45 @@ export default {
         loadingAllSales.value = false
       }
     }
+
+    const loadPendingSales = async () => {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError) throw userError
+
+        const { data, error } = await supabase
+          .from('sales')
+          .select(`
+            *,
+            extra:sale_details_extra(*),
+            details:sale_details(
+              *,
+              product:products(*),
+              package:packages(*)
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        pendingSales.value = data
+      } catch (error) {
+        console.error('Error loading pending sales:', error)
+        toast.error('Bekleyen satışlar yüklenirken bir hata oluştu')
+      }
+    }
+
+    // Filtrelenmiş satışları computed olarak tanımla
+    const filteredSales = computed(() => {
+      if (!salesSearchQuery.value.trim()) {
+        return allSales.value
+      }
+      const searchTerm = salesSearchQuery.value.toLowerCase().trim()
+      return allSales.value.filter(sale => 
+        sale.extra?.[0]?.customer_name?.toLowerCase().includes(searchTerm)
+      )
+    })
 
     // Sayfalama için computed değerler
     const paginatedSales = computed(() => {
@@ -1121,30 +1153,6 @@ export default {
       if (currentPage.value > 1) {
         currentPage.value--
         loadAllSales()
-      }
-    }
-
-    const loadPendingSales = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('sales')
-          .select(`
-            *,
-            extra:sale_details_extra(*),
-            details:sale_details(
-              *,
-              product:products(*),
-              package:packages(*)
-            )
-          `)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-
-        if (error) throw error
-        pendingSales.value = data
-      } catch (error) {
-        console.error('Error loading pending sales:', error)
-        toast.error('Bekleyen satışlar yüklenirken bir hata oluştu')
       }
     }
 
