@@ -420,6 +420,22 @@ export default {
 
       loading.value = true
       try {
+        console.log('Kayıt işlemi başlatılıyor:', form.value.email)
+
+        // E-posta kontrolü
+        const { data: { exists }, error: checkError } = await supabase
+          .rpc('is_email_exists', { p_email: form.value.email })
+
+        if (checkError) {
+          console.error('E-posta kontrolü hatası:', checkError)
+          throw checkError
+        }
+
+        if (exists) {
+          console.log('E-posta adresi zaten kayıtlı')
+          throw new Error('Bu e-posta adresi ile daha önce kayıt yapılmış. Lütfen farklı bir e-posta adresi kullanın.')
+        }
+
         // Register with Supabase
         const { data, error } = await supabase.auth.signUp({
           email: form.value.email,
@@ -437,19 +453,16 @@ export default {
           }
         })
 
+        console.log('Kayıt cevabı:', { data, error })
+
         if (error) {
-          // Supabase'in kendi hata mesajlarını kontrol edelim
-          if (error.message.includes('User already registered') || 
-              error.message.includes('Email already registered') ||
-              error.message.includes('already exists')) {
-            throw new Error('Bu e-posta adresi ile daha önce kayıt yapılmış. Lütfen farklı bir e-posta adresi kullanın.')
-          }
+          console.error('Kayıt hatası:', error)
           throw error
         }
 
-        // Eğer data.user null ise ve hata da yoksa, kullanıcı zaten kayıtlıdır
         if (!data?.user) {
-          throw new Error('Bu e-posta adresi ile daha önce kayıt yapılmış. Lütfen farklı bir e-posta adresi kullanın.')
+          console.log('Kullanıcı verisi eksik:', data)
+          throw new Error('Kayıt işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.')
         }
 
         toast.success('Kayıt başarılı! Lütfen e-posta adresinizi doğrulayın.', {
@@ -461,7 +474,7 @@ export default {
 
         router.push('/login')
       } catch (error) {
-        console.error('Registration error:', error)
+        console.error('Kayıt işlemi hatası:', error)
         toast.error(error.message || 'Kayıt sırasında bir hata oluştu', {
           timeout: 3000,
           position: "top-right"
