@@ -451,7 +451,7 @@ export default {
               phone: form.value.phone,
               address: form.value.address
             },
-            emailRedirectTo: window.location.origin
+            emailRedirectTo: 'https://test-stok-yonetim.onrender.com/auth/callback'
           }
         })
 

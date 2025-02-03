@@ -178,26 +178,35 @@ export default {
     const sales = ref([])
     const selectedSale = ref(null)
 
-    // Satışları yükle
-    const loadSales = async () => {
+    // Satışları getir
+    const fetchSales = async () => {
       try {
+        loading.value = true
+
+        // Önce mevcut kullanıcıyı al
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError) throw userError
+
+        // Sadece giriş yapan kullanıcının satışlarını getir
         const { data, error } = await supabase
           .from('sales')
           .select(`
             *,
-            extra:sale_details_extra(*),
-            details:sale_details(
-              *,
-              product:products(*),
-              package:packages(*)
+            customers (
+              name,
+              email,
+              phone
             )
           `)
+          .eq('user_id', user.id) // Kullanıcı bazlı filtreleme
           .order('created_at', { ascending: false })
 
         if (error) throw error
-        sales.value = data
+
+        sales.value = data || []
       } catch (error) {
-        console.error('Error loading sales:', error)
+        console.error('Satışlar getirilirken hata:', error)
         toast.error('Satışlar yüklenirken bir hata oluştu')
       } finally {
         loading.value = false
@@ -242,7 +251,7 @@ export default {
     }
 
     onMounted(() => {
-      loadSales()
+      fetchSales()
     })
 
     return {

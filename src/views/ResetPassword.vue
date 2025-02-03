@@ -6,7 +6,7 @@
         Lütfen yeni şifrenizi belirleyin.
       </p>
       
-      <form v-if="!error" @submit.prevent="handlePasswordReset" class="reset-password-form">
+      <form v-if="!error" @submit.prevent="handleResetPassword" class="reset-password-form">
         <div class="form-group">
           <label for="password">Yeni Şifre</label>
           <input 
@@ -85,39 +85,33 @@ export default {
       return password.value.length >= 6 && password.value === confirmPassword.value
     })
 
-    const handlePasswordReset = async () => {
+    const handleResetPassword = async () => {
       try {
-        if (!isPasswordValid.value) {
-          error.value = 'Şifreler eşleşmiyor veya çok kısa (en az 6 karakter olmalı)'
-          return
-        }
-
         loading.value = true
         error.value = null
         success.value = null
 
-        // URL'den token'ı al
-        const hash = window.location.hash
-        const params = new URLSearchParams(hash.replace('#', ''))
-        const accessToken = params.get('access_token')
-        const type = params.get('type')
+        if (!password.value) {
+          error.value = 'Lütfen yeni şifrenizi girin.'
+          return
+        }
 
-        if (!accessToken || type !== 'recovery') {
-          throw new Error('Token bulunamadı')
+        if (password.value.length < 8) {
+          error.value = 'Şifre en az 8 karakter olmalıdır.'
+          return
         }
 
         // Şifreyi güncelle
         const { data, error: updateError } = await supabase.auth.updateUser(
-          { password: password.value },
-          { 
-            auth: { 
-              persistSession: false,
-              access_token: accessToken 
-            } 
-          }
+          { password: password.value }
         )
 
-        if (updateError) throw updateError
+        if (updateError) {
+          if (updateError.message.includes('New password should be different')) {
+            throw new Error('Yeni şifreniz eski şifrenizle aynı olamaz. Lütfen farklı bir şifre belirleyin.')
+          }
+          throw updateError
+        }
 
         success.value = 'Şifreniz başarıyla güncellendi! Giriş sayfasına yönlendiriliyorsunuz...'
         
@@ -127,16 +121,8 @@ export default {
         }, 3000)
 
       } catch (err) {
-        console.error('Password reset error:', err)
-        if (err.message === 'Token bulunamadı') {
-          error.value = 'Geçersiz şifre sıfırlama bağlantısı. Lütfen yeni bir bağlantı talep edin.'
-        } else if (err.message.includes('Auth session missing') || err.message.includes('Invalid JWT')) {
-          error.value = 'Oturum süresi dolmuş. Lütfen şifre sıfırlama işlemini tekrar başlatın.'
-        } else if (err.message.includes('Invalid user')) {
-          error.value = 'Geçersiz veya süresi dolmuş bağlantı. Lütfen şifre sıfırlama işlemini tekrar başlatın.'
-        } else {
-          error.value = 'Şifre güncellenirken bir hata oluştu. Lütfen tekrar deneyin.'
-        }
+        console.error('Şifre güncelleme hatası:', err)
+        error.value = err.message || 'Şifre güncellenirken bir hata oluştu. Lütfen tekrar deneyin.'
       } finally {
         loading.value = false
       }
@@ -153,7 +139,7 @@ export default {
       error,
       success,
       isPasswordValid,
-      handlePasswordReset,
+      handleResetPassword,
       handleRetry
     }
   }
