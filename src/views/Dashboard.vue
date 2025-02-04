@@ -1,795 +1,620 @@
 <template>
-  <div class="dashboard-layout" :class="{ 'menu-collapsed': isMenuCollapsed }">
-    <!-- Sol Menü -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <span class="logo-text">FlowBridge</span>
-        <button @click="toggleMenu" class="collapse-btn">
-          <i :class="isMenuCollapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left'"></i>
-        </button>
+  <div class="flex h-screen bg-gray-50">
+    <!-- Sidebar -->
+    <Sidebar 
+      :userFullName="userFullName"
+      :userInitials="userInitials"
+      :userEmail="userEmail"
+    />
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 ml-0 lg:ml-64">
+      <!-- Üst Kısım - Kullanıcı Bilgisi -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900">Hoş geldiniz, {{ userFullName }}</h2>
+            <p class="text-sm text-gray-500">Son giriş: {{ formatDate(lastLoginAt) }}</p>
+          </div>
+          <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+              <span class="text-xl font-bold text-indigo-600">{{ userInitials }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <nav class="sidebar-nav">
-        <router-link to="/dashboard" class="nav-item active">
-          <i class="fas fa-chart-line"></i>
-          <span>Güncel Durum</span>
-        </router-link>
-        <router-link to="/sales" class="nav-item">
-          <i class="fas fa-shopping-cart"></i>
-          <span>Satışlar</span>
-        </router-link>
-        <router-link to="/customers" class="nav-item">
-          <i class="fas fa-users"></i>
-          <span>Müşteriler</span>
-        </router-link>
-        <router-link to="/expenses" class="nav-item">
-          <i class="fas fa-file-invoice-dollar"></i>
-          <span>Giderler</span>
-        </router-link>
-        <router-link to="/stock" class="nav-item">
-          <i class="fas fa-box"></i>
-          <span>Stok</span>
-        </router-link>
-        <router-link to="/e-commerce" class="nav-item">
-          <i class="fas fa-store"></i>
-          <span>E-Ticaret</span>
-          <span class="new-badge">Yeni!</span>
-        </router-link>
+      <!-- Breadcrumb -->
+      <nav class="mb-4">
+        <div class="flex items-center space-x-2 text-sm">
+          <router-link to="/" class="text-gray-600 hover:text-primary-500">Ana Sayfa</router-link>
+          <span class="text-gray-400">/</span>
+          <span class="text-primary-500">Güncel Durum</span>
+        </div>
       </nav>
-    </aside>
 
-    <!-- Ana İçerik -->
-    <main class="main-content">
-      <!-- Üst Bar -->
-      <header class="top-bar">
-        <div class="page-title">
-          <h1>Güncel Durum</h1>
-          <span class="date">{{ currentDate }}</span>
+      <!-- Özet Kartları -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <!-- Onay Bekleyen Siparişler -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+              <i class="fas fa-clock text-amber-600 text-xl"></i>
+            </div>
+            <span class="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-600">Bekleyen</span>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ pendingOrdersCount }}</h3>
+          <p class="text-sm text-gray-500">Onay Bekleyen</p>
+          <div class="mt-4">
+            <router-link 
+              v-if="pendingOrdersCount > 0"
+              to="/sales?status=pending" 
+              class="text-amber-600 hover:text-amber-700 text-xs flex items-center">
+              Siparişleri görüntüle
+              <i class="fas fa-arrow-right ml-1"></i>
+            </router-link>
+          </div>
         </div>
         
-        <div class="user-menu">
-          <div class="user-info">
-            <span class="username">{{ username }}</span>
-            <small>{{ userEmail }}</small>
+        <!-- Günlük Satış -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <i class="fas fa-shopping-cart text-indigo-600 text-xl"></i>
+            </div>
+            <span class="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-600">Günlük</span>
           </div>
-          <button @click="handleLogout" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i>
-            Çıkış Yap
-          </button>
+          <h3 class="text-2xl font-bold text-gray-900 mb-1">₺{{ formatPrice(dailySales) }}</h3>
+          <p class="text-sm text-gray-500">Günlük Satış</p>
+          <div class="mt-4 flex items-center text-xs">
+            <span :class="[
+              'flex items-center',
+              dailySalesChange >= 0 ? 'text-green-600' : 'text-red-600'
+            ]">
+              <i :class="['fas', dailySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']" class="mr-1"></i>
+              {{ Math.abs(dailySalesChange) }}%
+            </span>
+            <span class="text-gray-400 ml-2">Dünden bu yana</span>
+          </div>
         </div>
-      </header>
 
-      <!-- Dashboard İçeriği -->
-      <div class="dashboard-content">
-        <!-- Tahsilatlar Bölümü -->
-        <section class="dashboard-section">
-          <h2>Tahsilatlar</h2>
-          <div class="widgets-grid">
-            <div class="widget">
-              <div class="widget-header">
-                <h3>Toplam Tahsil Edilecek</h3>
-                <i class="fas fa-money-bill-wave widget-icon"></i>
+        <!-- Aylık Satış -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+              <i class="fas fa-chart-line text-emerald-600 text-xl"></i>
               </div>
-              <div class="widget-content">
-                <div class="amount">{{ formatCurrency(totalReceivables) }}</div>
-                <div class="chart-container">
-                  <div class="progress-circle" :style="{ '--progress': receivablesProgress + '%' }">
-                    <span>{{ receivablesProgress }}%</span>
+            <span class="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-600">Aylık</span>
                   </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-1">₺{{ formatPrice(monthlySales) }}</h3>
+          <p class="text-sm text-gray-500">Aylık Satış</p>
+          <div class="mt-4 flex items-center text-xs">
+            <span :class="[
+              'flex items-center',
+              monthlySalesChange >= 0 ? 'text-green-600' : 'text-red-600'
+            ]">
+              <i :class="['fas', monthlySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']" class="mr-1"></i>
+              {{ Math.abs(monthlySalesChange) }}%
+            </span>
+            <span class="text-gray-400 ml-2">Geçen aydan bu yana</span>
+                </div>
+              </div>
+
+        <!-- Toplam Müşteri -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <i class="fas fa-users text-blue-600 text-xl"></i>
+            </div>
+            <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-600">Toplam</span>
+              </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ totalCustomers }}</h3>
+          <p class="text-sm text-gray-500">Toplam Müşteri</p>
+          <div class="mt-4 flex items-center text-xs">
+            <span class="text-green-600 flex items-center">
+              <i class="fas fa-arrow-up mr-1"></i>
+              {{ newCustomersToday }}
+            </span>
+            <span class="text-gray-400 ml-2">Bugün eklenen</span>
+              </div>
+            </div>
+
+        <!-- Düşük Stok -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+              <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+            <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-600">Uyarı</span>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ lowStockCount }}</h3>
+          <p class="text-sm text-gray-500">Düşük Stok</p>
+          <div class="mt-4 flex items-center text-xs">
+            <router-link to="/stock" class="text-red-600 hover:text-red-700">
+              Stok durumunu kontrol et
+              <i class="fas fa-arrow-right ml-1"></i>
+            </router-link>
                 </div>
               </div>
             </div>
 
-            <div class="widget">
-              <div class="widget-header">
-                <h3>Gecikmiş</h3>
-                <i class="fas fa-clock widget-icon warning"></i>
-              </div>
-              <div class="widget-content">
-                <div class="amount warning">{{ formatCurrency(overdueAmount) }}</div>
-                <div class="status-text">{{ overdueCount }} Adet Gecikmiş Tahsilat</div>
-              </div>
-            </div>
+      <!-- Grafikler -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Aylık Satış Grafiği -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-gray-900">Aylık Satış Grafiği</h3>
+            <select v-model="selectedPeriod" 
+                    class="text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+              <option value="6">Son 6 Ay</option>
+              <option value="12">Son 12 Ay</option>
+            </select>
+          </div>
+          <div class="h-80">
+            <LineChart :data="monthlySalesData" />
+          </div>
+        </div>
 
-            <div class="widget">
-              <div class="widget-header">
-                <h3>Planlanmamış</h3>
-                <i class="fas fa-calendar widget-icon info"></i>
+        <!-- En Çok Satan Ürünler -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-6">En Çok Satan Ürünler</h3>
+          <div class="h-80">
+            <PieChart :data="topProductsData" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Alt Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Son Satışlar -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Son Satışlar</h3>
+          <div class="space-y-4">
+            <div v-for="sale in recentSales" 
+                 :key="sale.id" 
+                 class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                  <i class="fas fa-shopping-cart text-indigo-600"></i>
               </div>
-              <div class="widget-content">
-                <div class="amount">{{ formatCurrency(unplannedAmount) }}</div>
-                <div class="status-text">{{ unplannedCount }} Adet İşlem</div>
+                <div>
+                  <h4 class="text-sm font-medium text-gray-900">{{ sale.customer_name }}</h4>
+                  <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-bold text-gray-900">₺{{ formatPrice(sale.total_amount) }}</p>
+                <p class="text-xs text-gray-500">{{ sale.items_count }} ürün</p>
               </div>
             </div>
           </div>
-        </section>
-
-        <!-- Ödemeler Bölümü -->
-        <section class="dashboard-section">
-          <h2>Ödemeler</h2>
-          <div class="widgets-grid">
-            <div class="widget">
-              <div class="widget-header">
-                <h3>Toplam Ödenecek</h3>
-                <i class="fas fa-credit-card widget-icon"></i>
-              </div>
-              <div class="widget-content">
-                <div class="amount">{{ formatCurrency(totalPayables) }}</div>
-                <div class="chart-container">
-                  <div class="progress-circle" :style="{ '--progress': payablesProgress + '%' }">
-                    <span>{{ payablesProgress }}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="widget">
-              <div class="widget-header">
-                <h3>Bu Ay Oluşan KDV</h3>
-                <i class="fas fa-percent widget-icon"></i>
-              </div>
-              <div class="widget-content">
-                <div class="amount">{{ formatCurrency(monthlyVAT) }}</div>
-                <div class="comparison">
-                  <i class="fas fa-arrow-up"></i>
-                  <span>Geçen Aya Göre %{{ vatIncrease }} Artış</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Ürün Kategorileri Bölümü -->
-        <section class="dashboard-section product-categories">
-          <div class="section-header">
-            <h2>Ürün Kategorileri Dağılımı</h2>
           </div>
           
-          <div class="chart-container">
-            <canvas ref="categoryChart"></canvas>
+        <!-- Kritik Stok -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Kritik Stok Seviyeleri</h3>
+          <div class="space-y-4">
+            <div v-for="product in lowStockProducts" 
+                 :key="product.id" 
+                 class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                     :class="getCategoryBgColor(product.category_id)">
+                  <i class="fas fa-box" :class="getCategoryTextColor(product.category_id)"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-medium text-gray-900">{{ product.name }}</h4>
+                  <p class="text-xs text-gray-500">{{ product.category.name }}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p :class="[
+                  'text-sm font-bold',
+                  product.stock <= 0 ? 'text-red-600' : 'text-orange-600'
+                ]">{{ product.stock }} adet</p>
+                <p class="text-xs text-gray-500">Kritik seviye: {{ product.min_stock }}</p>
           </div>
-
-          <div class="category-legend">
-            <div v-for="(category, index) in categoryData" :key="index" class="legend-item">
-              <span class="color-dot" :style="{ backgroundColor: chartColors[index] }"></span>
-              <span class="category-name">{{ category.name }}</span>
-              <span class="category-count">{{ category.count }} adet</span>
-              <span class="category-percentage">({{ calculatePercentage(category.count) }}%)</span>
             </div>
           </div>
-        </section>
+        </div>
       </div>
     </main>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import Chart from 'chart.js/auto';
-import { useStore } from 'vuex';
+import { ref, onMounted, watch } from 'vue'
+import { supabase } from '@/lib/supabaseClient'
+import { useToast } from 'vue-toastification'
+import LineChart from '@/components/charts/LineChart.vue'
+import PieChart from '@/components/charts/PieChart.vue'
+import Sidebar from '@/components/Sidebar.vue'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'Dashboard',
+  components: {
+    LineChart,
+    PieChart,
+    Sidebar
+  },
   setup() {
-    const router = useRouter();
-    const store = useStore();
-    const isMenuCollapsed = ref(false);
-    const trialDaysLeft = ref(14);
-    const userData = ref(JSON.parse(localStorage.getItem('userData') || sessionStorage.getItem('userData') || '{}'));
-    const userName = ref(userData.value.username || 'Kullanıcı');
-    const userEmail = ref(userData.value.email || '');
-    const companyId = ref(userData.value.CompanyId);
-    const userAvatar = ref('https://via.placeholder.com/32');
-    const categoryChart = ref(null);
-    const chartInstance = ref(null);
-    const totalReceivables = ref(0);
-    const receivablesProgress = ref(0);
-    const overdueAmount = ref(0);
-    const overdueCount = ref(0);
-    const unplannedAmount = ref(0);
-    const unplannedCount = ref(0);
-    const totalPayables = ref(0);
-    const payablesProgress = ref(0);
-    const monthlyVAT = ref(0);
-    const vatIncrease = ref(0);
+    const toast = useToast()
+    const router = useRouter()
+    const selectedPeriod = ref(6)
+    
+    // Kullanıcı bilgileri
+    const userFullName = ref('')
+    const userInitials = ref('')
+    const userEmail = ref('')
+    const lastLoginAt = ref(null)
+    const pendingOrdersCount = ref(0)
+    
+    // State variables
+    const dailySales = ref(0)
+    const dailySalesChange = ref(0)
+    const monthlySales = ref(0)
+    const monthlySalesChange = ref(0)
+    const totalCustomers = ref(0)
+    const newCustomersToday = ref(0)
+    const lowStockCount = ref(0)
+    const recentSales = ref([])
+    const lowStockProducts = ref([])
+    const monthlySalesData = ref([])
+    const topProductsData = ref([])
 
-    // Örnek kategori verileri (gerçek verilerle değiştirilecek)
-    const categoryData = ref([]);
+    // Kullanıcı bilgilerini getir
+    const fetchUserInfo = async () => {
+      try {
+        console.log('Kullanıcı bilgileri alınıyor...')
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError) {
+          console.error('Auth error:', userError)
+          toast.error('Oturum bilgileri alınamadı')
+          router.push('/login')
+          return
+        }
 
-    const chartColors = [
-      '#4F46E5', // Primary color
-      '#06B6D4', // Secondary color
-      '#10B981', // Success color
-      '#F59E0B', // Warning color
-      '#EF4444', // Error color
-      '#8B5CF6', // Purple
-      '#EC4899', // Pink
-      '#14B8A6'  // Teal
-    ];
+        if (!user) {
+          console.error('No user found')
+          router.push('/login')
+          return
+        }
 
-    const calculatePercentage = (count) => {
-      const total = categoryData.value.reduce((sum, category) => sum + category.count, 0);
-      return ((count / total) * 100).toFixed(1);
-    };
+        console.log('Kullanıcı bulundu:', user.id)
+        userEmail.value = user.email
 
-    const createChart = () => {
-      const ctx = categoryChart.value?.getContext('2d');
-      if (!ctx) return;
-      
-      if (chartInstance.value) {
-        chartInstance.value.destroy();
-      }
+        // Profil bilgilerini kontrol et
+        const { data: profileExists, error: checkError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .single()
 
-      chartInstance.value = new Chart(ctx, {
-        type: 'pie',
-        data: {
-          labels: categoryData.value.map(category => category.name),
-          datasets: [{
-            data: categoryData.value.map(category => category.count),
-            backgroundColor: chartColors.slice(0, categoryData.value.length),
-            borderWidth: 2,
-            borderColor: '#ffffff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              callbacks: {
-                label: (context) => {
-                  const value = context.raw;
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = ((value / total) * 100).toFixed(1);
-                  return `${context.label}: ${value} adet (${percentage}%)`;
-                }
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error('Profile check error:', checkError)
+          toast.error('Profil kontrolü yapılamadı')
+          return
+        }
+
+        // Eğer profil yoksa oluştur
+        if (!profileExists) {
+          console.log('Profil bulunamadı, yeni profil oluşturuluyor...')
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: user.id,
+                first_name: user.user_metadata?.first_name || '',
+                last_name: user.user_metadata?.last_name || ''
               }
-            }
+            ])
+
+          if (insertError) {
+            console.error('Profile creation error:', insertError)
+            toast.error('Profil oluşturulamadı')
+            return
           }
         }
-      });
-    };
 
-    const fetchCategories = async () => {
-      try {
-        // API'den kategorileri çek
-        const response = await fetch(`https://api.example.com/categories?companyId=${companyId.value}`);
-        const data = await response.json();
-        categoryData.value = data;
-        createChart();
+        // Profil bilgilerini al
+        console.log('Profil bilgileri alınıyor...')
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) {
+          console.error('Profile fetch error:', profileError)
+          toast.error('Profil bilgileri alınamadı')
+          return
+        }
+
+        console.log('Profil bilgileri:', profile)
+
+        // İsim ve soyisim kontrolü ve atama
+        if (profile?.first_name?.trim() && profile?.last_name?.trim()) {
+          userFullName.value = `${profile.first_name} ${profile.last_name}`
+          userInitials.value = `${profile.first_name[0]}${profile.last_name[0]}`
+        } else {
+          const emailName = user.email.split('@')[0]
+          userFullName.value = emailName
+          userInitials.value = emailName.substring(0, 2).toUpperCase()
+        }
+
+        // Son giriş zamanı
+        lastLoginAt.value = user.last_sign_in_at
+
       } catch (error) {
-        console.error('Kategoriler yüklenirken hata:', error);
+        console.error('Error fetching user info:', error)
+        toast.error('Kullanıcı bilgileri yüklenirken bir hata oluştu')
       }
-    };
+    }
 
+    // Onay bekleyen siparişleri getir
+    const fetchPendingOrders = async () => {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError) throw userError
+
+        const { data: orders, error } = await supabase
+          .from('sales')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'pending')
+
+        if (error) throw error
+
+        pendingOrdersCount.value = orders?.length || 0
+      } catch (error) {
+        console.error('Error fetching pending orders:', error)
+        toast.error('Bekleyen siparişler yüklenirken bir hata oluştu')
+      }
+    }
+
+    // Dashboard verilerini getir
+    const fetchDashboardData = async () => {
+      try {
+        await Promise.all([
+          fetchUserInfo(),
+          fetchPendingOrders()
+        ])
+
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError) throw userError
+
+        // Fetch daily sales
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const tomorrow = new Date(today)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        
+        const { data: todaySales } = await supabase
+          .from('sales')
+          .select('total_amount')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .gte('created_at', today.toISOString())
+          .lt('created_at', tomorrow.toISOString())
+
+        dailySales.value = todaySales?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
+
+        // Fetch yesterday's sales for comparison
+        const yesterday = new Date(today)
+        yesterday.setDate(yesterday.getDate() - 1)
+        
+        const { data: yesterdaySales } = await supabase
+          .from('sales')
+          .select('total_amount')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .gte('created_at', yesterday.toISOString())
+          .lt('created_at', today.toISOString())
+
+        const yesterdayTotal = yesterdaySales?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
+        dailySalesChange.value = yesterdayTotal === 0 ? 100 : 
+          ((dailySales.value - yesterdayTotal) / yesterdayTotal) * 100
+
+        // Fetch monthly sales
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+        
+        const { data: monthSales } = await supabase
+          .from('sales')
+          .select('total_amount')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .gte('created_at', firstDayOfMonth.toISOString())
+          .lt('created_at', tomorrow.toISOString())
+
+        monthlySales.value = monthSales?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
+
+        // Fetch last month's sales for comparison
+        const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        const firstDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+        
+        const { data: lastMonthSales } = await supabase
+          .from('sales')
+          .select('total_amount')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .gte('created_at', firstDayOfLastMonth.toISOString())
+          .lt('created_at', firstDayOfCurrentMonth.toISOString())
+
+        const lastMonthTotal = lastMonthSales?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
+        monthlySalesChange.value = lastMonthTotal === 0 ? 100 :
+          ((monthlySales.value - lastMonthTotal) / lastMonthTotal) * 100
+
+        // Fetch customer stats
+        const { data: customers } = await supabase
+          .from('customers')
+          .select('created_at')
+
+        totalCustomers.value = customers?.length || 0
+        newCustomersToday.value = customers?.filter(customer => 
+          new Date(customer.created_at) >= today
+        ).length || 0
+
+        // Fetch low stock products
+        const { data: lowStock } = await supabase
+          .from('products')
+          .select(`
+            *,
+            category:categories(*)
+          `)
+          .or('stock.lte.10,stock.eq.0')
+          .order('stock')
+
+        lowStockProducts.value = lowStock || []
+        lowStockCount.value = lowStock?.length || 0
+
+        // Fetch recent sales
+        const { data: recent } = await supabase
+          .from('sales')
+          .select(`
+            *,
+            details:sale_details(id),
+            extra:sale_details_extra(customer_name)
+          `)
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+          .limit(5)
+
+        recentSales.value = recent?.map(sale => ({
+          ...sale,
+          customer_name: sale.extra?.[0]?.customer_name || 'İsimsiz Müşteri',
+          items_count: sale.details?.length || 0
+        })) || []
+
+        // Fetch monthly sales data for chart
+        const monthsToShow = selectedPeriod.value
+        const monthlyData = []
+        
+        for (let i = monthsToShow - 1; i >= 0; i--) {
+          const startDate = new Date(today.getFullYear(), today.getMonth() - i, 1)
+          const endDate = new Date(today.getFullYear(), today.getMonth() - i + 1, 0)
+          
+          const { data: monthData } = await supabase
+            .from('sales')
+            .select('total_amount')
+            .eq('user_id', user.id)
+            .eq('status', 'completed')
+            .gte('created_at', startDate.toISOString())
+            .lte('created_at', endDate.toISOString())
+
+          const total = monthData?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
+          
+          monthlyData.push({
+            month: startDate.toLocaleString('tr-TR', { month: 'short' }),
+            amount: total
+          })
+        }
+
+        monthlySalesData.value = monthlyData
+
+        // Fetch top selling products
+        const { data: topProducts } = await supabase
+          .from('sale_details')
+          .select(`
+            quantity,
+            product:products(name)
+          `)
+          .not('product', 'is', null)
+          .order('quantity', { ascending: false })
+          .limit(5)
+
+        topProductsData.value = topProducts?.map(item => ({
+          name: item.product?.name || 'Bilinmeyen Ürün',
+          value: item.quantity
+        })) || []
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+        toast.error('Veriler yüklenirken bir hata oluştu')
+      }
+    }
+
+    // Utility functions
+    const formatPrice = (price) => {
+      return Number(price).toLocaleString('tr-TR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
+    }
+
+    const formatDate = (date) => {
+      return new Date(date).toLocaleString('tr-TR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+
+    const getCategoryBgColor = (categoryId) => {
+      const colors = {
+        1: 'bg-red-100',
+        2: 'bg-blue-100',
+        3: 'bg-green-100',
+        4: 'bg-yellow-100',
+        5: 'bg-purple-100',
+        6: 'bg-pink-100',
+        7: 'bg-indigo-100',
+        8: 'bg-orange-100'
+      }
+      return colors[categoryId] || 'bg-gray-100'
+    }
+
+    const getCategoryTextColor = (categoryId) => {
+      const colors = {
+        1: 'text-red-600',
+        2: 'text-blue-600',
+        3: 'text-green-600',
+        4: 'text-yellow-600',
+        5: 'text-purple-600',
+        6: 'text-pink-600',
+        7: 'text-indigo-600',
+        8: 'text-orange-600'
+      }
+      return colors[categoryId] || 'text-gray-600'
+    }
+
+    // Watch for period changes
+    watch(selectedPeriod, () => {
+      fetchDashboardData()
+    })
+
+    // Load data on mount
     onMounted(() => {
-      if (companyId.value) {
-        fetchCategories();
-      }
-
-      // Örnek: Her 5 saniyede bir verileri güncelle
-      const interval = setInterval(() => {
-        if (companyId.value) {
-          fetchCategories();
-        }
-      }, 5000);
-
-      onUnmounted(() => {
-        clearInterval(interval);
-        if (chartInstance.value) {
-          chartInstance.value.destroy();
-          chartInstance.value = null;
-        }
-      });
-    });
-
-    const handleLogout = async () => {
-      try {
-        await store.dispatch('auth/logout');
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
-    };
-
-    const toggleMenu = () => {
-      isMenuCollapsed.value = !isMenuCollapsed.value;
-    };
-
-    const formatCurrency = (value) => {
-      return new Intl.NumberFormat('tr-TR', {
-        style: 'currency',
-        currency: 'TRY'
-      }).format(value);
-    };
+      fetchDashboardData()
+    })
 
     return {
-      isMenuCollapsed,
-      trialDaysLeft,
-      userName,
+      selectedPeriod,
+      userFullName,
+      userInitials,
       userEmail,
-      companyId,
-      userAvatar,
-      categoryChart,
-      categoryData,
-      chartColors,
-      toggleMenu,
-      formatCurrency,
-      calculatePercentage,
-      handleLogout,
-      totalReceivables,
-      receivablesProgress,
-      overdueAmount,
-      overdueCount,
-      unplannedAmount,
-      unplannedCount,
-      totalPayables,
-      payablesProgress,
-      monthlyVAT,
-      vatIncrease
-    };
+      lastLoginAt,
+      pendingOrdersCount,
+      dailySales,
+      dailySalesChange,
+      monthlySales,
+      monthlySalesChange,
+      totalCustomers,
+      newCustomersToday,
+      lowStockCount,
+      recentSales,
+      lowStockProducts,
+      monthlySalesData,
+      topProductsData,
+      formatPrice,
+      formatDate,
+      getCategoryBgColor,
+      getCategoryTextColor
+    }
   }
-};
+}
 </script>
-
-<style scoped>
-:root {
-  --primary-color: #4F46E5;
-  --secondary-color: #06B6D4;
-  --success-color: #10B981;
-  --warning-color: #F59E0B;
-  --error-color: #EF4444;
-  --text-color: #1F2937;
-  --text-light: #6B7280;
-  --border-color: #E5E7EB;
-  --background-light: #F9FAFB;
-}
-
-.dashboard-layout {
-  display: flex;
-  min-height: 100vh;
-  background: var(--background-light);
-}
-
-/* Sidebar Styles */
-.sidebar {
-  width: 260px;
-  background: white;
-  border-right: 1px solid var(--border-color);
-  transition: width 0.3s ease;
-  display: flex;
-  flex-direction: column;
-}
-
-.menu-collapsed .sidebar {
-  width: 80px;
-}
-
-.sidebar-header {
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.logo {
-  height: 32px;
-}
-
-.collapse-btn {
-  background: none;
-  border: none;
-  color: var(--text-light);
-  cursor: pointer;
-  padding: 0.5rem;
-}
-
-.sidebar-nav {
-  padding: 1rem 0;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1.5rem;
-  color: var(--text-color);
-  text-decoration: none;
-  transition: all 0.3s ease;
-  gap: 1rem;
-}
-
-.nav-item:hover, .nav-item.active {
-  background: var(--background-light);
-  color: var(--primary-color);
-}
-
-.nav-item i {
-  font-size: 1.25rem;
-  width: 24px;
-}
-
-.menu-collapsed .nav-item span {
-  display: none;
-}
-
-/* Main Content Styles */
-.main-content {
-  flex: 1;
-  padding: 2rem;
-  overflow-y: auto;
-}
-
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background: white;
-  border-bottom: 1px solid #eee;
-}
-
-.page-title h1 {
-  font-size: 1.5rem;
-  color: var(--text-color);
-  margin-bottom: 0.25rem;
-}
-
-.date {
-  color: var(--text-light);
-  font-size: 0.875rem;
-}
-
-.trial-notice {
-  background: #FEF3C7;
-  color: #92400E;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-right: 1rem;
-}
-
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-}
-
-.username {
-  color: var(--text-color);
-  font-weight: 500;
-}
-
-.logout-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 8px;
-  background: #EF4444;
-  color: white;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.logout-btn:hover {
-  background: #DC2626;
-  transform: translateY(-1px);
-}
-
-.logout-btn i {
-  font-size: 1.1rem;
-}
-
-/* Dashboard Content Styles */
-.dashboard-section {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.dashboard-section h2 {
-  font-size: 1.25rem;
-  color: var(--text-color);
-  margin-bottom: 1.5rem;
-}
-
-.widgets-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.widget {
-  background: var(--background-light);
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.widget-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.widget-header h3 {
-  font-size: 1rem;
-  color: var(--text-light);
-}
-
-.widget-icon {
-  font-size: 1.5rem;
-  color: var(--primary-color);
-}
-
-.widget-icon.warning {
-  color: var(--warning-color);
-}
-
-.widget-icon.info {
-  color: var(--secondary-color);
-}
-
-.amount {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-color);
-  margin-bottom: 0.5rem;
-}
-
-.amount.warning {
-  color: var(--warning-color);
-}
-
-.status-text {
-  color: var(--text-light);
-  font-size: 0.875rem;
-}
-
-.progress-circle {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: conic-gradient(
-    var(--primary-color) calc(var(--progress) * 1%),
-    #E5E7EB calc(var(--progress) * 1%)
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.progress-circle::before {
-  content: '';
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  background: white;
-  border-radius: 50%;
-}
-
-.progress-circle span {
-  position: relative;
-  color: var(--text-color);
-  font-weight: 500;
-}
-
-/* Bank Accounts Section */
-.bank-accounts {
-  background: white;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.link-button {
-  color: var(--primary-color);
-  text-decoration: none;
-  font-size: 0.875rem;
-}
-
-.bank-features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-
-.feature-card {
-  text-align: center;
-  padding: 1.5rem;
-}
-
-.feature-card i {
-  font-size: 2rem;
-  color: var(--success-color);
-  margin-bottom: 1rem;
-}
-
-.feature-card h3 {
-  font-size: 1.125rem;
-  color: var(--text-color);
-  margin-bottom: 0.5rem;
-}
-
-.feature-card p {
-  color: var(--text-light);
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.connect-bank-btn {
-  width: 100%;
-  padding: 1rem;
-  background: var(--success-color);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.connect-bank-btn:hover {
-  transform: translateY(-2px);
-}
-
-.new-badge {
-  background: var(--error-color);
-  color: white;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 999px;
-  margin-left: auto;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .dashboard-layout {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    width: 100%;
-    position: fixed;
-    bottom: 0;
-    z-index: 100;
-    border-top: 1px solid var(--border-color);
-  }
-
-  .sidebar-header {
-    display: none;
-  }
-
-  .sidebar-nav {
-    display: flex;
-    justify-content: space-around;
-    padding: 0.5rem;
-  }
-
-  .nav-item {
-    flex-direction: column;
-    padding: 0.5rem;
-    text-align: center;
-    gap: 0.25rem;
-  }
-
-  .nav-item span {
-    font-size: 0.75rem;
-  }
-
-  .main-content {
-    padding: 1rem;
-    margin-bottom: 60px;
-  }
-
-  .widgets-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .top-bar {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .trial-notice {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-.logo-text {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--primary-color);
-}
-
-.menu-collapsed .logo-text {
-  display: none;
-}
-
-/* Product Categories Section */
-.product-categories {
-  background: white;
-}
-
-.chart-container {
-  height: 300px;
-  margin: 2rem 0;
-  position: relative;
-}
-
-.category-legend {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  border-radius: 8px;
-  background: var(--background-light);
-}
-
-.color-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.category-name {
-  font-weight: 500;
-  color: var(--text-color);
-}
-
-.category-count {
-  color: var(--text-light);
-  margin-left: auto;
-}
-
-.category-percentage {
-  color: var(--primary-color);
-  font-weight: 500;
-  min-width: 60px;
-  text-align: right;
-}
-
-@media (max-width: 768px) {
-  .chart-container {
-    height: 250px;
-  }
-
-  .category-legend {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
