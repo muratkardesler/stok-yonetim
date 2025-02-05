@@ -6,13 +6,6 @@
     <main class="main-content">
       <div class="min-h-screen bg-gray-50 p-4 sm:p-6">
         <!-- Breadcrumb -->
-        <nav class="mb-4">
-          <div class="flex items-center space-x-2 text-sm">
-            <router-link to="/" class="text-gray-600 hover:text-primary-500">Ana Sayfa</router-link>
-            <span class="text-gray-400">/</span>
-            <span class="text-primary-500">Satış</span>
-          </div>
-        </nav>
 
         <div class="flex flex-col lg:flex-row gap-6">
           <!-- Sol Taraf: Ürün ve Paket Seçimi -->

@@ -149,19 +149,12 @@ export default {
       { 
         name: 'Satışlar', 
         path: '/sales', 
-        icon: 'fa-shopping-cart',
-        badge: { text: 'Yeni', variant: 'primary' }
-      },
-      { 
-        name: 'Satış Listesi', 
-        path: '/sales/list', 
-        icon: 'fa-receipt' 
+        icon: 'fa-shopping-cart'       
       },
       { 
         name: 'Stok', 
         path: '/stock', 
-        icon: 'fa-box',
-        badge: { text: '2', variant: 'warning' }
+        icon: 'fa-box'
       },
       { 
         name: 'Müşteriler', 
