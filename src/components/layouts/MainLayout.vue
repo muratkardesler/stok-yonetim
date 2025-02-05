@@ -160,6 +160,11 @@ export default {
         name: 'Müşteriler', 
         path: '/customers', 
         icon: 'fa-users' 
+      },
+      {
+        name: 'Ayarlar',
+        path: '/settings',
+        icon: 'fa-cog'
       }
     ]
 

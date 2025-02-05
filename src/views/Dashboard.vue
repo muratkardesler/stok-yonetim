@@ -14,7 +14,54 @@
     </div>
 
     <!-- Özet Kartları -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+      <!-- Kalan Kullanım Süresi -->
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+               :class="[
+                 !profile?.trial_end_date ? 'bg-gray-100' :
+                 isTrialExpired ? 'bg-red-100' : 
+                 remainingDays <= 3 ? 'bg-amber-100' : 
+                 'bg-emerald-100'
+               ]">
+            <i class="fas fa-clock text-xl"
+               :class="[
+                 !profile?.trial_end_date ? 'text-gray-600' :
+                 isTrialExpired ? 'text-red-600' : 
+                 remainingDays <= 3 ? 'text-amber-600' : 
+                 'text-emerald-600'
+               ]"></i>
+          </div>
+          <span class="px-2 py-1 text-xs font-medium rounded-full"
+                :class="[
+                  !profile?.trial_end_date ? 'bg-gray-100 text-gray-600' :
+                  isTrialExpired ? 'bg-red-100 text-red-600' : 
+                  remainingDays <= 3 ? 'bg-amber-100 text-amber-600' : 
+                  'bg-emerald-100 text-emerald-600'
+                ]">
+            {{ !profile?.trial_end_date ? 'Bilgi Yok' : isTrialExpired ? 'Süresi Doldu' : remainingDays <= 3 ? 'Son Günler' : 'Aktif' }}
+          </span>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-1">
+          {{ !profile?.trial_end_date ? '-' : `${remainingDays} Gün` }}
+        </h3>
+        <p class="text-sm text-gray-500">Kalan Kullanım Süresi</p>
+        <div class="mt-4">
+          <router-link 
+            to="/settings" 
+            class="text-xs flex items-center"
+            :class="[
+              !profile?.trial_end_date ? 'text-gray-600 hover:text-gray-700' :
+              isTrialExpired ? 'text-red-600 hover:text-red-700' :
+              'text-primary-600 hover:text-primary-700'
+            ]">
+            {{ !profile?.trial_end_date ? 'Detayları Görüntüle' : isTrialExpired ? 'Hesabı Aktifleştir' : 'Detayları Görüntüle' }}
+            <i class="fas fa-arrow-right ml-1"></i>
+          </router-link>
+        </div>
+      </div>
+      
       <!-- Onay Bekleyen Siparişler -->
       <div class="bg-white rounded-2xl shadow-lg p-6">
         <div class="flex items-center justify-between mb-4">
@@ -68,15 +115,19 @@
         </div>
         <h3 class="text-2xl font-bold text-gray-900 mb-1">₺{{ formatPrice(monthlySales) }}</h3>
         <p class="text-sm text-gray-500">Aylık Satış</p>
-        <div class="mt-4 flex items-center text-xs">
-          <span :class="[
-            'flex items-center',
-            monthlySalesChange >= 0 ? 'text-green-600' : 'text-red-600'
-          ]">
-            <i :class="['fas', monthlySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']" class="mr-1"></i>
-            {{ Math.abs(monthlySalesChange) }}%
-          </span>
-          <span class="text-gray-400 ml-2">Geçen aydan bu yana</span>
+        <div class="mt-4">
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center">
+              <span :class="[
+                'flex items-center',
+                monthlySalesChange >= 0 ? 'text-green-600' : 'text-red-600'
+              ]">
+                <i :class="['fas', monthlySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']" class="mr-1"></i>
+                {{ formatPercentage(monthlySalesChange) }}%
+              </span>
+            </div>
+            <span class="text-gray-400">Geçen aydan bu yana</span>
+          </div>
         </div>
       </div>
 
@@ -239,6 +290,15 @@ export default {
     const lowStockProducts = ref([])
     const monthlySalesData = ref([])
     const topProductsData = ref([])
+    const profile = ref({
+      trial_end_date: null,
+      is_active: false,
+      first_name: '',
+      last_name: '',
+      settings: {}
+    })
+    const isTrialExpired = ref(false)
+    const remainingDays = ref(0)
 
     // Kullanıcı bilgilerini getir
     const fetchUserInfo = async () => {
@@ -263,9 +323,9 @@ export default {
         console.log('Son giriş:', user.last_sign_in_at)
 
         // Profil bilgilerini al
-        const { data: profile, error: profileError } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('first_name, last_name')
+          .select('*')
           .eq('id', user.id)
           .single()
 
@@ -275,11 +335,11 @@ export default {
           return
         }
 
-        console.log('Profil bilgileri:', profile)
+        console.log('Profil bilgileri:', profileData)
 
-        if (profile?.first_name && profile?.last_name) {
-          userFullName.value = `${profile.first_name} ${profile.last_name}`
-          userInitials.value = `${profile.first_name[0]}${profile.last_name[0]}`
+        if (profileData?.first_name && profileData?.last_name) {
+          userFullName.value = `${profileData.first_name} ${profileData.last_name}`
+          userInitials.value = `${profileData.first_name[0]}${profileData.last_name[0]}`
         } else {
           userFullName.value = 'Kullanıcı'
           userInitials.value = 'K'
@@ -287,6 +347,17 @@ export default {
 
         userEmail.value = user.email
         lastLoginAt.value = user.last_sign_in_at
+        profile.value = profileData
+
+        // Trial period logic
+        if (profileData.trial_end_date) {
+          const trialEndDate = new Date(profileData.trial_end_date)
+          const today = new Date()
+          const diffTime = Math.abs(trialEndDate - today)
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          remainingDays.value = diffDays
+          isTrialExpired.value = today > trialEndDate
+        }
 
       } catch (error) {
         console.error('Error fetching user info:', error)
@@ -497,6 +568,14 @@ export default {
       return new Date(date).toLocaleDateString('tr-TR', options)
     }
 
+    const formatPercentage = (value) => {
+      // Yüzdeyi en fazla 2 ondalık basamakla göster ve 1000'den büyükse K formatında göster
+      if (Math.abs(value) >= 1000) {
+        return `${(value / 1000).toFixed(1)}K`
+      }
+      return value.toFixed(2)
+    }
+
     const getCategoryBgColor = (categoryId) => {
       const colors = {
         1: 'bg-red-100',
@@ -556,7 +635,11 @@ export default {
       formatPrice,
       formatDate,
       getCategoryBgColor,
-      getCategoryTextColor
+      getCategoryTextColor,
+      profile,
+      isTrialExpired,
+      remainingDays,
+      formatPercentage
     }
   }
 }

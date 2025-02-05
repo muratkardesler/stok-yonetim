@@ -11,6 +11,7 @@ import ResetPassword from '@/views/ResetPassword.vue'
 import SalesList from '@/views/SalesList.vue'
 import Customers from '@/views/Customers.vue'
 import MainLayout from '@/components/layouts/MainLayout.vue'
+import Settings from '@/views/Settings.vue'
 
 const routes = [
   {
@@ -71,6 +72,11 @@ const routes = [
         path: "customers",
         name: "Customers",
         component: Customers,
+      },
+      {
+        path: "settings",
+        name: "Settings",
+        component: Settings,
       }
     ]
   }
@@ -115,6 +121,33 @@ router.beforeEach(async (to, from, next) => {
   if (to.path === '/' && session) {
     next('/dashboard')
     return
+  }
+
+  // Deneme süresi kontrolü
+  if (session && requiresAuth) {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('trial_end_date, is_active')
+        .eq('id', session.user.id)
+        .single()
+
+      if (error) throw error
+
+      const isTrialExpired = profile.trial_end_date && new Date(profile.trial_end_date) < new Date()
+      const isActive = profile.is_active
+
+      // Eğer deneme süresi bittiyse ve hesap aktif değilse
+      if (isTrialExpired && !isActive) {
+        // Sadece settings sayfasına erişime izin ver
+        if (to.path !== '/settings') {
+          next('/settings')
+          return
+        }
+      }
+    } catch (error) {
+      console.error('Trial check error:', error)
+    }
   }
 
   next()
