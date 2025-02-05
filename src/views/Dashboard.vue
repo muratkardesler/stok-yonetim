@@ -9,17 +9,15 @@
 
     <!-- Main Content -->
     <main class="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 ml-0 lg:ml-64">
-      <!-- Üst Kısım - Kullanıcı Bilgisi -->
+      <!-- Hoş Geldiniz Kartı -->
       <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-2xl font-bold text-gray-900">Hoş geldiniz, {{ userFullName }}</h2>
-            <p class="text-sm text-gray-500">Son giriş: {{ formatDate(lastLoginAt) }}</p>
+            <h1 class="text-2xl font-bold text-gray-900">Hoş Geldiniz, {{ userFullName || 'Kullanıcı' }}</h1>
+            <p class="text-sm text-gray-500 mt-1">Son giriş: {{ lastLoginAt ? formatDate(lastLoginAt) : 'Bilgi yok' }}</p>
           </div>
-          <div class="flex items-center space-x-4">
-            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-              <span class="text-xl font-bold text-indigo-600">{{ userInitials }}</span>
-            </div>
+          <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+            <span class="text-indigo-600 font-medium">{{ userInitials || 'K' }}</span>
           </div>
         </div>
       </div>
@@ -283,43 +281,9 @@ export default {
         }
 
         console.log('Kullanıcı bulundu:', user.id)
-        userEmail.value = user.email
-
-        // Profil bilgilerini kontrol et
-        const { data: profileExists, error: checkError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', user.id)
-          .single()
-
-        if (checkError && checkError.code !== 'PGRST116') {
-          console.error('Profile check error:', checkError)
-          toast.error('Profil kontrolü yapılamadı')
-          return
-        }
-
-        // Eğer profil yoksa oluştur
-        if (!profileExists) {
-          console.log('Profil bulunamadı, yeni profil oluşturuluyor...')
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert([
-              {
-                id: user.id,
-                first_name: user.user_metadata?.first_name || '',
-                last_name: user.user_metadata?.last_name || ''
-              }
-            ])
-
-          if (insertError) {
-            console.error('Profile creation error:', insertError)
-            toast.error('Profil oluşturulamadı')
-            return
-          }
-        }
+        console.log('Son giriş:', user.last_sign_in_at)
 
         // Profil bilgilerini al
-        console.log('Profil bilgileri alınıyor...')
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('first_name, last_name')
@@ -334,17 +298,15 @@ export default {
 
         console.log('Profil bilgileri:', profile)
 
-        // İsim ve soyisim kontrolü ve atama
-        if (profile?.first_name?.trim() && profile?.last_name?.trim()) {
+        if (profile?.first_name && profile?.last_name) {
           userFullName.value = `${profile.first_name} ${profile.last_name}`
           userInitials.value = `${profile.first_name[0]}${profile.last_name[0]}`
         } else {
-          const emailName = user.email.split('@')[0]
-          userFullName.value = emailName
-          userInitials.value = emailName.substring(0, 2).toUpperCase()
+          userFullName.value = 'Kullanıcı'
+          userInitials.value = 'K'
         }
 
-        // Son giriş zamanı
+        userEmail.value = user.email
         lastLoginAt.value = user.last_sign_in_at
 
       } catch (error) {
@@ -545,13 +507,15 @@ export default {
     }
 
     const formatDate = (date) => {
-      return new Date(date).toLocaleString('tr-TR', {
+      if (!date) return 'Bilgi yok'
+      const options = { 
+        day: 'numeric', 
+        month: 'long', 
         year: 'numeric',
-        month: 'long',
-        day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-      })
+      }
+      return new Date(date).toLocaleDateString('tr-TR', options)
     }
 
     const getCategoryBgColor = (categoryId) => {
