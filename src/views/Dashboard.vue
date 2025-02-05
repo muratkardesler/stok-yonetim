@@ -1,222 +1,203 @@
 <template>
-  <div class="flex h-screen bg-gray-50">
-    <!-- Sidebar -->
-    <Sidebar 
-      :userFullName="userFullName"
-      :userInitials="userInitials"
-      :userEmail="userEmail"
-    />
+  <div>
+    <!-- Hoş Geldiniz Kartı -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Hoş Geldiniz, {{ userFullName || 'Kullanıcı' }}</h1>
+          <p class="text-sm text-gray-500 mt-1">Son giriş: {{ lastLoginAt ? formatDate(lastLoginAt) : 'Bilgi yok' }}</p>
+        </div>
+        <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+          <span class="text-indigo-600 font-medium">{{ userInitials || 'K' }}</span>
+        </div>
+      </div>
+    </div>
 
-    <!-- Main Content -->
-    <main class="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 ml-0 lg:ml-64">
-      <!-- Hoş Geldiniz Kartı -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">Hoş Geldiniz, {{ userFullName || 'Kullanıcı' }}</h1>
-            <p class="text-sm text-gray-500 mt-1">Son giriş: {{ lastLoginAt ? formatDate(lastLoginAt) : 'Bilgi yok' }}</p>
+    <!-- Özet Kartları -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <!-- Onay Bekleyen Siparişler -->
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-clock text-amber-600 text-xl"></i>
           </div>
-          <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-            <span class="text-indigo-600 font-medium">{{ userInitials || 'K' }}</span>
+          <span class="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-600">Bekleyen</span>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ pendingOrdersCount }}</h3>
+        <p class="text-sm text-gray-500">Onay Bekleyen</p>
+        <div class="mt-4">
+          <router-link 
+            v-if="pendingOrdersCount > 0"
+            to="/sales?status=pending" 
+            class="text-amber-600 hover:text-amber-700 text-xs flex items-center">
+            Siparişleri görüntüle
+            <i class="fas fa-arrow-right ml-1"></i>
+          </router-link>
+        </div>
+      </div>
+      
+      <!-- Günlük Satış -->
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-shopping-cart text-indigo-600 text-xl"></i>
           </div>
+          <span class="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-600">Günlük</span>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-1">₺{{ formatPrice(dailySales) }}</h3>
+        <p class="text-sm text-gray-500">Günlük Satış</p>
+        <div class="mt-4 flex items-center text-xs">
+          <span :class="[
+            'flex items-center',
+            dailySalesChange >= 0 ? 'text-green-600' : 'text-red-600'
+          ]">
+            <i :class="['fas', dailySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']" class="mr-1"></i>
+            {{ Math.abs(dailySalesChange) }}%
+          </span>
+          <span class="text-gray-400 ml-2">Dünden bu yana</span>
         </div>
       </div>
 
-      <!-- Breadcrumb -->
-      <nav class="mb-4">
-        <div class="flex items-center space-x-2 text-sm">
-          <router-link to="/" class="text-gray-600 hover:text-primary-500">Ana Sayfa</router-link>
-          <span class="text-gray-400">/</span>
-          <span class="text-primary-500">Güncel Durum</span>
+      <!-- Aylık Satış -->
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-chart-line text-emerald-600 text-xl"></i>
+          </div>
+          <span class="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-600">Aylık</span>
         </div>
-      </nav>
-
-      <!-- Özet Kartları -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <!-- Onay Bekleyen Siparişler -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-              <i class="fas fa-clock text-amber-600 text-xl"></i>
-            </div>
-            <span class="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-600">Bekleyen</span>
-          </div>
-          <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ pendingOrdersCount }}</h3>
-          <p class="text-sm text-gray-500">Onay Bekleyen</p>
-          <div class="mt-4">
-            <router-link 
-              v-if="pendingOrdersCount > 0"
-              to="/sales?status=pending" 
-              class="text-amber-600 hover:text-amber-700 text-xs flex items-center">
-              Siparişleri görüntüle
-              <i class="fas fa-arrow-right ml-1"></i>
-            </router-link>
-          </div>
-        </div>
-        
-        <!-- Günlük Satış -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-              <i class="fas fa-shopping-cart text-indigo-600 text-xl"></i>
-            </div>
-            <span class="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-600">Günlük</span>
-          </div>
-          <h3 class="text-2xl font-bold text-gray-900 mb-1">₺{{ formatPrice(dailySales) }}</h3>
-          <p class="text-sm text-gray-500">Günlük Satış</p>
-          <div class="mt-4 flex items-center text-xs">
-            <span :class="[
-              'flex items-center',
-              dailySalesChange >= 0 ? 'text-green-600' : 'text-red-600'
-            ]">
-              <i :class="['fas', dailySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']" class="mr-1"></i>
-              {{ Math.abs(dailySalesChange) }}%
-            </span>
-            <span class="text-gray-400 ml-2">Dünden bu yana</span>
-          </div>
-        </div>
-
-        <!-- Aylık Satış -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <i class="fas fa-chart-line text-emerald-600 text-xl"></i>
-              </div>
-            <span class="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-600">Aylık</span>
-                  </div>
-          <h3 class="text-2xl font-bold text-gray-900 mb-1">₺{{ formatPrice(monthlySales) }}</h3>
-          <p class="text-sm text-gray-500">Aylık Satış</p>
-          <div class="mt-4 flex items-center text-xs">
-            <span :class="[
-              'flex items-center',
-              monthlySalesChange >= 0 ? 'text-green-600' : 'text-red-600'
-            ]">
-              <i :class="['fas', monthlySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']" class="mr-1"></i>
-              {{ Math.abs(monthlySalesChange) }}%
-            </span>
-            <span class="text-gray-400 ml-2">Geçen aydan bu yana</span>
-                </div>
-              </div>
-
-        <!-- Toplam Müşteri -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <i class="fas fa-users text-blue-600 text-xl"></i>
-            </div>
-            <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-600">Toplam</span>
-              </div>
-          <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ totalCustomers }}</h3>
-          <p class="text-sm text-gray-500">Toplam Müşteri</p>
-          <div class="mt-4 flex items-center text-xs">
-            <span class="text-green-600 flex items-center">
-              <i class="fas fa-arrow-up mr-1"></i>
-              {{ newCustomersToday }}
-            </span>
-            <span class="text-gray-400 ml-2">Bugün eklenen</span>
-              </div>
-            </div>
-
-        <!-- Düşük Stok -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-              <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
-            </div>
-            <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-600">Uyarı</span>
-          </div>
-          <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ lowStockCount }}</h3>
-          <p class="text-sm text-gray-500">Düşük Stok</p>
-          <div class="mt-4 flex items-center text-xs">
-            <router-link to="/stock" class="text-red-600 hover:text-red-700">
-              Stok durumunu kontrol et
-              <i class="fas fa-arrow-right ml-1"></i>
-            </router-link>
-                </div>
-              </div>
-            </div>
-
-      <!-- Grafikler -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Aylık Satış Grafiği -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-bold text-gray-900">Aylık Satış Grafiği</h3>
-            <select v-model="selectedPeriod" 
-                    class="text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
-              <option value="6">Son 6 Ay</option>
-              <option value="12">Son 12 Ay</option>
-            </select>
-          </div>
-          <div class="h-80">
-            <LineChart :data="monthlySalesData" />
-          </div>
-        </div>
-
-        <!-- En Çok Satan Ürünler -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <h3 class="text-lg font-bold text-gray-900 mb-6">En Çok Satan Ürünler</h3>
-          <div class="h-80">
-            <PieChart :data="topProductsData" />
-          </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-1">₺{{ formatPrice(monthlySales) }}</h3>
+        <p class="text-sm text-gray-500">Aylık Satış</p>
+        <div class="mt-4 flex items-center text-xs">
+          <span :class="[
+            'flex items-center',
+            monthlySalesChange >= 0 ? 'text-green-600' : 'text-red-600'
+          ]">
+            <i :class="['fas', monthlySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']" class="mr-1"></i>
+            {{ Math.abs(monthlySalesChange) }}%
+          </span>
+          <span class="text-gray-400 ml-2">Geçen aydan bu yana</span>
         </div>
       </div>
 
-      <!-- Alt Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Son Satışlar -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <h3 class="text-lg font-bold text-gray-900 mb-4">Son Satışlar</h3>
-          <div class="space-y-4">
-            <div v-for="sale in recentSales" 
-                 :key="sale.id" 
-                 class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-              <div class="flex items-center space-x-4">
-                <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                  <i class="fas fa-shopping-cart text-indigo-600"></i>
+      <!-- Toplam Müşteri -->
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-users text-blue-600 text-xl"></i>
+          </div>
+          <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-600">Toplam</span>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ totalCustomers }}</h3>
+        <p class="text-sm text-gray-500">Toplam Müşteri</p>
+        <div class="mt-4 flex items-center text-xs">
+          <span class="text-green-600 flex items-center">
+            <i class="fas fa-arrow-up mr-1"></i>
+            {{ newCustomersToday }}
+          </span>
+          <span class="text-gray-400 ml-2">Bugün eklenen</span>
+        </div>
+      </div>
+
+      <!-- Düşük Stok -->
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+          </div>
+          <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-600">Uyarı</span>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ lowStockCount }}</h3>
+        <p class="text-sm text-gray-500">Düşük Stok</p>
+        <div class="mt-4 flex items-center text-xs">
+          <router-link to="/stock" class="text-red-600 hover:text-red-700">
+            Stok durumunu kontrol et
+            <i class="fas fa-arrow-right ml-1"></i>
+          </router-link>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grafikler -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <!-- Aylık Satış Grafiği -->
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-bold text-gray-900">Aylık Satış Grafiği</h3>
+          <select v-model="selectedPeriod" 
+                  class="text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="6">Son 6 Ay</option>
+            <option value="12">Son 12 Ay</option>
+          </select>
+        </div>
+        <div class="h-80">
+          <LineChart :data="monthlySalesData" />
+        </div>
+      </div>
+
+      <!-- En Çok Satan Ürünler -->
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-6">En Çok Satan Ürünler</h3>
+        <div class="h-80">
+          <PieChart :data="topProductsData" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Alt Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Son Satışlar -->
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Son Satışlar</h3>
+        <div class="space-y-4">
+          <div v-for="sale in recentSales" 
+               :key="sale.id" 
+               class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+            <div class="flex items-center space-x-4">
+              <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                <i class="fas fa-shopping-cart text-indigo-600"></i>
               </div>
-                <div>
-                  <h4 class="text-sm font-medium text-gray-900">{{ sale.customer_name }}</h4>
-                  <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
-                </div>
-              </div>
-              <div class="text-right">
-                <p class="text-sm font-bold text-gray-900">₺{{ formatPrice(sale.total_amount) }}</p>
-                <p class="text-xs text-gray-500">{{ sale.items_count }} ürün</p>
+              <div>
+                <h4 class="text-sm font-medium text-gray-900">{{ sale.customer_name }}</h4>
+                <p class="text-xs text-gray-500">{{ formatDate(sale.created_at) }}</p>
               </div>
             </div>
-          </div>
-          </div>
-          
-        <!-- Kritik Stok -->
-        <div class="bg-white rounded-2xl shadow-lg p-6">
-          <h3 class="text-lg font-bold text-gray-900 mb-4">Kritik Stok Seviyeleri</h3>
-          <div class="space-y-4">
-            <div v-for="product in lowStockProducts" 
-                 :key="product.id" 
-                 class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-              <div class="flex items-center space-x-4">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center"
-                     :class="getCategoryBgColor(product.category_id)">
-                  <i class="fas fa-box" :class="getCategoryTextColor(product.category_id)"></i>
-                </div>
-                <div>
-                  <h4 class="text-sm font-medium text-gray-900">{{ product.name }}</h4>
-                  <p class="text-xs text-gray-500">{{ product.category.name }}</p>
-                </div>
-              </div>
-              <div class="text-right">
-                <p :class="[
-                  'text-sm font-bold',
-                  product.stock <= 0 ? 'text-red-600' : 'text-orange-600'
-                ]">{{ product.stock }} adet</p>
-                <p class="text-xs text-gray-500">Kritik seviye: {{ product.min_stock }}</p>
-          </div>
+            <div class="text-right">
+              <p class="text-sm font-bold text-gray-900">₺{{ formatPrice(sale.total_amount) }}</p>
+              <p class="text-xs text-gray-500">{{ sale.items_count }} ürün</p>
             </div>
           </div>
         </div>
       </div>
-    </main>
+      
+      <!-- Kritik Stok -->
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Kritik Stok Seviyeleri</h3>
+        <div class="space-y-4">
+          <div v-for="product in lowStockProducts" 
+               :key="product.id" 
+               class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+            <div class="flex items-center space-x-4">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                   :class="getCategoryBgColor(product.category_id)">
+                <i class="fas fa-box" :class="getCategoryTextColor(product.category_id)"></i>
+              </div>
+              <div>
+                <h4 class="text-sm font-medium text-gray-900">{{ product.name }}</h4>
+                <p class="text-xs text-gray-500">{{ product.category.name }}</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p :class="[
+                'text-sm font-bold',
+                product.stock <= 0 ? 'text-red-600' : 'text-orange-600'
+              ]">{{ product.stock }} adet</p>
+              <p class="text-xs text-gray-500">Kritik seviye: {{ product.min_stock }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -226,15 +207,13 @@ import { supabase } from '@/lib/supabaseClient'
 import { useToast } from 'vue-toastification'
 import LineChart from '@/components/charts/LineChart.vue'
 import PieChart from '@/components/charts/PieChart.vue'
-import Sidebar from '@/components/Sidebar.vue'
 import { useRouter } from 'vue-router'
 
 export default {
   name: 'Dashboard',
   components: {
     LineChart,
-    PieChart,
-    Sidebar
+    PieChart
   },
   setup() {
     const toast = useToast()

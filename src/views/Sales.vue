@@ -1,33 +1,6 @@
 <template>
   <div class="dashboard-layout" :class="{ 'menu-collapsed': isMenuCollapsed }">
-    <!-- Sol Menü -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <span class="logo-text">FlowBridge</span>
-        <button @click="toggleMenu" class="collapse-btn">
-          <i :class="isMenuCollapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left'"></i>
-        </button>
-          </div>
 
-      <nav class="sidebar-nav">
-        <router-link to="/dashboard" class="nav-item">
-          <i class="fas fa-chart-line"></i>
-          <span>Güncel Durum</span>
-        </router-link>
-        <router-link to="/sales" class="nav-item active">
-            <i class="fas fa-shopping-cart"></i>
-          <span>Satışlar</span>
-        </router-link>
-        <router-link to="/customers" class="nav-item">
-          <i class="fas fa-users"></i>
-          <span>Müşteriler</span>
-        </router-link>
-        <router-link to="/stock" class="nav-item">
-          <i class="fas fa-box"></i>
-          <span>Stok</span>
-        </router-link>
-    </nav>
-    </aside>
 
     <!-- Ana İçerik -->
     <main class="main-content">

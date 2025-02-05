@@ -10,6 +10,7 @@ import ForgotPassword from '@/views/ForgotPassword.vue'
 import ResetPassword from '@/views/ResetPassword.vue'
 import SalesList from '@/views/SalesList.vue'
 import Customers from '@/views/Customers.vue'
+import MainLayout from '@/components/layouts/MainLayout.vue'
 
 const routes = [
   {
@@ -42,42 +43,36 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
-    path: "/dashboard",
-    name: "Dashboard",
-    component: Dashboard,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: "/stock",
-    name: "Stock",
-    component: Stock,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/sales',
-    name: 'Sales',
-    component: Sales,
-    meta: {
-      requiresAuth: true,
-      title: 'Satışlar'
-    }
-  },
-  {
-    path: '/sales/list',
-    name: 'sales-list',
-    component: SalesList,
-    meta: {
-      requiresAuth: true
-    }
-  },
-  {
-    path: '/customers',
-    name: 'Customers',
-    component: Customers,
-    meta: {
-      requiresAuth: true,
-      title: 'Müşteriler'
-    }
+    path: "/",
+    component: MainLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "dashboard",
+        name: "Dashboard",
+        component: Dashboard,
+      },
+      {
+        path: "stock",
+        name: "Stock",
+        component: Stock,
+      },
+      {
+        path: "sales",
+        name: "Sales",
+        component: Sales,
+      },
+      {
+        path: "sales/list",
+        name: "SalesList",
+        component: SalesList,
+      },
+      {
+        path: "customers",
+        name: "Customers",
+        component: Customers,
+      }
+    ]
   }
 ];
 
