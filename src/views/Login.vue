@@ -157,145 +157,76 @@ export default {
     const handleLogin = async () => {
       // Form doğrulama
       if (!email.value) {
-        toast.error('E-posta adresi boş bırakılamaz', {
-          position: "top-right",
-          timeout: 3000,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-          draggablePercent: 0.6,
-          showCloseButtonOnHover: false,
-          hideProgressBar: true,
-          closeButton: false,
-          icon: true
-        })
+        toast.error('E-posta adresi boş bırakılamaz')
         return
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(email.value)) {
-        toast.error('Lütfen geçerli bir e-posta adresi giriniz', {
-          position: "top-right",
-          timeout: 3000,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-          draggablePercent: 0.6,
-          showCloseButtonOnHover: false,
-          hideProgressBar: true,
-          closeButton: false,
-          icon: true
-        })
+        toast.error('Lütfen geçerli bir e-posta adresi giriniz')
         return
       }
 
       if (!password.value) {
-        toast.error('Şifre boş bırakılamaz', {
-          position: "top-right",
-          timeout: 3000,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-          draggablePercent: 0.6,
-          showCloseButtonOnHover: false,
-          hideProgressBar: true,
-          closeButton: false,
-          icon: true
-        })
+        toast.error('Şifre boş bırakılamaz')
         return
       }
 
       if (password.value.length < 6) {
-        toast.error('Şifre en az 6 karakter olmalıdır', {
-          position: "top-right",
-          timeout: 3000,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-          draggablePercent: 0.6,
-          showCloseButtonOnHover: false,
-          hideProgressBar: true,
-          closeButton: false,
-          icon: true
-        })
+        toast.error('Şifre en az 6 karakter olmalıdır')
         return
       }
 
       try {
         loading.value = true
-        await supabase.auth.signOut()
 
-        const { data, error } = await supabase.auth.signInWithPassword({
+        // Önce kullanıcının kimlik bilgilerini kontrol et
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: email.value,
           password: password.value,
         })
 
-        if (error) {
-          const toastOptions = {
-            position: "top-right",
-            timeout: 3000,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-            draggablePercent: 0.6,
-            showCloseButtonOnHover: false,
-            hideProgressBar: true,
-            closeButton: false,
-            icon: true
-          }
-
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error('Geçersiz e-posta veya şifre', toastOptions)
-          } else if (error.message.includes('Email not confirmed')) {
-            toast.error('E-posta adresiniz henüz doğrulanmamış', toastOptions)
-          } else if (error.message.includes('Please include an @ in the email address')) {
-            toast.error('Lütfen geçerli bir e-posta adresi giriniz', toastOptions)
-          } else if (error.message.includes('is incomplete')) {
-            toast.error('Lütfen e-posta adresini tam olarak giriniz', toastOptions)
-          } else if (error.message.includes('Password should be at least')) {
-            toast.error('Şifre en az 6 karakter olmalıdır', toastOptions)
-          } else if (error.message.includes('Email address is required')) {
-            toast.error('E-posta adresi gereklidir', toastOptions)
-          } else if (error.message.includes('Password is required')) {
-            toast.error('Şifre gereklidir', toastOptions)
-          } else if (error.message.includes('Rate limit exceeded')) {
-            toast.error('Çok fazla deneme yaptınız. Lütfen bir süre bekleyin', toastOptions)
+        if (authError) {
+          if (authError.message.includes('Invalid login credentials')) {
+            toast.error('Geçersiz e-posta veya şifre')
+          } else if (authError.message.includes('Email not confirmed')) {
+            toast.error('E-posta adresiniz henüz doğrulanmamış')
           } else {
-            toast.error('Giriş yapılırken bir hata oluştu', toastOptions)
+            toast.error('Giriş yapılırken bir hata oluştu')
           }
           return
         }
 
-        if (data?.session) {
-          await supabase.auth.setSession(data.session)
+        if (authData?.user) {
+          // Kullanıcının aktif durumunu kontrol et
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('is_active')
+            .eq('id', authData.user.id)
+            .single()
+
+          if (profileError) {
+            await supabase.auth.signOut()
+            throw profileError
+          }
+
+          // Hesap aktif değilse giriş yapmasına izin verme
+          if (!profile.is_active) {
+            await supabase.auth.signOut()
+            toast.error('Hesabınız aktif değil. Lütfen destek ekibiyle iletişime geçin.')
+            return
+          }
+
+          // Her şey yolundaysa oturumu başlat
+          await supabase.auth.setSession(authData.session)
           router.push('/')
-          toast.success('Başarıyla giriş yapıldı', {
-            position: "top-right",
-            timeout: 3000,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-            draggablePercent: 0.6,
-            showCloseButtonOnHover: false,
-            hideProgressBar: true,
-            closeButton: false,
-            icon: true
-          })
+          toast.success('Başarıyla giriş yapıldı')
         }
       } catch (error) {
         console.error('Giriş hatası:', error.message)
-        toast.error('Giriş yapılırken bir hata oluştu', {
-          position: "top-right",
-          timeout: 3000,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-          draggablePercent: 0.6,
-          showCloseButtonOnHover: false,
-          hideProgressBar: true,
-          closeButton: false,
-          icon: true
-        })
+        toast.error('Giriş yapılırken bir hata oluştu')
+        // Hata durumunda oturumu sonlandır
+        await supabase.auth.signOut()
       } finally {
         loading.value = false
       }
