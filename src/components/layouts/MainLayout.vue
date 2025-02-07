@@ -186,7 +186,6 @@ export default {
       try {
         const { error } = await supabase.auth.signOut()
         if (error) throw error
-        toast.success('Başarıyla çıkış yapıldı')
         router.push('/login')
       } catch (error) {
         console.error('Logout error:', error)

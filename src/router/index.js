@@ -12,6 +12,7 @@ import SalesList from '@/views/SalesList.vue'
 import Customers from '@/views/Customers.vue'
 import MainLayout from '@/components/layouts/MainLayout.vue'
 import Settings from '@/views/Settings.vue'
+import AdminLogin from '@/views/AdminLogin.vue'
 
 const routes = [
   {
@@ -23,6 +24,12 @@ const routes = [
     path: "/login",
     name: "Login",
     component: Login,
+    meta: { requiresGuest: true }
+  },
+  {
+    path: "/admin/login",
+    name: "AdminLogin",
+    component: AdminLogin,
     meta: { requiresGuest: true }
   },
   {
@@ -79,6 +86,42 @@ const routes = [
         component: Settings,
       }
     ]
+  },
+  {
+    path: "/admin",
+    component: () => import("@/layouts/AdminLayout.vue"),
+    meta: { requiresAuth: true, requiresAdmin: true },
+    children: [
+      {
+        path: "",
+        redirect: "/admin/dashboard"
+      },
+      {
+        path: "dashboard",
+        name: "AdminDashboard",
+        component: () => import("@/views/admin/Dashboard.vue")
+      },
+      {
+        path: "users",
+        name: "AdminUsers",
+        component: () => import("@/views/admin/Users.vue")
+      },
+      {
+        path: "licenses",
+        name: "AdminLicenses",
+        component: () => import("@/views/admin/Licenses.vue")
+      },
+      {
+        path: "logs",
+        name: "AdminLogs",
+        component: () => import("@/views/admin/Logs.vue")
+      },
+      {
+        path: "settings",
+        name: "AdminSettings",
+        component: () => import("@/views/admin/Settings.vue")
+      }
+    ]
   }
 ];
 
@@ -92,6 +135,7 @@ router.beforeEach(async (to, from, next) => {
   const { data: { session } } = await supabase.auth.getSession()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const requiresGuest = to.matched.some(record => record.meta.requiresGuest)
+  const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
 
   // Şifre sıfırlama sayfasına gidiyorsa
   if (to.path === '/reset-password') {
@@ -117,6 +161,28 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
+  // Admin yetkisi kontrolü
+  if (requiresAdmin) {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+
+      if (error) throw error
+
+      if (profile.role !== 'admin') {
+        next('/dashboard')
+        return
+      }
+    } catch (error) {
+      console.error('Admin check error:', error)
+      next('/dashboard')
+      return
+    }
+  }
+
   // Ana sayfaya gidiyorsa ve oturum varsa dashboard'a yönlendir
   if (to.path === '/' && session) {
     next('/dashboard')
@@ -124,7 +190,7 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Deneme süresi kontrolü
-  if (session && requiresAuth) {
+  if (session && requiresAuth && !requiresAdmin) {
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
