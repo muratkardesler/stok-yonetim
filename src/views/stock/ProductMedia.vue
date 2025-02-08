@@ -338,19 +338,67 @@ export default {
     // Load data
     const loadImages = async () => {
       try {
-        const { data, error } = await supabase
+        // Önce tüm görselleri çek
+        const { data: imageData, error: imageError } = await supabase
           .from('product_images')
-          .select(`
-            *,
-            product:products(*)
-          `)
+          .select('*')
           .order('created_at', { ascending: false })
         
-        if (error) throw error
-        images.value = data.map(img => ({
-          ...img,
-          matched_product: img.product?.[0] || null
-        }))
+        if (imageError) throw imageError
+
+        // Tüm ürünleri çek
+        const { data: products, error: productsError } = await supabase
+          .from('products')
+          .select('*')
+
+        if (productsError) throw productsError
+
+        // Her görsel için eşleşme durumunu kontrol et
+        const processedImages = imageData.map(image => {
+          const matchingProduct = products.find(p => p.name === image.product_name)
+          return {
+            ...image,
+            status: matchingProduct ? 'matched' : 'unmatched',
+            matched_product: matchingProduct || null
+          }
+        })
+
+        images.value = processedImages
+
+        // Her ürün için primary image kontrolü yap
+        for (const product of products) {
+          // Ürünün eşleşen görsellerini bul
+          const matchingImages = processedImages.filter(img => 
+            img.product_name === product.name && img.status === 'matched'
+          )
+
+          if (matchingImages.length > 0) {
+            // Primary olan görseli bul
+            const primaryImage = matchingImages.find(img => img.is_primary)
+
+            if (!primaryImage) {
+              // Primary görsel yoksa ilk görseli primary yap
+              const firstImage = matchingImages[0]
+              await supabase
+                .from('product_images')
+                .update({ is_primary: true })
+                .eq('id', firstImage.id)
+
+              // Ürünü güncelle
+              await supabase
+                .from('products')
+                .update({ primary_image: firstImage.image_url })
+                .eq('id', product.id)
+            } else if (!product.primary_image) {
+              // Primary görsel var ama ürünün primary_image'i yoksa güncelle
+              await supabase
+                .from('products')
+                .update({ primary_image: primaryImage.image_url })
+                .eq('id', product.id)
+            }
+          }
+        }
+
       } catch (error) {
         console.error('Error loading images:', error)
         toast.error('Görseller yüklenirken bir hata oluştu')
@@ -471,6 +519,55 @@ export default {
           .eq('id', image.id)
 
         if (error) throw error
+
+        // Update product's primary image
+        const { data: products } = await supabase
+          .from('products')
+          .select('id')
+          .eq('name', image.product_name)
+          .limit(1)
+
+        if (products && products.length > 0) {
+          const productId = products[0].id
+
+          if (!image.is_primary) {
+            // Setting as primary, update product
+            const { error: productError } = await supabase
+              .from('products')
+              .update({ primary_image: image.image_url })
+              .eq('id', productId)
+
+            if (productError) throw productError
+          } else {
+            // Removing primary status, find another image to set as primary
+            const { data: otherImages } = await supabase
+              .from('product_images')
+              .select('*')
+              .eq('product_name', image.product_name)
+              .neq('id', image.id)
+              .limit(1)
+
+            if (otherImages && otherImages.length > 0) {
+              // Set the other image as primary
+              await supabase
+                .from('product_images')
+                .update({ is_primary: true })
+                .eq('id', otherImages[0].id)
+
+              // Update product's primary image
+              await supabase
+                .from('products')
+                .update({ primary_image: otherImages[0].image_url })
+                .eq('id', productId)
+            } else {
+              // If no other images, set primary_image to null
+              await supabase
+                .from('products')
+                .update({ primary_image: null })
+                .eq('id', productId)
+            }
+          }
+        }
         
         await loadImages()
         toast.success(image.is_primary ? 'Ana görsel kaldırıldı' : 'Ana görsel olarak ayarlandı')
@@ -481,75 +578,6 @@ export default {
     }
 
     // Save operations
-    const uploadImages = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        for (const file of selectedFiles.value) {
-          // Dosya boyutu kontrolü
-          if (file.size > 2 * 1024 * 1024) {
-            toast.error(`${file.name} dosyası 2MB'dan büyük olamaz`)
-            continue
-          }
-
-          // Dosya tipi kontrolü
-          const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
-          if (!allowedTypes.includes(file.type)) {
-            toast.error(`${file.name} dosyası desteklenmeyen bir format`)
-            continue
-          }
-
-          try {
-            // Benzersiz dosya adı oluştur
-            const timestamp = new Date().getTime()
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.${fileExt}`
-            const filePath = `${user.id}/${fileName}`
-
-            // Dosyayı storage'a yükle
-            const { error: uploadError, data } = await supabase.storage
-              .from('product-images')
-              .upload(filePath, file, {
-                cacheControl: '3600',
-                upsert: false
-              })
-
-            if (uploadError) throw uploadError
-
-            // Public URL al
-            const { data: { publicUrl } } = supabase.storage
-              .from('product-images')
-              .getPublicUrl(filePath)
-
-            // Veritabanına kaydet
-            const { error: dbError } = await supabase
-              .from('product_images')
-              .insert({
-                product_name: uploadForm.value.product_name,
-                description: uploadForm.value.description,
-                image_url: publicUrl,
-                status: 'unmatched',
-                user_id: user.id
-              })
-
-            if (dbError) throw dbError
-
-          } catch (error) {
-            console.error(`Error uploading ${file.name}:`, error)
-            toast.error(`${file.name} yüklenirken hata oluştu`)
-            continue
-          }
-        }
-
-        toast.success('Görseller başarıyla yüklendi')
-        closeUploadModal()
-        loadImages()
-      } catch (error) {
-        console.error('Error in upload process:', error)
-        toast.error('İşlem sırasında bir hata oluştu')
-      }
-    }
-
     const saveEdit = async () => {
       try {
         // If setting as primary, first remove primary from all other images of the same product
@@ -563,7 +591,8 @@ export default {
           if (updateError) throw updateError
         }
 
-        const { error } = await supabase
+        // Update the image
+        const { data: image, error } = await supabase
           .from('product_images')
           .update({
             product_name: editForm.value.product_name,
@@ -571,8 +600,53 @@ export default {
             is_primary: editForm.value.is_primary
           })
           .eq('id', editForm.value.id)
+          .select()
+          .single()
 
         if (error) throw error
+
+        // Find the product
+        const { data: products, error: productError } = await supabase
+          .from('products')
+          .select('id')
+          .eq('name', editForm.value.product_name)
+          .limit(1)
+
+        if (productError) throw productError
+
+        // Update product's primary image if exists
+        if (products && products.length > 0) {
+          const productId = products[0].id
+
+          if (editForm.value.is_primary) {
+            // Setting as primary, update product
+            await supabase
+              .from('products')
+              .update({ primary_image: image.image_url })
+              .eq('id', productId)
+          } else {
+            // If removing primary status, find another image
+            const { data: otherImages } = await supabase
+              .from('product_images')
+              .select('*')
+              .eq('product_name', editForm.value.product_name)
+              .eq('is_primary', true)
+              .limit(1)
+
+            if (otherImages && otherImages.length > 0) {
+              await supabase
+                .from('products')
+                .update({ primary_image: otherImages[0].image_url })
+                .eq('id', productId)
+            } else {
+              // If no primary images, set to null
+              await supabase
+                .from('products')
+                .update({ primary_image: null })
+                .eq('id', productId)
+            }
+          }
+        }
         
         toast.success('Görsel güncellendi')
         closeEditModal()
@@ -618,6 +692,119 @@ export default {
       } catch (error) {
         console.error('Delete error:', error)
         toast.error('Görsel silinirken bir hata oluştu')
+      }
+    }
+
+    const uploadImages = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        // Önce ürünü kontrol et
+        const { data: products } = await supabase
+          .from('products')
+          .select('id, name, primary_image')
+          .eq('name', uploadForm.value.product_name)
+          .limit(1)
+
+        const matchingProduct = products && products.length > 0 ? products[0] : null
+
+        // Ürünün mevcut primary image'i var mı kontrol et
+        let shouldSetPrimary = false
+        if (matchingProduct) {
+          const { data: existingImages } = await supabase
+            .from('product_images')
+            .select('*')
+            .eq('product_name', uploadForm.value.product_name)
+            .eq('is_primary', true)
+            .limit(1)
+
+          shouldSetPrimary = !existingImages || existingImages.length === 0 || !matchingProduct.primary_image
+        }
+
+        let firstUploadedImage = null
+
+        for (const file of selectedFiles.value) {
+          // Dosya boyutu kontrolü
+          if (file.size > 2 * 1024 * 1024) {
+            toast.error(`${file.name} dosyası 2MB'dan büyük olamaz`)
+            continue
+          }
+
+          // Dosya tipi kontrolü
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+          if (!allowedTypes.includes(file.type)) {
+            toast.error(`${file.name} dosyası desteklenmeyen bir format`)
+            continue
+          }
+
+          try {
+            // Benzersiz dosya adı oluştur
+            const timestamp = new Date().getTime()
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.${fileExt}`
+            const filePath = `${user.id}/${fileName}`
+
+            // Dosyayı storage'a yükle
+            const { error: uploadError } = await supabase.storage
+              .from('product-images')
+              .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+              })
+
+            if (uploadError) throw uploadError
+
+            // Public URL al
+            const { data: { publicUrl } } = supabase.storage
+              .from('product-images')
+              .getPublicUrl(filePath)
+
+            // Veritabanına kaydet
+            const { data: savedImage, error: dbError } = await supabase
+              .from('product_images')
+              .insert({
+                product_name: uploadForm.value.product_name,
+                description: uploadForm.value.description,
+                image_url: publicUrl,
+                status: matchingProduct ? 'matched' : 'unmatched',
+                is_primary: shouldSetPrimary,
+                user_id: user.id
+              })
+              .select()
+              .single()
+
+            if (dbError) throw dbError
+
+            if (!firstUploadedImage) {
+              firstUploadedImage = savedImage
+            }
+
+            // Eğer bu ilk görsel ise ve ürün varsa, primary_image'i güncelle
+            if (shouldSetPrimary && matchingProduct && firstUploadedImage) {
+              const { error: productError } = await supabase
+                .from('products')
+                .update({ primary_image: firstUploadedImage.image_url })
+                .eq('id', matchingProduct.id)
+
+              if (productError) throw productError
+              
+              // Bir kere primary image atandıktan sonra diğer görseller için false yap
+              shouldSetPrimary = false
+            }
+
+          } catch (error) {
+            console.error(`Error uploading ${file.name}:`, error)
+            toast.error(`${file.name} yüklenirken hata oluştu`)
+            continue
+          }
+        }
+
+        toast.success('Görseller başarıyla yüklendi')
+        closeUploadModal()
+        loadImages()
+      } catch (error) {
+        console.error('Error in upload process:', error)
+        toast.error('İşlem sırasında bir hata oluştu')
       }
     }
 

@@ -64,19 +64,23 @@
             <tr v-for="product in filteredProducts" :key="product.id" 
                 class="hover:bg-gray-50/50 transition-colors">
               <td class="px-6 py-4">
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-4">
                   <div v-if="product.primary_image" 
-                       class="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center">
+                       class="relative w-16 h-16 rounded-2xl overflow-hidden shadow-sm border border-gray-100 group-hover:shadow-md transition-shadow">
                     <img :src="product.primary_image" 
                          :alt="product.name"
-                         class="w-full h-full object-cover">
+                         class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   </div>
                   <div v-else
-                       class="w-10 h-10 rounded-xl flex items-center justify-center"
+                       class="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-gray-100"
                        :class="getCategoryBgColor(product.category_id)">
-                    <i class="fas fa-box" :class="getCategoryTextColor(product.category_id)"></i>
+                    <i class="fas fa-box text-2xl" :class="getCategoryTextColor(product.category_id)"></i>
                   </div>
-                  <span class="text-sm font-semibold text-gray-900">{{ product.name }}</span>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-semibold text-gray-900">{{ product.name }}</span>
+                    <span class="text-xs text-gray-500 mt-0.5">{{ product.primary_image ? 'Görsel Yüklendi' : 'Görsel Yok' }}</span>
+                  </div>
                 </div>
               </td>
               <td class="px-6 py-4">
@@ -280,19 +284,47 @@ export default {
     // Load data
     const loadProducts = async () => {
       try {
-        const { data, error } = await supabase
+        // Önce ürünleri çek
+        const { data: productsData, error: productsError } = await supabase
           .from('products')
-          .select(`
-            *,
-            product_images(*)
-          `)
+          .select('*')
           .order('name')
         
-        if (error) throw error
-        products.value = data.map(product => ({
-          ...product,
-          primary_image: product.product_images?.find(img => img.is_primary)?.image_url
-        }))
+        if (productsError) throw productsError
+
+        // Tüm product_images'ları çek
+        const { data: imagesData, error: imagesError } = await supabase
+          .from('product_images')
+          .select('*')
+          .eq('is_primary', true)
+
+        if (imagesError) throw imagesError
+
+        // Her ürün için primary image'i güncelle
+        products.value = productsData.map(product => {
+          const primaryImage = imagesData.find(img => img.product_name === product.name)
+          return {
+            ...product,
+            primary_image: primaryImage?.image_url || null
+          }
+        })
+
+        // Eğer primary_image null olan ama eşleşen görseli olan ürünler varsa güncelle
+        for (const product of products.value) {
+          if (!product.primary_image) {
+            const matchingImage = imagesData.find(img => img.product_name === product.name)
+            if (matchingImage) {
+              // Ürünün primary_image alanını güncelle
+              const { error: updateError } = await supabase
+                .from('products')
+                .update({ primary_image: matchingImage.image_url })
+                .eq('id', product.id)
+
+              if (updateError) throw updateError
+              product.primary_image = matchingImage.image_url
+            }
+          }
+        }
       } catch (error) {
         console.error('Error loading products:', error)
         toast.error('Ürünler yüklenirken bir hata oluştu')
