@@ -49,75 +49,107 @@
       </div>
 
       <!-- Media Grid -->
-      <div class="p-6">
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          <div v-for="image in filteredImages" :key="image.id"
-               class="group relative aspect-square rounded-xl overflow-hidden border border-gray-200 hover:border-indigo-500 transition-colors">
-            <img :src="image.image_url" 
-                 :alt="image.product_name"
-                 class="w-full h-full object-cover">
-            
-            <!-- Status Badge -->
-            <div class="absolute top-2 right-2">
-              <span :class="[
-                'px-2 py-1 text-xs font-medium rounded-full',
-                image.status === 'matched' 
-                  ? 'bg-green-100 text-green-800 border border-green-200' 
-                  : 'bg-amber-100 text-amber-800 border border-amber-200'
-              ]">
-                {{ image.status === 'matched' ? 'Eşleşti' : 'Eşleşmedi' }}
-              </span>
+      <div class="p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- Skeleton Loading -->
+          <template v-if="loading">
+            <div v-for="n in 8" :key="n"
+                 class="bg-white rounded-xl border border-gray-200 shadow-sm p-3 animate-pulse">
+              <div class="aspect-square rounded-lg bg-gray-100 mb-3">
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skeleton-wave"></div>
+              </div>
+              <div class="space-y-2">
+                <div class="h-4 bg-gray-100 rounded w-3/4"></div>
+                <div class="h-3 bg-gray-100 rounded w-1/2"></div>
+              </div>
             </div>
-            
-            <!-- Primary Badge -->
-            <div v-if="image.is_primary" class="absolute top-2 left-2">
-              <span class="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
-                Ana Görsel
-              </span>
-            </div>
-            
-            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-              <div class="absolute bottom-0 left-0 right-0 p-3">
-                <p class="text-sm font-medium text-white truncate">
-                  {{ image.matched_product ? image.matched_product.name : image.product_name }}
-                  <span v-if="image.matched_product && image.matched_product.name !== image.product_name" 
-                        class="text-xs text-gray-300">
-                    ({{ image.product_name }})
-                  </span>
-                </p>
-                <p class="text-xs text-gray-300 mt-0.5">{{ image.description || 'Açıklama yok' }}</p>
+          </template>
+
+          <!-- Actual Product Cards -->
+          <template v-else>
+            <div v-for="product in groupedImages" :key="product.name"
+                 class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+              <!-- Main Image Section -->
+              <div class="relative aspect-square cursor-pointer group"
+                   @click="openLightbox(product.images[currentImageIndexes[product.name] || 0])">
+                <img :src="product.images[currentImageIndexes[product.name] || 0].image_url" 
+                     :alt="product.name"
+                     class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
                 
-                <div class="flex items-center justify-end mt-2 space-x-2">
-                  <button @click="editImage(image)" 
-                          class="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors">
-                    <i class="fas fa-edit text-xs"></i>
+                <!-- Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <div class="absolute top-2 right-2">
+                    <span :class="[
+                      'px-2 py-1 text-xs font-medium rounded-full',
+                      product.status === 'matched' 
+                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                        : 'bg-amber-100 text-amber-800 border border-amber-200'
+                    ]">
+                      {{ product.status === 'matched' ? 'Eşleşti' : 'Eşleşmedi' }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Primary Badge -->
+                <div v-if="product.images[currentImageIndexes[product.name] || 0].is_primary"
+                     class="absolute top-2 left-2 px-2 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full border border-indigo-200">
+                  Ana Görsel
+                </div>
+              </div>
+
+              <!-- Thumbnails Section -->
+              <div class="p-4">
+                <h3 class="font-medium text-gray-900 mb-2">{{ product.name }}</h3>
+                
+                <!-- Thumbnail Navigation -->
+                <div class="flex items-center space-x-1.5 overflow-x-auto py-2 scrollbar-hide">
+                  <div v-for="(image, index) in product.images" 
+                       :key="image.id"
+                       @click="currentImageIndexes[product.name] = index"
+                       class="relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-200"
+                       :class="currentImageIndexes[product.name] === index ? 'border-indigo-500' : 'border-transparent'">
+                    <img :src="image.image_url" 
+                         :alt="product.name"
+                         class="w-full h-full object-cover">
+                    
+                    <!-- Primary Indicator -->
+                    <div v-if="image.is_primary"
+                         class="absolute bottom-0 inset-x-0 bg-indigo-500 py-0.5">
+                      <div class="text-[10px] text-white text-center">Ana Görsel</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end space-x-2 mt-3 border-t pt-3">
+                  <button @click="editImage(product.images[currentImageIndexes[product.name] || 0])"
+                          class="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors">
+                    <i class="fas fa-edit"></i>
                   </button>
-                  <button @click="togglePrimary(image)" 
-                          class="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors">
-                    <i class="fas fa-star text-xs" :class="image.is_primary ? 'text-yellow-300' : ''"></i>
+                  <button @click="togglePrimary(product.images[currentImageIndexes[product.name] || 0])"
+                          class="p-2 text-gray-600 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors">
+                    <i class="fas fa-star" :class="product.images[currentImageIndexes[product.name] || 0].is_primary ? 'text-yellow-400' : ''"></i>
                   </button>
-                  <button @click="copyImageUrl(image)" 
-                          class="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors">
-                    <i class="fas fa-link text-xs"></i>
-                  </button>
-                  <button @click="deleteImage(image)" 
-                          class="p-1.5 rounded-lg bg-white/20 hover:bg-red-500 text-white transition-colors">
-                    <i class="fas fa-trash text-xs"></i>
+                  <button @click="deleteImage(product.images[currentImageIndexes[product.name] || 0])"
+                          class="p-2 text-gray-600 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                    <i class="fas fa-trash"></i>
                   </button>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Upload Card -->
-          <div @click="showUploadModal = true"
-               class="aspect-square rounded-xl border-2 border-dashed border-gray-300 hover:border-indigo-500 transition-colors cursor-pointer flex flex-col items-center justify-center space-y-2">
-            <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center">
-              <i class="fas fa-upload text-indigo-600 text-xl"></i>
+            <!-- Upload Card -->
+            <div @click="showUploadModal = true"
+                 class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl border-2 border-dashed border-indigo-200 p-8 flex flex-col items-center justify-center space-y-4 cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all duration-300">
+              <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                <i class="fas fa-upload text-3xl text-indigo-600"></i>
+              </div>
+              <div class="text-center">
+                <p class="text-xl font-semibold text-gray-900">Yeni Medya</p>
+                <p class="text-sm text-gray-500 mt-2">PNG, JPG, WEBP</p>
+              </div>
             </div>
-            <p class="text-sm font-medium text-gray-900">Medya Yükle</p>
-            <p class="text-xs text-gray-500">PNG, JPG, WEBP</p>
-          </div>
+          </template>
         </div>
       </div>
     </div>
@@ -296,6 +328,44 @@
         </div>
       </template>
     </Modal>
+
+    <!-- Lightbox Modal -->
+    <Modal v-if="showLightbox" @close="closeLightbox" :fullscreen="true">
+      <template #body>
+        <div class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
+          <button @click="closeLightbox" 
+                  class="absolute top-4 right-4 text-white/70 hover:text-white p-2">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+          
+          <div class="relative max-w-4xl max-h-[90vh] w-full mx-4">
+            <!-- Navigation Buttons -->
+            <button v-if="currentImageIndex > 0"
+                    @click.stop="previousImage" 
+                    class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 p-2 text-white/70 hover:text-white">
+              <i class="fas fa-chevron-left text-2xl"></i>
+            </button>
+            
+            <button v-if="currentImageIndex < filteredImages.length - 1"
+                    @click.stop="nextImage" 
+                    class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 p-2 text-white/70 hover:text-white">
+              <i class="fas fa-chevron-right text-2xl"></i>
+            </button>
+
+            <!-- Image -->
+            <img :src="currentImage?.image_url" 
+                 :alt="currentImage?.product_name"
+                 class="w-full h-full object-contain">
+
+            <!-- Image Info -->
+            <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+              <h3 class="text-white font-medium">{{ currentImage?.product_name }}</h3>
+              <p class="text-white/70 text-sm mt-1">{{ currentImage?.description }}</p>
+            </div>
+          </div>
+        </div>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -335,8 +405,38 @@ export default {
       is_primary: false
     })
 
+    // Loading state
+    const loading = ref(true)
+
+    // Lightbox state
+    const showLightbox = ref(false)
+    const currentImage = ref(null)
+    const currentImageIndex = ref(0)
+
+    // Add new refs
+    const currentImageIndexes = ref({})
+    
+    // Add computed property for grouped images
+    const groupedImages = computed(() => {
+      const groups = {}
+      
+      filteredImages.value.forEach(image => {
+        if (!groups[image.product_name]) {
+          groups[image.product_name] = {
+            name: image.product_name,
+            status: image.status,
+            images: []
+          }
+        }
+        groups[image.product_name].images.push(image)
+      })
+      
+      return Object.values(groups)
+    })
+
     // Load data
     const loadImages = async () => {
+      loading.value = true
       try {
         // Önce tüm görselleri çek
         const { data: imageData, error: imageError } = await supabase
@@ -363,8 +463,6 @@ export default {
           }
         })
 
-        images.value = processedImages
-
         // Her ürün için primary image kontrolü yap
         for (const product of products) {
           // Ürünün eşleşen görsellerini bul
@@ -389,19 +487,20 @@ export default {
                 .from('products')
                 .update({ primary_image: firstImage.image_url })
                 .eq('id', product.id)
-            } else if (!product.primary_image) {
-              // Primary görsel var ama ürünün primary_image'i yoksa güncelle
-              await supabase
-                .from('products')
-                .update({ primary_image: primaryImage.image_url })
-                .eq('id', product.id)
+
+              firstImage.is_primary = true
             }
           }
         }
 
+        // Tüm işlenmiş görselleri doğrudan ata
+        images.value = processedImages
+
       } catch (error) {
         console.error('Error loading images:', error)
         toast.error('Görseller yüklenirken bir hata oluştu')
+      } finally {
+        loading.value = false
       }
     }
 
@@ -501,79 +600,60 @@ export default {
     // Toggle primary image
     const togglePrimary = async (image) => {
       try {
-        // If setting as primary, first remove primary from all other images of the same product
-        if (!image.is_primary) {
-          const { error: updateError } = await supabase
-            .from('product_images')
-            .update({ is_primary: false })
-            .eq('product_name', image.product_name)
-            .eq('is_primary', true)
-
-          if (updateError) throw updateError
-        }
-
-        // Toggle the current image
-        const { error } = await supabase
-          .from('product_images')
-          .update({ is_primary: !image.is_primary })
-          .eq('id', image.id)
-
-        if (error) throw error
-
-        // Update product's primary image
-        const { data: products } = await supabase
+        // Önce ürünü bul
+        const { data: product, error: productError } = await supabase
           .from('products')
           .select('id')
           .eq('name', image.product_name)
-          .limit(1)
+          .single()
 
-        if (products && products.length > 0) {
-          const productId = products[0].id
-
-          if (!image.is_primary) {
-            // Setting as primary, update product
-            const { error: productError } = await supabase
-              .from('products')
-              .update({ primary_image: image.image_url })
-              .eq('id', productId)
-
-            if (productError) throw productError
-          } else {
-            // Removing primary status, find another image to set as primary
-            const { data: otherImages } = await supabase
-              .from('product_images')
-              .select('*')
-              .eq('product_name', image.product_name)
-              .neq('id', image.id)
-              .limit(1)
-
-            if (otherImages && otherImages.length > 0) {
-              // Set the other image as primary
-              await supabase
-                .from('product_images')
-                .update({ is_primary: true })
-                .eq('id', otherImages[0].id)
-
-              // Update product's primary image
-              await supabase
-                .from('products')
-                .update({ primary_image: otherImages[0].image_url })
-                .eq('id', productId)
-            } else {
-              // If no other images, set primary_image to null
-              await supabase
-                .from('products')
-                .update({ primary_image: null })
-                .eq('id', productId)
-            }
-          }
+        if (productError) {
+          toast.error('Ürün bulunamadı')
+          return
         }
-        
+
+        if (!image.is_primary) {
+          // Önce diğer görsellerin primary durumunu false yap
+          await supabase
+            .from('product_images')
+            .update({ is_primary: false })
+            .eq('product_name', image.product_name)
+
+          // Sonra seçili görseli primary yap
+          await supabase
+            .from('product_images')
+            .update({ is_primary: true })
+            .eq('id', image.id)
+
+          // En son ürünün primary_image'ini güncelle
+          await supabase
+            .from('products')
+            .update({ primary_image: image.image_url })
+            .eq('id', product.id)
+
+          toast.success('Ana görsel olarak ayarlandı')
+        } else {
+          // Primary durumunu kaldır
+          await supabase
+            .from('product_images')
+            .update({ is_primary: false })
+            .eq('id', image.id)
+
+          // Ürünün primary_image'ini null yap
+          await supabase
+            .from('products')
+            .update({ primary_image: null })
+            .eq('id', product.id)
+
+          toast.success('Ana görsel kaldırıldı')
+        }
+
+        // Görselleri yeniden yükle
         await loadImages()
-        toast.success(image.is_primary ? 'Ana görsel kaldırıldı' : 'Ana görsel olarak ayarlandı')
       } catch (error) {
         console.error('Error toggling primary:', error)
         toast.error('İşlem sırasında bir hata oluştu')
+        await loadImages()
       }
     }
 
@@ -699,6 +779,18 @@ export default {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         
+        // Önce mevcut resimleri kontrol et
+        const { data: existingImages } = await supabase
+          .from('product_images')
+          .select('*')
+          .eq('product_name', uploadForm.value.product_name)
+
+        // Maksimum resim sayısı kontrolü
+        if (existingImages && existingImages.length + selectedFiles.value.length > 3) {
+          toast.error('Bir ürün için en fazla 3 resim yüklenebilir')
+          return
+        }
+        
         // Önce ürünü kontrol et
         const { data: products } = await supabase
           .from('products')
@@ -711,14 +803,14 @@ export default {
         // Ürünün mevcut primary image'i var mı kontrol et
         let shouldSetPrimary = false
         if (matchingProduct) {
-          const { data: existingImages } = await supabase
+          const { data: existingPrimaryImages } = await supabase
             .from('product_images')
             .select('*')
             .eq('product_name', uploadForm.value.product_name)
             .eq('is_primary', true)
             .limit(1)
 
-          shouldSetPrimary = !existingImages || existingImages.length === 0 || !matchingProduct.primary_image
+          shouldSetPrimary = !existingPrimaryImages || existingPrimaryImages.length === 0 || !matchingProduct.primary_image
         }
 
         let firstUploadedImage = null
@@ -808,6 +900,32 @@ export default {
       }
     }
 
+    // Lightbox functions
+    const openLightbox = (image) => {
+      currentImage.value = image
+      currentImageIndex.value = filteredImages.value.findIndex(img => img.id === image.id)
+      showLightbox.value = true
+    }
+
+    const closeLightbox = () => {
+      showLightbox.value = false
+      currentImage.value = null
+    }
+
+    const previousImage = () => {
+      if (currentImageIndex.value > 0) {
+        currentImageIndex.value--
+        currentImage.value = filteredImages.value[currentImageIndex.value]
+      }
+    }
+
+    const nextImage = () => {
+      if (currentImageIndex.value < filteredImages.value.length - 1) {
+        currentImageIndex.value++
+        currentImage.value = filteredImages.value[currentImageIndex.value]
+      }
+    }
+
     onMounted(() => {
       loadImages()
     })
@@ -838,8 +956,42 @@ export default {
       togglePrimary,
       uploadImages,
       saveEdit,
-      confirmDelete
+      confirmDelete,
+      loading,
+      showLightbox,
+      currentImage,
+      currentImageIndex,
+      openLightbox,
+      closeLightbox,
+      previousImage,
+      nextImage,
+      currentImageIndexes,
+      groupedImages
     }
   }
 }
-</script> 
+</script>
+
+<style scoped>
+.skeleton-wave {
+  animation: wave 1.5s infinite;
+}
+
+@keyframes wave {
+  0% {
+    transform: translateX(-100%);
+  }
+  50%, 100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Add styles for horizontal scrollbar hiding */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+</style> 
