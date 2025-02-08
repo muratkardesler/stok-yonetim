@@ -13,11 +13,36 @@
               <p class="text-sm text-gray-500 mt-0.5">Tüm ürünlerinizi buradan yönetin</p>
             </div>
           </div>
-          <button @click="showAddProductModal = true" 
-                  class="inline-flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 group">
-            <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
-            <span>Yeni Ürün</span>
-          </button>
+          <div class="flex items-center space-x-3">
+            <!-- View Toggle -->
+            <div class="flex items-center bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
+              <button @click="viewMode = 'grid'"
+                      :class="[
+                        'px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2',
+                        viewMode === 'grid' 
+                          ? 'bg-indigo-500 text-white shadow-sm' 
+                          : 'text-gray-600 hover:bg-gray-50'
+                      ]">
+                <i class="fas fa-grid-2"></i>
+                <span class="text-sm font-medium">Izgara</span>
+              </button>
+              <button @click="viewMode = 'list'"
+                      :class="[
+                        'px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2',
+                        viewMode === 'list' 
+                          ? 'bg-indigo-500 text-white shadow-sm' 
+                          : 'text-gray-600 hover:bg-gray-50'
+                      ]">
+                <i class="fas fa-list"></i>
+                <span class="text-sm font-medium">Liste</span>
+              </button>
+            </div>
+            <button @click="showAddProductModal = true" 
+                    class="inline-flex items-center px-4 py-2.5 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 group shadow-sm">
+              <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
+              <span>Yeni Ürün</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -49,7 +74,85 @@
         </div>
       </div>
 
-      <div class="overflow-x-auto">
+      <!-- Grid View -->
+      <div v-if="viewMode === 'grid'" class="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div v-for="product in filteredProducts" :key="product.id"
+             class="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+          <!-- Product Image -->
+          <div class="relative aspect-square group">
+            <div v-if="product.primary_image" 
+                 class="w-full h-full">
+              <img :src="product.primary_image" 
+                   :alt="product.name"
+                   class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+            </div>
+            <div v-else
+                 :class="[getCategoryGradient(product.category_id), 'w-full h-full flex items-center justify-center']">
+              <i class="fas fa-box-open text-4xl text-white/90"></i>
+            </div>
+
+            <!-- Action Buttons Overlay -->
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              <button @click.stop="editProduct(product)" 
+                      class="p-3 rounded-xl bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white hover:scale-105 transition-all duration-200 shadow-lg">
+                <i class="fas fa-edit text-lg"></i>
+              </button>
+              <button @click.stop="deleteProduct(product)" 
+                      class="p-3 rounded-xl bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white hover:scale-105 transition-all duration-200 shadow-lg">
+                <i class="fas fa-trash text-lg"></i>
+              </button>
+            </div>
+
+            <!-- Stock Status Overlay -->
+            <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t"
+                 :class="getStockGradient(product.stock)">
+            </div>
+
+            <!-- Category Badge -->
+            <div class="absolute top-3 left-3">
+              <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/90 backdrop-blur-sm shadow-sm"
+                    :class="getCategoryBadgeColor(product.category_id)">
+                {{ getCategoryName(product.category_id) }}
+              </span>
+            </div>
+
+            <!-- Stock Badge -->
+            <div class="absolute top-3 right-3">
+              <span class="px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-lg text-sm font-medium shadow-sm"
+                    :class="getStockTextColor(product.stock)">
+                {{ product.stock }} Adet
+              </span>
+            </div>
+          </div>
+
+          <!-- Product Info -->
+          <div class="p-4">
+            <h3 class="font-medium text-gray-900">{{ product.name }}</h3>
+            
+            <!-- Price Section -->
+            <div class="mt-3 flex items-end justify-between">
+              <div>
+                <p class="text-2xl font-bold text-gray-900">₺{{ formatPrice(product.price) }}</p>
+                <p class="text-sm text-gray-500 mt-0.5">KDV Dahil</p>
+              </div>
+              
+              <!-- Mini Price Trend -->
+              <div class="flex items-center space-x-1 text-sm">
+                <span class="text-emerald-600">
+                  <i class="fas fa-trending-up"></i>
+                  %12
+                </span>
+                <div class="w-16 h-8">
+                  <!-- Mini Chart will be added here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- List View -->
+      <div v-else class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50/50">
             <tr>
@@ -273,6 +376,7 @@ export default {
     const editingProduct = ref(null)
     const showDeleteModal = ref(false)
     const itemToDelete = ref(null)
+    const viewMode = ref('grid') // 'grid' or 'list'
 
     const productForm = ref({
       name: '',
@@ -385,28 +489,18 @@ export default {
       return category ? category.name : ''
     }
 
-    const getCategoryBgColor = (categoryId) => {
-      const colors = {
-        blue: 'bg-blue-100',
-        purple: 'bg-purple-100',
-        green: 'bg-green-100',
-        orange: 'bg-orange-100',
-        pink: 'bg-pink-100'
-      }
-      const colorKeys = Object.keys(colors)
-      return colors[colorKeys[Math.abs(parseInt(categoryId)) % colorKeys.length]]
+    const getCategoryGradient = (categoryId) => {
+      return 'bg-gray-100'
     }
 
-    const getCategoryTextColor = (categoryId) => {
-      const colors = {
-        blue: 'text-blue-600',
-        purple: 'text-purple-600',
-        green: 'text-green-600',
-        orange: 'text-orange-600',
-        pink: 'text-pink-600'
-      }
-      const colorKeys = Object.keys(colors)
-      return colors[colorKeys[Math.abs(parseInt(categoryId)) % colorKeys.length]]
+    const getStockGradient = (stock) => {
+      return 'from-transparent to-black/5'
+    }
+
+    const getStockTextColor = (stock) => {
+      if (stock <= 0) return 'text-gray-700 bg-white/90 ring-1 ring-gray-200'
+      if (stock <= 10) return 'text-gray-700 bg-white/90 ring-1 ring-gray-200'
+      return 'text-gray-700 bg-white/90 ring-1 ring-gray-200'
     }
 
     const getCategoryBadgeColor = (categoryId) => {
@@ -418,20 +512,42 @@ export default {
       )
 
       const colors = [
-        'bg-blue-50/80 text-blue-700 border border-blue-200',
-        'bg-purple-50/80 text-purple-700 border border-purple-200',
-        'bg-emerald-50/80 text-emerald-700 border border-emerald-200',
-        'bg-orange-50/80 text-orange-700 border border-orange-200',
-        'bg-pink-50/80 text-pink-700 border border-pink-200',
-        'bg-cyan-50/80 text-cyan-700 border border-cyan-200'
+        'text-blue-600 bg-blue-50 ring-1 ring-blue-200',
+        'text-purple-600 bg-purple-50 ring-1 ring-purple-200',
+        'text-emerald-600 bg-emerald-50 ring-1 ring-emerald-200',
+        'text-orange-600 bg-orange-50 ring-1 ring-orange-200',
+        'text-pink-600 bg-pink-50 ring-1 ring-pink-200',
+        'text-cyan-600 bg-cyan-50 ring-1 ring-cyan-200'
       ]
       return colors[mainCategoryIndex % colors.length]
     }
 
+    const getCategoryBgColor = (categoryId) => {
+      const colors = {
+        blue: 'bg-blue-50',
+        purple: 'bg-purple-50',
+        green: 'bg-emerald-50',
+        orange: 'bg-orange-50',
+        pink: 'bg-pink-50'
+      }
+      const colorKeys = Object.keys(colors)
+      return colors[colorKeys[Math.abs(parseInt(categoryId)) % colorKeys.length]]
+    }
+
+    const getCategoryTextColor = (categoryId) => {
+      const colors = {
+        blue: 'text-blue-600',
+        purple: 'text-purple-600',
+        green: 'text-emerald-600',
+        orange: 'text-orange-600',
+        pink: 'text-pink-600'
+      }
+      const colorKeys = Object.keys(colors)
+      return colors[colorKeys[Math.abs(parseInt(categoryId)) % colorKeys.length]]
+    }
+
     const getStockColor = (stock) => {
-      if (stock <= 0) return 'text-red-600'
-      if (stock <= 10) return 'text-orange-600'
-      return 'text-green-600'
+      return 'text-gray-700'
     }
 
     const formatPrice = (price) => {
@@ -550,7 +666,11 @@ export default {
       deleteProduct,
       closeDeleteModal,
       saveProduct,
-      confirmDelete
+      confirmDelete,
+      viewMode,
+      getCategoryGradient,
+      getStockGradient,
+      getStockTextColor
     }
   }
 }
