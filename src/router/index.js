@@ -13,6 +13,10 @@ import Customers from '@/views/Customers.vue'
 import MainLayout from '@/components/layouts/MainLayout.vue'
 import Settings from '@/views/Settings.vue'
 import AdminLogin from '@/views/AdminLogin.vue'
+import Products from '@/views/stock/Products.vue'
+import Categories from '@/views/stock/Categories.vue'
+import Packages from '@/views/stock/Packages.vue'
+import ProductMedia from '@/views/stock/ProductMedia.vue'
 
 const routes = [
   {
@@ -61,9 +65,24 @@ const routes = [
         component: Dashboard,
       },
       {
-        path: "stock",
-        name: "Stock",
-        component: Stock,
+        path: "stok/urunler",
+        name: "Products",
+        component: Products
+      },
+      {
+        path: "stok/kategoriler",
+        name: "Categories",
+        component: Categories
+      },
+      {
+        path: "stok/paketler",
+        name: "Packages",
+        component: Packages
+      },
+      {
+        path: "stok/urun-medya",
+        name: "ProductMedia",
+        component: ProductMedia
       },
       {
         path: "sales",

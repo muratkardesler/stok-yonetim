@@ -28,28 +28,68 @@
 
       <!-- Navigation -->
       <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-        <router-link 
-          v-for="item in menuItems" 
-          :key="item.path"
-          :to="item.path"
-          :class="[
-            'flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200',
-            $route.path === item.path
-              ? 'bg-primary-50 text-primary-600 shadow-sm'
-              : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
-          ]"
-          @click="isMobileMenuOpen = false"
-        >
-          <i :class="['fas fa-fw text-lg mr-3', item.icon]"></i>
-          {{ item.name }}
-          <span v-if="item.badge" 
+        <template v-for="item in menuItems" :key="item.path || item.name">
+          <!-- Normal Menu Item -->
+          <router-link 
+            v-if="!item.isDropdown"
+            :to="item.path"
+            :class="[
+              'flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200',
+              $route.path === item.path
+                ? 'bg-primary-50 text-primary-600 shadow-sm'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
+            ]"
+            @click="isMobileMenuOpen = false"
+          >
+            <i :class="['fas fa-fw text-lg mr-3', item.icon]"></i>
+            {{ item.name }}
+            <span v-if="item.badge" 
+                  :class="[
+                    'ml-auto px-2 py-0.5 text-xs font-medium rounded-full',
+                    item.badge.variant === 'warning' ? 'bg-amber-100 text-amber-700' : 'bg-primary-100 text-primary-700'
+                  ]">
+              {{ item.badge.text }}
+            </span>
+          </router-link>
+
+          <!-- Dropdown Menu Item -->
+          <div v-else class="space-y-1">
+            <button 
+              @click="stockMenuOpen = !stockMenuOpen"
+              :class="[
+                'w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200',
+                $route.path.includes('/stok')
+                  ? 'bg-primary-50 text-primary-600 shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
+              ]"
+            >
+              <div class="flex items-center">
+                <i :class="['fas fa-fw text-lg mr-3', item.icon]"></i>
+                {{ item.name }}
+              </div>
+              <i :class="['fas fa-chevron-down transition-transform duration-200', stockMenuOpen ? 'rotate-180' : '']"></i>
+            </button>
+
+            <!-- Dropdown Items -->
+            <div v-show="stockMenuOpen" class="pl-4 space-y-1">
+              <router-link
+                v-for="child in item.children"
+                :key="child.path"
+                :to="child.path"
                 :class="[
-                  'ml-auto px-2 py-0.5 text-xs font-medium rounded-full',
-                  item.badge.variant === 'warning' ? 'bg-amber-100 text-amber-700' : 'bg-primary-100 text-primary-700'
-                ]">
-            {{ item.badge.text }}
-          </span>
-        </router-link>
+                  'flex items-center px-4 py-2 text-sm rounded-xl transition-all duration-200',
+                  $route.path === child.path
+                    ? 'bg-primary-50 text-primary-600 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
+                ]"
+                @click="isMobileMenuOpen = false"
+              >
+                <i :class="['fas fa-fw text-lg mr-3', child.icon]"></i>
+                {{ child.name }}
+              </router-link>
+            </div>
+          </div>
+        </template>
       </nav>
 
       <!-- User Profile -->
@@ -140,6 +180,9 @@ export default {
     const userInitials = ref('')
     const userEmail = ref('')
 
+    // Stok menüsünün açık/kapalı durumunu tutacak ref
+    const stockMenuOpen = ref(false)
+
     const menuItems = [
       { 
         name: 'Güncel Durum', 
@@ -153,8 +196,31 @@ export default {
       },
       { 
         name: 'Stok', 
-        path: '/stock', 
-        icon: 'fa-box'
+        icon: 'fa-box',
+        isDropdown: true,
+        isOpen: stockMenuOpen, // ref'i burada kullanıyoruz
+        children: [
+          {
+            name: 'Ürünler',
+            path: '/stok/urunler',
+            icon: 'fa-boxes'
+          },
+          {
+            name: 'Kategoriler',
+            path: '/stok/kategoriler',
+            icon: 'fa-folder-tree'
+          },
+          {
+            name: 'Paketler',
+            path: '/stok/paketler',
+            icon: 'fa-box-open'
+          },
+          {
+            name: 'Ürün Medya',
+            path: '/stok/urun-medya',
+            icon: 'fa-images'
+          }
+        ]
       },
       { 
         name: 'Müşteriler', 
@@ -220,6 +286,18 @@ export default {
       }
     }
 
+    // Route değişikliklerini izle
+    watch(
+      () => route.path,
+      (newPath) => {
+        // Eğer stok sayfalarından birindeysek menüyü aç
+        if (newPath.includes('/stok')) {
+          stockMenuOpen.value = true
+        }
+      },
+      { immediate: true } // Sayfa yüklendiğinde de çalıştır
+    )
+
     // Close mobile menu when route changes
     watch(route, () => {
       isMobileMenuOpen.value = false
@@ -236,7 +314,8 @@ export default {
       menuItems,
       breadcrumbs,
       handleLogout,
-      isMobileMenuOpen
+      isMobileMenuOpen,
+      stockMenuOpen // stockMenuOpen'ı template'de kullanabilmek için return ediyoruz
     }
   }
 }
