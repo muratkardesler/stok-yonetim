@@ -1,44 +1,44 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-      <div class="px-6 py-5 border-b border-gray-100">
+    <div class="bg-surface dark:bg-surface-dark rounded-2xl shadow-lg overflow-hidden transition-colors duration-300">
+      <div class="px-6 py-5 border-b border-border dark:border-border-dark">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
-            <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center">
-              <i class="fas fa-box-archive text-indigo-600 text-xl"></i>
+            <div class="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-xl flex items-center justify-center">
+              <i class="fas fa-box-archive text-primary dark:text-primary-light text-xl"></i>
             </div>
             <div>
-              <h2 class="text-xl font-bold text-gray-900">Ürünler</h2>
-              <p class="text-sm text-gray-500 mt-0.5">Tüm ürünlerinizi buradan yönetin</p>
+              <h2 class="text-xl font-bold text-text dark:text-text-dark">Ürünler</h2>
+              <p class="text-sm text-text/60 dark:text-text-dark/60 mt-0.5">Tüm ürünlerinizi buradan yönetin</p>
             </div>
           </div>
           <div class="flex items-center space-x-3">
             <!-- View Toggle -->
-            <div class="flex items-center bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
+            <div class="flex items-center bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark p-1 shadow-sm">
               <button @click="viewMode = 'grid'"
                       :class="[
                         'px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2',
                         viewMode === 'grid' 
-                          ? 'bg-indigo-500 text-white shadow-sm' 
-                          : 'text-gray-600 hover:bg-gray-50'
+                          ? 'bg-primary text-white shadow-sm dark:bg-primary-dark' 
+                          : 'text-text dark:text-text-dark hover:bg-gray-50 dark:hover:bg-gray-800'
                       ]">
-                <i class="fas fa-grid-2"></i>
+                <i class="fas fa-grid-2 transition-transform group-hover:scale-110"></i>
                 <span class="text-sm font-medium">Izgara</span>
               </button>
               <button @click="viewMode = 'list'"
                       :class="[
                         'px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2',
                         viewMode === 'list' 
-                          ? 'bg-indigo-500 text-white shadow-sm' 
-                          : 'text-gray-600 hover:bg-gray-50'
+                          ? 'bg-primary text-white shadow-sm dark:bg-primary-dark' 
+                          : 'text-text dark:text-text-dark hover:bg-gray-50 dark:hover:bg-gray-800'
                       ]">
-                <i class="fas fa-list"></i>
+                <i class="fas fa-list transition-transform group-hover:scale-110"></i>
                 <span class="text-sm font-medium">Liste</span>
               </button>
             </div>
             <button @click="showAddProductModal = true" 
-                    class="inline-flex items-center px-4 py-2.5 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 group shadow-sm">
+                    class="inline-flex items-center px-4 py-2.5 bg-primary dark:bg-primary-dark text-white rounded-xl hover:bg-primary-dark focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 group shadow-sm">
               <i class="fas fa-plus mr-2 group-hover:scale-110 transition-transform"></i>
               <span>Yeni Ürün</span>
             </button>
@@ -47,7 +47,7 @@
       </div>
 
       <!-- Search & Filter -->
-      <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+      <div class="p-4 border-b border-border dark:border-border-dark bg-background/50 dark:bg-background-dark/50">
         <div class="flex flex-col sm:flex-row gap-4">
           <div class="flex-1">
             <div class="relative">
@@ -55,21 +55,80 @@
                 type="text" 
                 v-model="searchQuery"
                 placeholder="Ürün ara..."
-                class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                class="w-full pl-10 pr-4 py-2 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-text dark:text-text-dark focus:border-primary dark:focus:border-primary-dark focus:ring-1 focus:ring-primary/20 dark:focus:ring-primary-dark/20 transition-all duration-200"
               >
-              <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-text/40 dark:text-text-dark/40"></i>
             </div>
           </div>
           <div class="sm:w-64">
             <select 
               v-model="selectedCategoryFilter"
-              class="w-full py-2 pl-3 pr-10 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+              class="custom-select w-full text-text dark:text-text-dark"
             >
               <option value="">Tüm Kategoriler</option>
               <option v-for="cat in categories" :key="cat.id" :value="cat.id">
                 {{ cat.name }}
               </option>
             </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-background/50 dark:bg-background-dark/50">
+        <div class="bg-surface dark:bg-surface-dark p-4 rounded-xl border border-border dark:border-border-dark shadow-sm">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-medium text-text/60 dark:text-text-dark/60">Toplam Ürün</h3>
+            <div class="w-8 h-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+              <i class="fas fa-box text-blue-500 dark:text-blue-400"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <span class="text-2xl font-bold text-text dark:text-text-dark">
+              {{ filteredProducts.length }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="bg-surface dark:bg-surface-dark p-4 rounded-xl border border-border dark:border-border-dark shadow-sm">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-medium text-text/60 dark:text-text-dark/60">Toplam Stok</h3>
+            <div class="w-8 h-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center">
+              <i class="fas fa-layer-group text-emerald-500 dark:text-emerald-400"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <span class="text-2xl font-bold text-text dark:text-text-dark">
+              {{ filteredProducts.reduce((sum, product) => sum + (parseInt(product.stock) || 0), 0) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="bg-surface dark:bg-surface-dark p-4 rounded-xl border border-border dark:border-border-dark shadow-sm">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-medium text-text/60 dark:text-text-dark/60">Kritik Stok</h3>
+            <div class="w-8 h-8 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
+              <i class="fas fa-triangle-exclamation text-orange-500 dark:text-orange-400"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <span class="text-2xl font-bold text-text dark:text-text-dark">
+              {{ filteredProducts.filter(p => parseInt(p.stock) > 0 && parseInt(p.stock) <= 10).length }}
+            </span>
+          </div>
+        </div>
+
+        <div class="bg-surface dark:bg-surface-dark p-4 rounded-xl border border-border dark:border-border-dark shadow-sm">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-medium text-text/60 dark:text-text-dark/60">Tükenen</h3>
+            <div class="w-8 h-8 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+              <i class="fas fa-box-open text-red-500 dark:text-red-400"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <span class="text-2xl font-bold text-text dark:text-text-dark">
+              {{ filteredProducts.filter(p => parseInt(p.stock) <= 0).length }}
+            </span>
           </div>
         </div>
       </div>
@@ -356,10 +415,11 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import Modal from '@/components/Modal.vue'
 import { useToast } from 'vue-toastification'
+import gsap from 'gsap'
 
 export default {
   name: 'Products',
@@ -388,50 +448,72 @@ export default {
     // Load data
     const loadProducts = async () => {
       try {
-        // Önce ürünleri çek
+        console.log('Starting to load products...')
+        
+        // Kullanıcı bilgisini al ve kontrol et
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError) {
+          console.error('Error getting user:', userError)
+          throw userError
+        }
+
+        if (!user) {
+          console.error('No user found')
+          return
+        }
+
+        console.log('Current user ID:', user.id)
+        
+        // Ürünleri çek
         const { data: productsData, error: productsError } = await supabase
           .from('products')
           .select('*')
+          .eq('user_id', user.id)
           .order('name')
         
-        if (productsError) throw productsError
+        if (productsError) {
+          console.error('Error fetching products:', productsError)
+          throw productsError
+        }
 
-        // Tüm product_images'ları çek
+        console.log('Products data received:', productsData)
+
+        if (!productsData) {
+          console.log('No products data received')
+          products.value = []
+          return
+        }
+
+        // Ürün resimlerini çek
         const { data: imagesData, error: imagesError } = await supabase
           .from('product_images')
           .select('*')
           .eq('is_primary', true)
+          .in('product_name', productsData.map(p => p.name))
 
-        if (imagesError) throw imagesError
+        if (imagesError) {
+          console.error('Error fetching images:', imagesError)
+        }
 
-        // Her ürün için primary image'i güncelle
+        console.log('Images data received:', imagesData)
+
+        // Ürünleri products.value'ya ata
         products.value = productsData.map(product => {
-          const primaryImage = imagesData.find(img => img.product_name === product.name)
+          const primaryImage = imagesData?.find(img => img.product_name === product.name)
           return {
             ...product,
+            stock: parseInt(product.stock) || 0,
             primary_image: primaryImage?.image_url || null
           }
         })
 
-        // Eğer primary_image null olan ama eşleşen görseli olan ürünler varsa güncelle
-        for (const product of products.value) {
-          if (!product.primary_image) {
-            const matchingImage = imagesData.find(img => img.product_name === product.name)
-            if (matchingImage) {
-              // Ürünün primary_image alanını güncelle
-              const { error: updateError } = await supabase
-                .from('products')
-                .update({ primary_image: matchingImage.image_url })
-                .eq('id', product.id)
+        console.log('Final products array:', products.value)
 
-              if (updateError) throw updateError
-              product.primary_image = matchingImage.image_url
-            }
-          }
-        }
       } catch (error) {
-        console.error('Error loading products:', error)
+        console.error('Error in loadProducts:', error)
         toast.error('Ürünler yüklenirken bir hata oluştu')
+        products.value = []
       }
     }
 
@@ -456,6 +538,12 @@ export default {
     })
 
     const filteredProducts = computed(() => {
+      console.log('Computing filtered products. Current products:', products.value)
+      if (!products.value || !Array.isArray(products.value)) {
+        console.log('Products is not an array')
+        return []
+      }
+
       let filtered = products.value
 
       if (searchQuery.value) {
@@ -471,6 +559,7 @@ export default {
         )
       }
 
+      console.log('Filtered products:', filtered)
       return filtered
     })
 
@@ -584,57 +673,129 @@ export default {
     const saveProduct = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
+        console.log('Current user:', user)
+        
+        const productData = {
+          name: productForm.value.name,
+          category_id: productForm.value.category_id,
+          stock: parseInt(productForm.value.stock) || 0,
+          price: parseFloat(productForm.value.price) || 0,
+          user_id: user.id
+        }
+        
+        console.log('Saving product data:', productData)
         
         if (editingProduct.value) {
-          const { error } = await supabase
+          const { data, error } = await supabase
             .from('products')
-            .update({
-              name: productForm.value.name,
-              category_id: productForm.value.category_id,
-              stock: productForm.value.stock,
-              price: productForm.value.price
-            })
+            .update(productData)
             .eq('id', editingProduct.value.id)
+            .select()
 
-          if (error) throw error
+          if (error) {
+            console.error('Error updating product:', error)
+            throw error
+          }
+          console.log('Updated product:', data)
           toast.success('Ürün güncellendi')
         } else {
-          const { error } = await supabase
+          const { data, error } = await supabase
             .from('products')
-            .insert([{
-              ...productForm.value,
-              user_id: user.id
-            }])
+            .insert([productData])
+            .select()
 
-          if (error) throw error
+          if (error) {
+            console.error('Error inserting product:', error)
+            throw error
+          }
+          console.log('Inserted product:', data)
           toast.success('Ürün eklendi')
         }
 
         closeAddProductModal()
-        loadProducts()
+        await loadProducts()
       } catch (error) {
         console.error('Error saving product:', error)
-        toast.error('Ürün kaydedilirken bir hata oluştu')
+        toast.error('Ürün kaydedilirken bir hata oluştu: ' + error.message)
       }
     }
 
     const confirmDelete = async () => {
       try {
-        const { error } = await supabase
+        // Önce sale_details tablosundaki ilgili kayıtları sil
+        const { error: saleDetailsError } = await supabase
+          .from('sale_details')
+          .delete()
+          .eq('product_id', itemToDelete.value.id)
+
+        if (saleDetailsError) {
+          console.error('Error deleting sale details:', saleDetailsError)
+          throw saleDetailsError
+        }
+
+        // Sonra package_products tablosundaki ilgili kayıtları sil
+        const { error: packageProductsError } = await supabase
+          .from('package_products')
+          .delete()
+          .eq('product_id', itemToDelete.value.id)
+
+        if (packageProductsError) {
+          console.error('Error deleting package products:', packageProductsError)
+          throw packageProductsError
+        }
+
+        // En son ürünü sil
+        const { error: productError } = await supabase
           .from('products')
           .delete()
           .eq('id', itemToDelete.value.id)
 
-        if (error) throw error
+        if (productError) {
+          console.error('Error deleting product:', productError)
+          throw productError
+        }
         
         toast.success('Ürün başarıyla silindi')
         loadProducts()
         closeDeleteModal()
       } catch (error) {
         console.error('Delete error:', error)
-        toast.error('Ürün silinirken bir hata oluştu')
+        toast.error('Ürün silinirken bir hata oluştu: ' + error.message)
       }
     }
+
+    // Animasyon fonksiyonları
+    const animateNumber = (el, value) => {
+      if (!el || typeof value !== 'number' || isNaN(value)) return
+      
+      const duration = 1
+      const start = Number(el.textContent) || 0
+      const end = Number(value) || 0
+      const range = end - start
+      
+      gsap.to({}, {
+        duration,
+        onUpdate: () => {
+          const progress = gsap.getProperty({}, 'progress')
+          el.textContent = Math.round(start + (range * progress))
+        }
+      })
+    }
+
+    // İstatistik değerlerini izle ve animasyonla güncelle
+    watch([filteredProducts], ([newProducts], [oldProducts]) => {
+      if (newProducts.length !== oldProducts.length) {
+        nextTick(() => {
+          const elements = document.querySelectorAll('.animate-count')
+          elements.forEach((el, index) => {
+            const value = newProducts.length
+            if (!isNaN(value)) {
+              animateNumber(el, value)
+            }
+          })
+        })
+      }
+    })
 
     onMounted(() => {
       loadProducts()
@@ -674,4 +835,38 @@ export default {
     }
   }
 }
-</script> 
+</script>
+
+<style>
+/* Özel animasyonlar */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Hover animasyonları */
+.hover-scale {
+  transition: transform 0.2s;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Form elemanları için özel stiller */
+.custom-input {
+  @apply bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl px-4 py-2.5 focus:border-primary dark:focus:border-primary-dark focus:ring-1 focus:ring-primary/20 dark:focus:ring-primary-dark/20 transition-all duration-200;
+}
+
+.custom-select {
+  @apply appearance-none bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl px-4 py-2.5 pr-10 focus:border-primary dark:focus:border-primary-dark focus:ring-1 focus:ring-primary/20 dark:focus:ring-primary-dark/20 transition-all duration-200;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+}
+</style> 

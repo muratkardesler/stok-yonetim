@@ -1,60 +1,178 @@
 <template>
-    <div id="app">
-      <router-view />
-    </div>
-  </template>
-  
-  <script>
-  export default {
-    name: "App",
-  };
-  </script>
-  
-  <style>
-  :root {
-    --primary-color: #4F46E5;
-    --secondary-color: #06B6D4;
-    --accent-color: #F59E0B;
-    --text-color: #1F2937;
-    --light-gray: #F3F4F6;
-    --white: #ffffff;
-  }
+  <div :class="{ 'dark': isDarkMode }" class="min-h-screen bg-background dark:bg-background-dark transition-colors duration-300">
+    <router-view v-slot="{ Component }">
+      <transition 
+        name="page" 
+        mode="out-in"
+        @before-enter="beforeEnter"
+        @enter="enter"
+        @leave="leave">
+        <component :is="Component" />
+      </transition>
+    </router-view>
+  </div>
+</template>
 
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
+<script>
+import { ref, onMounted, watch, provide } from 'vue'
+import gsap from 'gsap'
 
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: var(--text-color);
-    line-height: 1.5;
-    background: var(--light-gray);
-  }
+export default {
+  name: 'App',
+  setup() {
+    const isDarkMode = ref(false)
 
-  .btn-primary {
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: transform 0.2s;
-  }
+    // Tema değişkenini provide et
+    provide('isDarkMode', isDarkMode)
 
-  .btn-secondary {
-    background: var(--light-gray);
-    color: var(--text-color);
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: transform 0.2s;
-  }
+    // Tema değişimini izle ve localStorage'a kaydet
+    watch(isDarkMode, (newValue) => {
+      localStorage.setItem('darkMode', newValue)
+      if (newValue) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    })
 
-  .btn-primary:hover,
-  .btn-secondary:hover {
-    transform: translateY(-2px);
+    // Sayfa geçiş animasyonları
+    const beforeEnter = (el) => {
+      el.style.opacity = 0
+      el.style.transform = 'translateY(20px)'
+    }
+
+    const enter = (el, done) => {
+      gsap.to(el, {
+        opacity: 1,
+        y: 0,
+        duration: 0.3,
+        onComplete: done
+      })
+    }
+
+    const leave = (el, done) => {
+      gsap.to(el, {
+        opacity: 0,
+        y: -20,
+        duration: 0.3,
+        onComplete: done
+      })
+    }
+
+    // Sistem temasını kontrol et
+    onMounted(() => {
+      // localStorage'dan tema tercihini al
+      const savedTheme = localStorage.getItem('darkMode')
+      if (savedTheme !== null) {
+        isDarkMode.value = savedTheme === 'true'
+      } else {
+        // Sistem temasını kontrol et
+        isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+      }
+
+      // Sistem tema değişikliğini dinle
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (localStorage.getItem('darkMode') === null) {
+          isDarkMode.value = e.matches
+        }
+      })
+    })
+
+    return {
+      isDarkMode,
+      beforeEnter,
+      enter,
+      leave
+    }
   }
-  </style>
+}
+</script>
+
+<style>
+:root {
+  /* Light theme variables */
+  --color-primary: 79 70 229;
+  --color-surface: 255 255 255;
+  --color-background: 249 250 251;
+  --color-text: 17 24 39;
+  --color-border: 229 231 235;
+}
+
+.dark {
+  /* Dark theme variables */
+  --color-primary: 99 102 241;
+  --color-surface: 31 41 55;
+  --color-background: 17 24 39;
+  --color-text: 243 244 246;
+  --color-border: 55 65 81;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Base transitions */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Page transition animations */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Modal animations */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Custom form elements */
+.custom-select {
+  @apply appearance-none bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200;
+  background-image: url("data:image/svg+xml,...");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+}
+
+.custom-checkbox {
+  @apply rounded-lg border-2 border-border dark:border-border-dark checked:bg-primary checked:border-primary focus:ring-primary/20 transition-all duration-200;
+}
+
+.custom-radio {
+  @apply rounded-full border-2 border-border dark:border-border-dark checked:bg-primary checked:border-primary focus:ring-primary/20 transition-all duration-200;
+}
+
+/* Number counter animation */
+@keyframes count-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-count {
+  animation: count-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+</style>

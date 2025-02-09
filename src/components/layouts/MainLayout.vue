@@ -103,6 +103,13 @@
             <p class="text-xs text-gray-500 truncate">{{ userEmail }}</p>
           </div>
           <button 
+            @click="toggleDarkMode" 
+            class="p-2 text-gray-400 hover:text-amber-500 transition-colors"
+            :title="isDarkMode ? 'Açık Tema' : 'Koyu Tema'"
+          >
+            <i :class="['fas', isDarkMode ? 'fa-sun' : 'fa-moon']"></i>
+          </button>
+          <button 
             @click="handleLogout" 
             class="p-2 text-gray-400 hover:text-red-500 transition-colors"
             title="Çıkış Yap"
@@ -163,7 +170,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, inject } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 import { useToast } from 'vue-toastification'
 import { useRouter, useRoute } from 'vue-router'
@@ -182,6 +189,8 @@ export default {
 
     // Stok menüsünün açık/kapalı durumunu tutacak ref
     const stockMenuOpen = ref(false)
+
+    const isDarkMode = inject('isDarkMode')
 
     const menuItems = [
       { 
@@ -286,6 +295,10 @@ export default {
       }
     }
 
+    const toggleDarkMode = () => {
+      isDarkMode.value = !isDarkMode.value
+    }
+
     // Route değişikliklerini izle
     watch(
       () => route.path,
@@ -315,7 +328,9 @@ export default {
       breadcrumbs,
       handleLogout,
       isMobileMenuOpen,
-      stockMenuOpen // stockMenuOpen'ı template'de kullanabilmek için return ediyoruz
+      stockMenuOpen,
+      isDarkMode,
+      toggleDarkMode
     }
   }
 }

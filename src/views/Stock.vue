@@ -1,11 +1,11 @@
 <template>
   <div class="dashboard-layout">
     <main class="main-content">
-      <div class="min-h-screen bg-gray-50 p-4 sm:p-6">
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">Stok Yönetimi</h1>
+  <div class="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Stok Yönetimi</h1>
             <p class="mt-1 text-gray-600">Stok yönetimi işlemlerinizi buradan gerçekleştirebilirsiniz</p>
           </div>
         </div>
@@ -50,7 +50,7 @@
             </router-link>
           </nav>
         </div>
-
+                
         <!-- Router View for Sub-pages -->
         <router-view></router-view>
       </div>
