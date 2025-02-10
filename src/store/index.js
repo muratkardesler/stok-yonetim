@@ -4,6 +4,7 @@ import stock from './modules/stock';
 import product from './modules/product';
 import sales from './modules/sales';
 import customer from './modules/customer';
+import cart from './modules/cart';
 
 export default createStore({
     modules: {
@@ -11,6 +12,7 @@ export default createStore({
         stock,
         product,
         sales,
-        customer
+        customer,
+        cart
     }
 }); 

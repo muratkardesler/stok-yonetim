@@ -55,10 +55,10 @@
           <!-- Dropdown Menu Item -->
           <div v-else class="space-y-1">
             <button 
-              @click="stockMenuOpen = !stockMenuOpen"
+              @click="item.isOpen = !item.isOpen"
               :class="[
                 'w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200',
-                $route.path.includes('/stok')
+                item.children.some(child => $route.path.includes(child.path))
                   ? 'bg-primary-50 text-primary-600 shadow-sm'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
               ]"
@@ -67,11 +67,11 @@
                 <i :class="['fas fa-fw text-lg mr-3', item.icon]"></i>
                 {{ item.name }}
               </div>
-              <i :class="['fas fa-chevron-down transition-transform duration-200', stockMenuOpen ? 'rotate-180' : '']"></i>
+              <i :class="['fas fa-chevron-down transition-transform duration-200', item.isOpen ? 'rotate-180' : '']"></i>
             </button>
 
             <!-- Dropdown Items -->
-            <div v-show="stockMenuOpen" class="pl-4 space-y-1">
+            <div v-show="item.isOpen" class="pl-4 space-y-1">
               <router-link
                 v-for="child in item.children"
                 :key="child.path"
@@ -186,10 +186,8 @@ export default {
     const userFullName = ref('')
     const userInitials = ref('')
     const userEmail = ref('')
-
-    // Stok menüsünün açık/kapalı durumunu tutacak ref
     const stockMenuOpen = ref(false)
-
+    const salesMenuOpen = ref(false)
     const isDarkMode = inject('isDarkMode')
 
     const menuItems = [
@@ -200,14 +198,27 @@ export default {
       },
       { 
         name: 'Satışlar', 
-        path: '/sales', 
-        icon: 'fa-shopping-cart'       
+        icon: 'fa-shopping-cart',
+        isDropdown: true,
+        isOpen: salesMenuOpen,
+        children: [
+          {
+            name: 'Ürün Satış',
+            path: '/sales/product',
+            icon: 'fa-cash-register'
+          },
+          {
+            name: 'Sepet',
+            path: '/sales/cart', 
+            icon: 'fa-shopping-basket'
+          }
+        ]
       },
       { 
         name: 'Stok', 
         icon: 'fa-box',
         isDropdown: true,
-        isOpen: stockMenuOpen, // ref'i burada kullanıyoruz
+        isOpen: stockMenuOpen,
         children: [
           {
             name: 'Ürünler',
@@ -329,6 +340,7 @@ export default {
       handleLogout,
       isMobileMenuOpen,
       stockMenuOpen,
+      salesMenuOpen,
       isDarkMode,
       toggleDarkMode
     }

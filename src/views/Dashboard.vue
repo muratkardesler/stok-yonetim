@@ -75,7 +75,7 @@
         <div class="mt-4">
           <router-link 
             v-if="pendingOrdersCount > 0"
-            to="/sales?status=pending" 
+            to="/sales/cart" 
             class="text-amber-600 hover:text-amber-700 text-xs flex items-center">
             Siparişleri görüntüle
             <i class="fas fa-arrow-right ml-1"></i>

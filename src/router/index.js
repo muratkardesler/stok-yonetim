@@ -17,6 +17,9 @@ import Products from '@/views/stock/Products.vue'
 import Categories from '@/views/stock/Categories.vue'
 import Packages from '@/views/stock/Packages.vue'
 import ProductMedia from '@/views/stock/ProductMedia.vue'
+import SalesLayout from '@/views/sales/index.vue'
+import ProductSale from '@/views/sales/ProductSale.vue'
+import Cart from '@/views/sales/Cart.vue'
 
 const routes = [
   {
@@ -86,8 +89,23 @@ const routes = [
       },
       {
         path: "sales",
-        name: "Sales",
-        component: Sales,
+        component: SalesLayout,
+        children: [
+          {
+            path: "",
+            redirect: "/sales/product"
+          },
+          {
+            path: "product",
+            name: "ProductSale",
+            component: ProductSale
+          },
+          {
+            path: "cart",
+            name: "Cart",
+            component: Cart
+          }
+        ]
       },
       {
         path: "sales/list",
@@ -105,6 +123,12 @@ const routes = [
         component: Settings,
       }
     ]
+  },
+  {
+    path: "/sales-old",
+    name: "SalesOld",
+    component: () => import('@/views/Sales.vue'),
+    meta: { deprecated: true }
   },
   {
     path: "/admin",

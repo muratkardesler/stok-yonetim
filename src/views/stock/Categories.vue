@@ -472,14 +472,23 @@ export default {
 
     const confirmDelete = async () => {
       try {
-        const { error } = await supabase
+        // Önce kategorideki tüm ürünleri sil
+        const { error: productsError } = await supabase
+          .from('products')
+          .delete()
+          .eq('category_id', itemToDelete.value.id)
+
+        if (productsError) throw productsError
+
+        // Sonra kategoriyi sil
+        const { error: categoryError } = await supabase
           .from('categories')
           .delete()
           .eq('id', itemToDelete.value.id)
 
-        if (error) throw error
+        if (categoryError) throw categoryError
         
-        toast.success('Kategori başarıyla silindi')
+        toast.success('Kategori ve ilgili tüm ürünler başarıyla silindi')
         loadCategories()
         closeDeleteModal()
       } catch (error) {
