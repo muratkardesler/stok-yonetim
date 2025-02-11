@@ -190,7 +190,7 @@ export default {
     const salesMenuOpen = ref(false)
     const isDarkMode = inject('isDarkMode')
 
-    const menuItems = [
+    const menuItems = ref([
       { 
         name: 'Güncel Durum', 
         path: '/dashboard', 
@@ -200,7 +200,7 @@ export default {
         name: 'Satışlar', 
         icon: 'fa-shopping-cart',
         isDropdown: true,
-        isOpen: salesMenuOpen,
+        isOpen: false,
         children: [
           {
             name: 'Ürün Satış',
@@ -211,6 +211,16 @@ export default {
             name: 'Sepet',
             path: '/sales/cart', 
             icon: 'fa-shopping-basket'
+          },
+          {
+            name: 'Paket Satış',
+            path: '/sales/package',
+            icon: 'fa-box-open'
+          },
+          {
+            name: 'Satış Detayları',
+            path: '/sales/list',
+            icon: 'fa-receipt'
           }
         ]
       },
@@ -218,7 +228,7 @@ export default {
         name: 'Stok', 
         icon: 'fa-box',
         isDropdown: true,
-        isOpen: stockMenuOpen,
+        isOpen: false,
         children: [
           {
             name: 'Ürünler',
@@ -252,14 +262,14 @@ export default {
         path: '/settings',
         icon: 'fa-cog'
       }
-    ]
+    ])
 
     // Breadcrumb navigation
     const breadcrumbs = computed(() => {
       const path = route.path
       const items = []
 
-      menuItems.forEach(item => {
+      menuItems.value.forEach(item => {
         if (path.includes(item.path)) {
           items.push(item)
         }

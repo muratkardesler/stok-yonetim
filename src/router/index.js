@@ -19,6 +19,7 @@ import Packages from '@/views/stock/Packages.vue'
 import ProductMedia from '@/views/stock/ProductMedia.vue'
 import SalesLayout from '@/views/sales/index.vue'
 import ProductSale from '@/views/sales/ProductSale.vue'
+import PackageSale from '@/views/sales/PackageSale.vue'
 import Cart from '@/views/sales/Cart.vue'
 
 const routes = [
@@ -101,16 +102,21 @@ const routes = [
             component: ProductSale
           },
           {
+            path: "package",
+            name: "PackageSale", 
+            component: PackageSale
+          },
+          {
             path: "cart",
             name: "Cart",
             component: Cart
+          },
+          {
+            path: "list",
+            name: "SalesList",
+            component: () => import('@/views/sales/SalesList.vue')
           }
         ]
-      },
-      {
-        path: "sales/list",
-        name: "SalesList",
-        component: SalesList,
       },
       {
         path: "customers",

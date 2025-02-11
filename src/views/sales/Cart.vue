@@ -64,18 +64,37 @@
              class="flex items-center justify-between py-4 border-b border-gray-100">
           <div class="flex items-center space-x-4">
             <div class="w-12 h-12 flex-shrink-0">
-              <img v-if="item.product.media?.[0]?.url" 
-                   :src="item.product.media[0].url" 
-                   :alt="item.product.name"
-                   class="w-12 h-12 rounded-lg object-cover" />
-              <div v-else
-                   class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                <i class="fas fa-box text-gray-400"></i>
-              </div>
+              <template v-if="item.type === 'package'">
+                <div class="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center">
+                  <i class="fas fa-box-open text-indigo-600"></i>
+                </div>
+              </template>
+              <template v-else>
+                <img v-if="item.product.media?.[0]?.url" 
+                     :src="item.product.media[0].url" 
+                     :alt="item.product.name"
+                     class="w-12 h-12 rounded-lg object-cover" />
+                <div v-else
+                     class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <i class="fas fa-box text-gray-400"></i>
+                </div>
+              </template>
             </div>
             <div>
-              <h3 class="font-medium text-gray-900">{{ item.product.name }}</h3>
-              <p class="text-sm text-gray-500">{{ formatPrice(item.product.price) }} × {{ item.quantity }}</p>
+              <h3 class="font-medium text-gray-900">{{ item.name }}</h3>
+              <template v-if="item.type === 'package'">
+                <p class="text-sm text-gray-500">{{ item.items.length }} ürün</p>
+                <div class="mt-1 space-y-1">
+                  <p v-for="packageItem in item.items" 
+                     :key="packageItem.product.id" 
+                     class="text-xs text-gray-500">
+                    {{ packageItem.product.name }} × {{ packageItem.quantity }}
+                  </p>
+                </div>
+              </template>
+              <template v-else>
+                <p class="text-sm text-gray-500">{{ formatPrice(item.price) }} × {{ item.quantity }}</p>
+              </template>
             </div>
           </div>
 
@@ -92,7 +111,7 @@
               </button>
             </div>
             <div class="w-24 text-right font-medium">
-              {{ formatPrice(item.product.price * item.quantity) }}
+              {{ formatPrice(item.type === 'package' ? item.price * item.quantity : item.product.price * item.quantity) }}
             </div>
             <button @click="removeFromCart(item)" 
                     class="text-red-600 hover:text-red-700">
@@ -353,7 +372,10 @@ const cartItems = computed(() => store.getters['cart/cartItems'])
 
 const subtotal = computed(() => {
   return cartItems.value.reduce((total, item) => {
-    return total + (item.price * item.quantity)
+    if (item.type === 'package') {
+      return total + (item.price * item.quantity)
+    }
+    return total + (item.product.price * item.quantity)
   }, 0)
 })
 
@@ -420,25 +442,53 @@ const cancelSale = async (sale) => {
       .select(`
         quantity,
         product_id,
+        package_id,
         products (
           stock
+        ),
+        packages (
+          items:package_products (
+            quantity,
+            product:products (
+              id,
+              stock
+            )
+          )
         )
       `)
       .eq('sale_id', sale.id)
 
     if (detailsError) throw detailsError
 
-    // Her ürün için stok güncelleme işlemi yap
+    // Her satış detayı için stok güncelleme işlemi yap
     for (const detail of saleDetails) {
-      const { error: stockError } = await supabase
-        .from('products')
-        .update({ 
-          stock: detail.products.stock + detail.quantity,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', detail.product_id)
+      if (detail.package_id) {
+        // Paket satışı ise, paket içindeki her ürün için stok güncelle
+        const packageItems = detail.packages.items
+        for (const packageItem of packageItems) {
+          const totalQuantity = packageItem.quantity * detail.quantity
+          const { error: stockError } = await supabase
+            .from('products')
+            .update({ 
+              stock: packageItem.product.stock + totalQuantity,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', packageItem.product.id)
 
-      if (stockError) throw stockError
+          if (stockError) throw stockError
+        }
+      } else if (detail.product_id) {
+        // Normal ürün satışı ise
+        const { error: stockError } = await supabase
+          .from('products')
+          .update({ 
+            stock: detail.products.stock + detail.quantity,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', detail.product_id)
+
+        if (stockError) throw stockError
+      }
     }
 
     // Satışı iptal et
@@ -511,7 +561,7 @@ const completeSale = async () => {
       .insert({
         user_id: user.id,
         customer_id: selectedCustomer.value.id,
-        sale_type: 'product',
+        sale_type: cartItems.value.some(item => item.type === 'package') ? 'package' : 'product',
         status: 'pending',
         total_amount: total.value,
         tax_rate: taxRate.value,
@@ -538,29 +588,59 @@ const completeSale = async () => {
 
     // Create sale items
     for (const item of cartItems.value) {
-      const { error: itemError } = await supabase
-        .from('sale_details')
-        .insert({
-          sale_id: sale.id,
-          quantity: item.quantity,
-          unit_price: item.product.price,
-          total_price: item.product.price * item.quantity,
-          product_id: item.product.id,
-          created_at: new Date().toISOString()
-        })
+      if (item.type === 'package') {
+        // Paket satışı için
+        const { error: packageSaleError } = await supabase
+          .from('sale_details')
+          .insert({
+            sale_id: sale.id,
+            quantity: item.quantity,
+            unit_price: item.price,
+            total_price: item.price * item.quantity,
+            package_id: item.id,
+            created_at: new Date().toISOString()
+          })
 
-      if (itemError) throw itemError
+        if (packageSaleError) throw packageSaleError
 
-      // Update stock
-      const { error: stockError } = await supabase
-        .from('products')
-        .update({ 
-          stock: item.product.stock - item.quantity,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', item.product.id)
+        // Paket içindeki ürünlerin stoklarını güncelle
+        for (const packageItem of item.items) {
+          const { error: stockError } = await supabase
+            .from('products')
+            .update({ 
+              stock: packageItem.product.stock - (packageItem.quantity * item.quantity),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', packageItem.product.id)
 
-      if (stockError) throw stockError
+          if (stockError) throw stockError
+        }
+      } else {
+        // Normal ürün satışı için
+        const { error: itemError } = await supabase
+          .from('sale_details')
+          .insert({
+            sale_id: sale.id,
+            quantity: item.quantity,
+            unit_price: item.product.price,
+            total_price: item.product.price * item.quantity,
+            product_id: item.product.id,
+            created_at: new Date().toISOString()
+          })
+
+        if (itemError) throw itemError
+
+        // Update stock
+        const { error: stockError } = await supabase
+          .from('products')
+          .update({ 
+            stock: item.product.stock - item.quantity,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.product.id)
+
+        if (stockError) throw stockError
+      }
     }
 
     // Clear cart and close modal
