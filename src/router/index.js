@@ -59,6 +59,15 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
+    path: "/auth/callback",
+    name: "VerificationSuccess",
+    component: () => import("@/views/VerificationSuccess.vue"),
+    meta: {
+      requiresAuth: false,
+      hideNavigation: true
+    }
+  },
+  {
     path: "/",
     component: MainLayout,
     meta: { requiresAuth: true },

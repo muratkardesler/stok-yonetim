@@ -26,17 +26,17 @@
                 <span class="text-red-500">*</span>
               </label>
               <input
-                v-model="form.firstName"
+                v-model="form.first_name"
                 type="text"
                 required
                 class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400
                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                        transition-all duration-300 ease-out"
-                :class="{ 'border-red-300': v$.form.firstName.$error }"
+                :class="{ 'border-red-300': v$.form.first_name.$error }"
                 placeholder="Adınız"
               />
-              <div v-if="v$.form.firstName.$error" class="text-red-500 text-xs mt-1">
-                {{ v$.form.firstName.$errors[0].$message }}
+              <div v-if="v$.form.first_name.$error" class="text-red-500 text-xs mt-1">
+                {{ v$.form.first_name.$errors[0].$message }}
               </div>
             </div>
 
@@ -47,17 +47,17 @@
                 <span class="text-red-500">*</span>
               </label>
               <input
-                v-model="form.lastName"
+                v-model="form.last_name"
                 type="text"
                 required
                 class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400
                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                        transition-all duration-300 ease-out"
-                :class="{ 'border-red-300': v$.form.lastName.$error }"
+                :class="{ 'border-red-300': v$.form.last_name.$error }"
                 placeholder="Soyadınız"
               />
-              <div v-if="v$.form.lastName.$error" class="text-red-500 text-xs mt-1">
-                {{ v$.form.lastName.$errors[0].$message }}
+              <div v-if="v$.form.last_name.$error" class="text-red-500 text-xs mt-1">
+                {{ v$.form.last_name.$errors[0].$message }}
               </div>
             </div>
 
@@ -304,8 +304,8 @@ export default {
     const showPassword = ref(false)
 
     const form = ref({
-      firstName: '',
-      lastName: '',
+      first_name: '',
+      last_name: '',
       email: '',
       password: '',
       companyName: '',
@@ -326,8 +326,8 @@ export default {
     // Validation rules
     const rules = {
       form: {
-        firstName: { required: helpers.withMessage('Ad alanı zorunludur', required) },
-        lastName: { required: helpers.withMessage('Soyad alanı zorunludur', required) },
+        first_name: { required: helpers.withMessage('Ad alanı zorunludur', required) },
+        last_name: { required: helpers.withMessage('Soyad alanı zorunludur', required) },
         email: { 
           required: helpers.withMessage('E-posta alanı zorunludur', required),
           email: helpers.withMessage('Geçerli bir e-posta adresi giriniz', email)
@@ -444,8 +444,8 @@ export default {
           password: form.value.password,
           options: {
             data: {
-              first_name: form.value.firstName,
-              last_name: form.value.lastName,
+              first_name: form.value.first_name,
+              last_name: form.value.last_name,
               company_name: form.value.companyName,
               company_email: form.value.companyEmail,
               phone: form.value.phone,
