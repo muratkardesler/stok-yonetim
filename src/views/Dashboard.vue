@@ -13,159 +13,116 @@
       </div>
     </div>
 
-    <!-- Özet Kartları -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
       <!-- Kalan Kullanım Süresi -->
-      <div class="bg-white rounded-2xl shadow-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center"
-               :class="[
-                 !profile?.trial_end_date ? 'bg-gray-100' :
-                 isTrialExpired ? 'bg-red-100' : 
-                 remainingDays <= 3 ? 'bg-amber-100' : 
-                 'bg-emerald-100'
-               ]">
-            <i class="fas fa-clock text-xl"
-               :class="[
-                 !profile?.trial_end_date ? 'text-gray-600' :
-                 isTrialExpired ? 'text-red-600' : 
-                 remainingDays <= 3 ? 'text-amber-600' : 
-                 'text-emerald-600'
-               ]"></i>
+      <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="flex items-center space-x-3 mb-3">
+          <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-clock text-green-600"></i>
           </div>
-          <span class="px-2 py-1 text-xs font-medium rounded-full"
-                :class="[
-                  !profile?.trial_end_date ? 'bg-gray-100 text-gray-600' :
-                  isTrialExpired ? 'bg-red-100 text-red-600' : 
-                  remainingDays <= 3 ? 'bg-amber-100 text-amber-600' : 
-                  'bg-emerald-100 text-emerald-600'
-                ]">
-            {{ !profile?.trial_end_date ? 'Bilgi Yok' : isTrialExpired ? 'Süresi Doldu' : remainingDays <= 3 ? 'Son Günler' : 'Aktif' }}
-          </span>
+          <span class="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Aktif</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 mb-1">
-          {{ !profile?.trial_end_date ? '-' : `${remainingDays} Gün` }}
-        </h3>
-        <p class="text-sm text-gray-500">Kalan Kullanım Süresi</p>
-        <div class="mt-4">
-          <router-link 
-            to="/settings" 
-            class="text-xs flex items-center"
-            :class="[
-              !profile?.trial_end_date ? 'text-gray-600 hover:text-gray-700' :
-              isTrialExpired ? 'text-red-600 hover:text-red-700' :
-              'text-primary-600 hover:text-primary-700'
-            ]">
-            {{ !profile?.trial_end_date ? 'Detayları Görüntüle' : isTrialExpired ? 'Hesabı Aktifleştir' : 'Detayları Görüntüle' }}
-            <i class="fas fa-arrow-right ml-1"></i>
-          </router-link>
+        <div class="space-y-1">
+          <h3 class="text-2xl font-bold text-gray-900">{{ remainingDays }} Gün</h3>
+          <p class="text-sm text-gray-500">Kalan Kullanım Süresi</p>
+        </div>
+        <button @click="showLicenseDetails" class="mt-4 text-sm text-primary-600 hover:text-primary-700">
+          Detayları Görüntüle <i class="fas fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+
+      <!-- Onay Bekleyen -->
+      <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="flex items-center space-x-3 mb-3">
+          <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-clock text-amber-600"></i>
+          </div>
+          <span class="px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">Bekleyen</span>
+        </div>
+        <div class="space-y-1">
+          <h3 class="text-2xl font-bold text-gray-900">{{ pendingOrdersCount }}</h3>
+          <p class="text-sm text-gray-500">Onay Bekleyen</p>
         </div>
       </div>
-      
-      <!-- Onay Bekleyen Siparişler -->
-      <div class="bg-white rounded-2xl shadow-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-          <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-            <i class="fas fa-clock text-amber-600 text-xl"></i>
-          </div>
-          <span class="px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-600">Bekleyen</span>
-        </div>
-        <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ pendingOrdersCount }}</h3>
-        <p class="text-sm text-gray-500">Onay Bekleyen</p>
-        <div class="mt-4">
-          <router-link 
-            v-if="pendingOrdersCount > 0"
-            to="/sales/cart" 
-            class="text-amber-600 hover:text-amber-700 text-xs flex items-center">
-            Siparişleri görüntüle
-            <i class="fas fa-arrow-right ml-1"></i>
-          </router-link>
-        </div>
-      </div>
-      
+
       <!-- Günlük Satış -->
-      <div class="bg-white rounded-2xl shadow-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-          <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-            <i class="fas fa-shopping-cart text-indigo-600 text-xl"></i>
+      <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="flex items-center space-x-3 mb-3">
+          <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-shopping-cart text-blue-600"></i>
           </div>
-          <span class="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-600">Günlük</span>
+          <span class="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">Günlük</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 mb-1">₺{{ formatPrice(dailySales) }}</h3>
-        <p class="text-sm text-gray-500">Günlük Satış</p>
-        <div class="mt-4 flex items-center text-xs">
-          <span :class="[
-            'flex items-center',
-            dailySalesChange >= 0 ? 'text-green-600' : 'text-red-600'
-          ]">
-            <i :class="['fas', dailySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']" class="mr-1"></i>
+        <div class="space-y-1">
+          <h3 class="text-2xl font-bold text-gray-900">{{ formatPrice(dailySales) }}</h3>
+          <p class="text-sm text-gray-500">Günlük Satış</p>
+        </div>
+        <div class="mt-2 text-xs">
+          <span :class="dailySalesChange >= 0 ? 'text-green-600' : 'text-red-600'">
+            <i :class="['fas', dailySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']"></i>
             {{ Math.abs(dailySalesChange) }}%
           </span>
-          <span class="text-gray-400 ml-2">Dünden bu yana</span>
+          <span class="text-gray-500 ml-1">Dünden bu yana</span>
         </div>
       </div>
 
       <!-- Aylık Satış -->
-      <div class="bg-white rounded-2xl shadow-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-          <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <i class="fas fa-chart-line text-emerald-600 text-xl"></i>
+      <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="flex items-center space-x-3 mb-3">
+          <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-chart-line text-green-600"></i>
           </div>
-          <span class="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-600">Aylık</span>
+          <span class="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Aylık</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 mb-1">₺{{ formatPrice(monthlySales) }}</h3>
-        <p class="text-sm text-gray-500">Aylık Satış</p>
-        <div class="mt-4">
-          <div class="flex items-center justify-between text-xs">
-            <div class="flex items-center">
-              <span :class="[
-                'flex items-center',
-                monthlySalesChange >= 0 ? 'text-green-600' : 'text-red-600'
-              ]">
-                <i :class="['fas', monthlySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']" class="mr-1"></i>
-                {{ formatPercentage(monthlySalesChange) }}%
-              </span>
-            </div>
-            <span class="text-gray-400">Geçen aydan bu yana</span>
-          </div>
+        <div class="space-y-1">
+          <h3 class="text-2xl font-bold text-gray-900">{{ formatPrice(monthlySales) }}</h3>
+          <p class="text-sm text-gray-500">Aylık Satış</p>
+        </div>
+        <div class="mt-2 text-xs">
+          <span :class="monthlySalesChange >= 0 ? 'text-green-600' : 'text-red-600'">
+            <i :class="['fas', monthlySalesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']"></i>
+            {{ Math.abs(monthlySalesChange) }}%
+          </span>
+          <span class="text-gray-500 ml-1">Geçen aydan bu yana</span>
         </div>
       </div>
 
       <!-- Toplam Müşteri -->
-      <div class="bg-white rounded-2xl shadow-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-            <i class="fas fa-users text-blue-600 text-xl"></i>
+      <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="flex items-center space-x-3 mb-3">
+          <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-users text-blue-600"></i>
           </div>
-          <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-600">Toplam</span>
+          <span class="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">Toplam</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ totalCustomers }}</h3>
-        <p class="text-sm text-gray-500">Toplam Müşteri</p>
-        <div class="mt-4 flex items-center text-xs">
-          <span class="text-green-600 flex items-center">
-            <i class="fas fa-arrow-up mr-1"></i>
-            {{ newCustomersToday }}
+        <div class="space-y-1">
+          <h3 class="text-2xl font-bold text-gray-900">{{ totalCustomers }}</h3>
+          <p class="text-sm text-gray-500">Toplam Müşteri</p>
+        </div>
+        <div class="mt-2 text-xs">
+          <span class="text-green-600">
+            <i class="fas fa-plus"></i> {{ newCustomersToday }}
           </span>
-          <span class="text-gray-400 ml-2">Bugün eklenen</span>
+          <span class="text-gray-500 ml-1">Bugün eklenen</span>
         </div>
       </div>
 
       <!-- Düşük Stok -->
-      <div class="bg-white rounded-2xl shadow-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-          <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-            <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+      <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="flex items-center space-x-3 mb-3">
+          <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-exclamation-triangle text-red-600"></i>
           </div>
-          <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-600">Uyarı</span>
+          <span class="px-2.5 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Uyarı</span>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 mb-1">{{ lowStockCount }}</h3>
-        <p class="text-sm text-gray-500">Düşük Stok</p>
-        <div class="mt-4 flex items-center text-xs">
-          <router-link to="/stock" class="text-red-600 hover:text-red-700">
-            Stok durumunu kontrol et
-            <i class="fas fa-arrow-right ml-1"></i>
-          </router-link>
+        <div class="space-y-1">
+          <h3 class="text-2xl font-bold text-gray-900">{{ lowStockCount }}</h3>
+          <p class="text-sm text-gray-500">Düşük Stok</p>
         </div>
+        <router-link to="/stok/urunler" class="mt-4 inline-block text-sm text-red-600 hover:text-red-700">
+          Stok durumunu kontrol et <i class="fas fa-arrow-right ml-1"></i>
+        </router-link>
       </div>
     </div>
 
