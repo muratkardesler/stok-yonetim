@@ -1,5 +1,80 @@
 <template>
   <div class="px-4 sm:px-6 lg:px-8 space-y-6">
+    <!-- Sales Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Top Selling Products -->
+      <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <i class="fas fa-chart-line text-green-600 text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">En Çok Satan Ürünler</h3>
+              <p class="text-sm text-gray-500">Son 30 gün</p>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div v-for="(product, index) in topSellingProducts" 
+               :key="product.id"
+               class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 flex items-center justify-center rounded-lg"
+                   :class="{
+                     'bg-yellow-100 text-yellow-600': index === 0,
+                     'bg-gray-100 text-gray-600': index !== 0
+                   }">
+                <span class="font-medium">{{ index + 1 }}</span>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">{{ product.name }}</p>
+                <p class="text-xs text-gray-500">{{ product.total_quantity }} adet</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-sm font-medium text-gray-900">{{ formatPrice(product.total_amount) }}</p>
+              <p class="text-xs text-green-600">+{{ product.total_quantity }} satış</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Least Selling Products -->
+      <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+              <i class="fas fa-chart-line fa-flip-vertical text-red-600 text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">En Az Satan Ürünler</h3>
+              <p class="text-sm text-gray-500">Son 30 gün</p>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div v-for="product in leastSellingProducts" 
+               :key="product.id"
+               class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 bg-gray-100 text-gray-600 flex items-center justify-center rounded-lg">
+                <i class="fas fa-exclamation-circle"></i>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">{{ product.name }}</p>
+                <p class="text-xs text-gray-500">{{ product.total_quantity }} adet</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-sm font-medium text-gray-900">{{ formatPrice(product.total_amount) }}</p>
+              <p class="text-xs text-red-600">{{ product.total_quantity }} satış</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Header Section -->
     <div class="flex items-center justify-between">
       <div>
@@ -361,6 +436,10 @@ const saleDetails = ref([])
 const currentPage = ref(1)
 const perPage = ref(25)
 
+// Additional state for product stats
+const topSellingProducts = ref([])
+const leastSellingProducts = ref([])
+
 // Computed
 const filteredSales = computed(() => {
   let filtered = sales.value
@@ -609,8 +688,73 @@ const cancelSale = async (sale) => {
   }
 }
 
-// Load initial data
+// Add new method to load product stats
+const loadProductStats = async () => {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError) throw userError
+
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    // Get top selling products from completed sales only
+    const { data: topProducts, error: topError } = await supabase
+      .from('sale_details')
+      .select(`
+        quantity,
+        total_price,
+        product:products (
+          id,
+          name,
+          user_id
+        ),
+        sale:sales (
+          status,
+          created_at
+        )
+      `)
+      .eq('sale.status', 'completed')
+      .gte('sale.created_at', thirtyDaysAgo.toISOString())
+      .not('product', 'is', null)
+
+    if (topError) throw topError
+
+    // Process and aggregate product data
+    const productStats = {}
+    topProducts.forEach(detail => {
+      if (!detail.product || detail.product.user_id !== user.id) return
+      if (!detail.sale || detail.sale.status !== 'completed') return
+      
+      const productId = detail.product.id
+      if (!productStats[productId]) {
+        productStats[productId] = {
+          id: productId,
+          name: detail.product.name,
+          total_quantity: 0,
+          total_amount: 0
+        }
+      }
+      
+      productStats[productId].total_quantity += detail.quantity
+      productStats[productId].total_amount += detail.total_price
+    })
+
+    // Convert to array and sort
+    const sortedProducts = Object.values(productStats).sort((a, b) => b.total_quantity - a.total_quantity)
+
+    // Set top and least selling products
+    topSellingProducts.value = sortedProducts.slice(0, 5)
+    leastSellingProducts.value = sortedProducts.slice(-5).reverse()
+
+  } catch (error) {
+    console.error('Error loading product stats:', error)
+    toast.error('Ürün istatistikleri yüklenirken bir hata oluştu')
+  }
+}
+
+// Update onMounted to include product stats
 onMounted(() => {
   loadSales()
+  loadProductStats()
 })
 </script> 
