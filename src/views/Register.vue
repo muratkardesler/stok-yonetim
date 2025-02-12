@@ -420,7 +420,16 @@ export default {
 
       loading.value = true
       try {
-        console.log('Kayıt işlemi başlatılıyor:', form.value.email)
+        // Debug için form verilerini logla
+        console.log('Form verileri:', {
+          email: form.value.email,
+          first_name: form.value.first_name,
+          last_name: form.value.last_name,
+          company_name: form.value.companyName,
+          company_email: form.value.companyEmail,
+          phone: form.value.phone,
+          address: form.value.address
+        })
 
         // E-posta kontrolü
         const { data: emailExists, error: checkError } = await supabase
@@ -455,6 +464,7 @@ export default {
           }
         })
 
+        // Debug için kayıt cevabını logla
         console.log('Kayıt cevabı:', { data, error })
 
         if (error) {
