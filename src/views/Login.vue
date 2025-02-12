@@ -200,10 +200,9 @@ export default {
         if (authData?.user) {
           // Kullanıcının aktif durumunu kontrol et
           const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('is_active')
-            .eq('id', authData.user.id)
-            .single()
+            .rpc('get_active_profile', {
+              user_id: authData.user.id
+            })
 
           if (profileError) {
             await supabase.auth.signOut()

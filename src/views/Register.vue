@@ -424,11 +424,7 @@ export default {
         console.log('Form verileri:', {
           email: form.value.email,
           first_name: form.value.first_name,
-          last_name: form.value.last_name,
-          company_name: form.value.companyName,
-          company_email: form.value.companyEmail,
-          phone: form.value.phone,
-          address: form.value.address
+          last_name: form.value.last_name
         })
 
         // E-posta kontrolü
@@ -447,18 +443,14 @@ export default {
           throw new Error('Bu e-posta adresi ile daha önce kayıt yapılmış. Lütfen farklı bir e-posta adresi kullanın.')
         }
 
-        // Register with Supabase
+        // Register with Supabase - sadece temel bilgiler
         const { data, error } = await supabase.auth.signUp({
           email: form.value.email,
           password: form.value.password,
           options: {
             data: {
               first_name: form.value.first_name,
-              last_name: form.value.last_name,
-              company_name: form.value.companyName,
-              company_email: form.value.companyEmail,
-              phone: form.value.phone,
-              address: form.value.address
+              last_name: form.value.last_name
             },
             emailRedirectTo: 'https://test-stok-yonetim.onrender.com/auth/callback'
           }
@@ -477,6 +469,7 @@ export default {
           throw new Error('Kayıt işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.')
         }
 
+        // Şirket bilgilerini daha sonra ekleyeceğiz
         toast.success('Kayıt başarılı! Lütfen e-posta adresinizi doğrulayın.', {
           timeout: 5000,
           position: "top-right",
