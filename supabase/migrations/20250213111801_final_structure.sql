@@ -432,3 +432,138 @@ CREATE POLICY "Users can manage their company's sale details extra" ON public.sa
         )
     );
 
+-- Kategori yönetimi için yeni fonksiyonlar
+CREATE OR REPLACE FUNCTION public.create_category(
+    p_name text,
+    p_parent_id uuid DEFAULT NULL
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_company_id uuid;
+    v_category_id uuid;
+BEGIN
+    -- Debug log
+    RAISE LOG 'Creating category: %, parent_id: %', p_name, p_parent_id;
+
+    -- Get company_id for current user
+    SELECT company_id INTO v_company_id
+    FROM profiles
+    WHERE id = auth.uid();
+
+    -- Debug log
+    RAISE LOG 'Company ID: %', v_company_id;
+
+    -- Create category
+    INSERT INTO categories (
+        name,
+        parent_id,
+        company_id
+    ) VALUES (
+        p_name,
+        p_parent_id,
+        v_company_id
+    ) RETURNING id INTO v_category_id;
+
+    -- Debug log
+    RAISE LOG 'Created category with ID: %', v_category_id;
+
+    RETURN v_category_id;
+EXCEPTION
+    WHEN others THEN
+        -- Error logging
+        RAISE LOG 'Error in create_category: %', SQLERRM;
+        RAISE;
+END;
+$$;
+
+-- Kategori güncelleme fonksiyonu
+CREATE OR REPLACE FUNCTION public.update_category(
+    p_category_id uuid,
+    p_name text,
+    p_parent_id uuid DEFAULT NULL
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_company_id uuid;
+BEGIN
+    -- Debug log
+    RAISE LOG 'Updating category: %, name: %, parent_id: %', p_category_id, p_name, p_parent_id;
+
+    -- Get company_id for current user
+    SELECT company_id INTO v_company_id
+    FROM profiles
+    WHERE id = auth.uid();
+
+    -- Update category
+    UPDATE categories
+    SET 
+        name = p_name,
+        parent_id = p_parent_id,
+        updated_at = now()
+    WHERE 
+        id = p_category_id 
+        AND company_id = v_company_id;
+
+    -- Debug log
+    RAISE LOG 'Category updated successfully';
+
+    RETURN FOUND;
+EXCEPTION
+    WHEN others THEN
+        -- Error logging
+        RAISE LOG 'Error in update_category: %', SQLERRM;
+        RAISE;
+END;
+$$;
+
+-- Kategori silme fonksiyonu
+CREATE OR REPLACE FUNCTION public.delete_category(
+    p_category_id uuid
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_company_id uuid;
+BEGIN
+    -- Debug log
+    RAISE LOG 'Deleting category: %', p_category_id;
+
+    -- Get company_id for current user
+    SELECT company_id INTO v_company_id
+    FROM profiles
+    WHERE id = auth.uid();
+
+    -- Delete category
+    DELETE FROM categories
+    WHERE 
+        id = p_category_id 
+        AND company_id = v_company_id;
+
+    -- Debug log
+    RAISE LOG 'Category deleted successfully';
+
+    RETURN FOUND;
+EXCEPTION
+    WHEN others THEN
+        -- Error logging
+        RAISE LOG 'Error in delete_category: %', SQLERRM;
+        RAISE;
+END;
+$$;
+
+-- Fonksiyonlara erişim izni ver
+GRANT EXECUTE ON FUNCTION public.create_category TO authenticated;
+GRANT EXECUTE ON FUNCTION public.update_category TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_category TO authenticated;
+

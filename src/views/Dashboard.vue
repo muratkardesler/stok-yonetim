@@ -282,7 +282,16 @@ export default {
         // Profil bilgilerini al
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select(`
+            first_name,
+            last_name,
+            trial_end_date,
+            is_active,
+            company:companies (
+              name,
+              is_active
+            )
+          `)
           .eq('id', user.id)
           .single()
 
@@ -346,116 +355,119 @@ export default {
     // Dashboard verilerini getir
     const fetchDashboardData = async () => {
       try {
-        await Promise.all([
-          fetchUserInfo(),
-          fetchPendingOrders()
-        ])
-
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         if (userError) throw userError
 
-        // Fetch daily sales
+        // Profil bilgilerini al
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select(`
+            first_name,
+            last_name,
+            trial_end_date,
+            is_active,
+            company:companies (
+              name,
+              is_active
+            )
+          `)
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) throw profileError
+
+        // Kullanıcı bilgilerini güncelle
+        if (profile?.first_name && profile?.last_name) {
+          userFullName.value = `${profile.first_name} ${profile.last_name}`
+          userInitials.value = `${profile.first_name[0]}${profile.last_name[0]}`
+        }
+
+        // Trial period hesapla
+        if (profile?.trial_end_date) {
+          const trialEndDate = new Date(profile.trial_end_date)
+          const today = new Date()
+          const diffTime = Math.abs(trialEndDate - today)
+          remainingDays.value = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        }
+
+        // Bekleyen siparişleri al
+        const { data: pendingOrders, error: pendingError } = await supabase
+          .from('sales')
+          .select('id')
+          .eq('status', 'pending')
+          .eq('company_id', profile.company.id)
+
+        if (!pendingError) {
+          pendingOrdersCount.value = pendingOrders?.length || 0
+        }
+
+        // Günlük satışları al
         const today = new Date()
         today.setHours(0, 0, 0, 0)
         const tomorrow = new Date(today)
         tomorrow.setDate(tomorrow.getDate() + 1)
-        
-        const { data: todaySales } = await supabase
+
+        const { data: todaySales, error: todayError } = await supabase
           .from('sales')
           .select('total_amount')
-          .eq('user_id', user.id)
           .eq('status', 'completed')
+          .eq('company_id', profile.company.id)
           .gte('created_at', today.toISOString())
           .lt('created_at', tomorrow.toISOString())
 
-        dailySales.value = todaySales?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
+        if (!todayError) {
+          dailySales.value = todaySales?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
+        }
 
-        // Fetch yesterday's sales for comparison
-        const yesterday = new Date(today)
-        yesterday.setDate(yesterday.getDate() - 1)
-        
-        const { data: yesterdaySales } = await supabase
-          .from('sales')
-          .select('total_amount')
-          .eq('user_id', user.id)
-          .eq('status', 'completed')
-          .gte('created_at', yesterday.toISOString())
-          .lt('created_at', today.toISOString())
-
-        const yesterdayTotal = yesterdaySales?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
-        dailySalesChange.value = yesterdayTotal === 0 ? 100 : 
-          ((dailySales.value - yesterdayTotal) / yesterdayTotal) * 100
-
-        // Fetch monthly sales
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-        
-        const { data: monthSales } = await supabase
-          .from('sales')
-          .select('total_amount')
-          .eq('user_id', user.id)
-          .eq('status', 'completed')
-          .gte('created_at', firstDayOfMonth.toISOString())
-          .lt('created_at', tomorrow.toISOString())
-
-        monthlySales.value = monthSales?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
-
-        // Fetch last month's sales for comparison
-        const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-        const firstDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-        
-        const { data: lastMonthSales } = await supabase
-          .from('sales')
-          .select('total_amount')
-          .eq('user_id', user.id)
-          .eq('status', 'completed')
-          .gte('created_at', firstDayOfLastMonth.toISOString())
-          .lt('created_at', firstDayOfCurrentMonth.toISOString())
-
-        const lastMonthTotal = lastMonthSales?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
-        monthlySalesChange.value = lastMonthTotal === 0 ? 100 :
-          ((monthlySales.value - lastMonthTotal) / lastMonthTotal) * 100
-
-        // Fetch customer stats
-        const { data: customers } = await supabase
+        // Müşteri sayısını al
+        const { data: customers, error: customersError } = await supabase
           .from('customers')
           .select('created_at')
+          .eq('company_id', profile.company.id)
 
-        totalCustomers.value = customers?.length || 0
-        newCustomersToday.value = customers?.filter(customer => 
-          new Date(customer.created_at) >= today
-        ).length || 0
+        if (!customersError) {
+          totalCustomers.value = customers?.length || 0
+          newCustomersToday.value = customers?.filter(customer => 
+            new Date(customer.created_at) >= today
+          ).length || 0
+        }
 
-        // Fetch low stock products
-        const { data: lowStock } = await supabase
+        // Düşük stok ürünleri al
+        const { data: lowStock, error: stockError } = await supabase
           .from('products')
           .select(`
             *,
-            category:categories(*)
+            category:categories(name)
           `)
+          .eq('company_id', profile.company.id)
           .or('stock.lte.10,stock.eq.0')
           .order('stock')
 
-        lowStockProducts.value = lowStock || []
-        lowStockCount.value = lowStock?.length || 0
+        if (!stockError) {
+          lowStockProducts.value = lowStock || []
+          lowStockCount.value = lowStock?.length || 0
+        }
 
-        // Fetch recent sales
-        const { data: recent } = await supabase
+        // Son satışları al
+        const { data: recent, error: recentError } = await supabase
           .from('sales')
           .select(`
-            *,
-            details:sale_details(id),
-            extra:sale_details_extra(customer_name)
+            id,
+            total_amount,
+            created_at,
+            customer:customers(name)
           `)
-          .eq('user_id', user.id)
           .eq('status', 'completed')
+          .eq('company_id', profile.company.id)
           .order('created_at', { ascending: false })
           .limit(5)
 
-        recentSales.value = recent?.map(sale => ({
-          ...sale,
-          customer_name: sale.extra?.[0]?.customer_name || 'İsimsiz Müşteri',
-          items_count: sale.details?.length || 0
-        })) || []
+        if (!recentError) {
+          recentSales.value = recent?.map(sale => ({
+            ...sale,
+            customer_name: sale.customer?.name || 'İsimsiz Müşteri'
+          })) || []
+        }
 
         // Fetch monthly sales data for chart
         const monthsToShow = selectedPeriod.value
@@ -500,7 +512,7 @@ export default {
         })) || []
 
       } catch (error) {
-        console.error('Error fetching dashboard data:', error)
+        console.error('Dashboard veri yükleme hatası:', error)
         toast.error('Veriler yüklenirken bir hata oluştu')
       }
     }
