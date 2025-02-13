@@ -180,48 +180,51 @@ export default {
       try {
         loading.value = true
 
-        // Önce kullanıcının kimlik bilgilerini kontrol et
-        const { data: { user } } = await supabase.auth.signInWithPassword({
+        // Giriş yap
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email: email.value,
           password: password.value
         })
 
+        if (signInError) {
+          if (signInError.message.includes('Invalid login credentials')) {
+            throw new Error('Geçersiz e-posta veya şifre')
+          } else if (signInError.message.includes('Email not confirmed')) {
+            throw new Error('E-posta adresiniz henüz doğrulanmamış')
+          } else {
+            throw signInError
+          }
+        }
+
+        if (!data?.user) {
+          throw new Error('Kullanıcı bilgileri alınamadı')
+        }
+
         // Kullanıcı aktiflik kontrolü
         const { data: isActive, error: activeError } = await supabase
-          .rpc('check_user_active', {
-            user_id: user.id
-          })
+          .from('profiles')
+          .select('is_active, company:companies(is_active)')
+          .eq('id', data.user.id)
+          .single()
 
         if (activeError) {
           console.error('Aktiflik kontrolü hatası:', activeError)
           await supabase.auth.signOut()
-          throw new Error('Hesap durumu kontrol edilemedi. Lütfen destek ile iletişime geçin.')
+          throw new Error('Hesap durumu kontrol edilemedi')
         }
 
-        if (!isActive) {
+        if (!isActive?.is_active || !isActive?.company?.is_active) {
           await supabase.auth.signOut()
-          throw new Error('Hesabınız aktif değil. Lütfen destek ile iletişime geçin.')
+          throw new Error('Hesabınız aktif değil')
         }
 
-        // Profil bilgilerini al
-        const { data: profile, error: profileError } = await supabase
-          .rpc('get_active_profile', {
-            user_id: user.id
-          })
-
-        if (profileError || !profile) {
-          console.error('Profil bilgileri alınamadı:', profileError)
-          await supabase.auth.signOut()
-          throw new Error('Profil bilgileri alınamadı. Lütfen destek ile iletişime geçin.')
-        }
-
-        // Başarılı giriş - yönlendirme yap
+        // Başarılı giriş
         router.push('/dashboard')
         toast.success('Başarıyla giriş yapıldı')
+
       } catch (error) {
-        console.error('Giriş hatası:', error.message)
-        toast.error('Giriş yapılırken bir hata oluştu')
-        // Hata durumunda oturumu sonlandır
+        console.error('Giriş hatası:', error)
+        toast.error(error.message || 'Giriş yapılırken bir hata oluştu')
         await supabase.auth.signOut()
       } finally {
         loading.value = false
