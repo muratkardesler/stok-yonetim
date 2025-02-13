@@ -428,21 +428,36 @@ export default {
     const handleAddCategory = async () => {
       try {
         loading.value = true
-        
-        const { data, error } = await supabase
-          .rpc('create_category', {
-            p_name: categoryForm.value.name,
-            p_parent_id: categoryForm.value.parent_id || null
-          })
 
-        if (error) throw error
+        if (editingCategory.value) {
+          // Kategori güncelleme
+          const { error } = await supabase
+            .rpc('update_category', {
+              p_category_id: editingCategory.value.id,
+              p_name: categoryForm.value.name,
+              p_parent_id: categoryForm.value.parent_id
+            })
 
-        toast.success('Kategori başarıyla eklendi')
+          if (error) throw error
+          toast.success('Kategori güncellendi')
+        } else {
+          // Yeni kategori ekleme
+          const { error } = await supabase
+            .from('categories')
+            .insert([{
+              name: categoryForm.value.name,
+              parent_id: categoryForm.value.parent_id
+            }])
+
+          if (error) throw error
+          toast.success('Kategori eklendi')
+        }
+
         await loadCategories()
         closeAddCategoryModal()
       } catch (error) {
-        console.error('Kategori ekleme hatası:', error)
-        toast.error('Kategori eklenirken bir hata oluştu')
+        console.error('Kategori işlemi hatası:', error)
+        toast.error('Kategori işlemi sırasında bir hata oluştu')
       } finally {
         loading.value = false
       }
