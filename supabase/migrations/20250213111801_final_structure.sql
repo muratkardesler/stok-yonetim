@@ -141,7 +141,93 @@ CREATE TABLE public.sale_details_extra (
     updated_at timestamp with time zone DEFAULT now()
 );
 
--- Trigger fonksiyonunu oluştur
+-- Kullanıcı aktiflik kontrolü için fonksiyon
+CREATE OR REPLACE FUNCTION public.check_user_active(user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_is_active boolean;
+    v_profile_exists boolean;
+BEGIN
+    -- Debug log
+    RAISE LOG 'Checking active status for user: %', user_id;
+
+    -- Önce profilin var olup olmadığını kontrol et
+    SELECT EXISTS (
+        SELECT 1 FROM profiles WHERE id = user_id
+    ) INTO v_profile_exists;
+
+    -- Debug log
+    RAISE LOG 'Profile exists: %', v_profile_exists;
+
+    IF NOT v_profile_exists THEN
+        RAISE LOG 'Profile not found for user: %', user_id;
+        RETURN false;
+    END IF;
+
+    -- Aktiflik durumunu kontrol et
+    SELECT 
+        CASE 
+            WHEN p.is_active = true AND c.is_active = true THEN true 
+            ELSE false 
+        END
+    INTO v_is_active
+    FROM profiles p
+    JOIN companies c ON c.id = p.company_id
+    WHERE p.id = user_id;
+
+    -- Debug log
+    RAISE LOG 'User active status: %', v_is_active;
+
+    RETURN COALESCE(v_is_active, false);
+END;
+$$;
+
+-- get_active_profile fonksiyonunu güncelle
+CREATE OR REPLACE FUNCTION public.get_active_profile(user_id uuid)
+RETURNS TABLE (
+    id uuid,
+    first_name text,
+    last_name text,
+    is_active boolean,
+    role text,
+    company_id uuid,
+    company_name text,
+    company_is_active boolean
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    -- Debug log
+    RAISE LOG 'Getting profile for user: %', user_id;
+
+    RETURN QUERY
+    SELECT 
+        p.id,
+        p.first_name,
+        p.last_name,
+        p.is_active AND c.is_active as is_active,
+        p.role,
+        p.company_id,
+        c.name as company_name,
+        c.is_active as company_is_active
+    FROM profiles p
+    JOIN companies c ON c.id = p.company_id
+    WHERE p.id = user_id;
+
+    -- Debug log
+    IF NOT FOUND THEN
+        RAISE LOG 'No profile found for user: %', user_id;
+    END IF;
+END;
+$$;
+
+-- Yeni kullanıcı oluşturma fonksiyonu
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -250,93 +336,26 @@ ALTER TABLE public.sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sale_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sale_details_extra ENABLE ROW LEVEL SECURITY;
 
--- Kullanıcı aktiflik kontrolü için fonksiyon
-CREATE OR REPLACE FUNCTION public.check_user_active(user_id uuid)
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_is_active boolean;
-    v_profile_exists boolean;
-BEGIN
-    -- Debug log
-    RAISE LOG 'Checking active status for user: %', user_id;
+-- Fonksiyonlara erişim izni ver
+GRANT EXECUTE ON FUNCTION public.check_user_active TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_active_profile TO authenticated;
+GRANT EXECUTE ON FUNCTION public.handle_new_user TO service_role;
 
-    -- Önce profilin var olup olmadığını kontrol et
-    SELECT EXISTS (
-        SELECT 1 FROM profiles WHERE id = user_id
-    ) INTO v_profile_exists;
+-- Tablolara erişim izni ver
+GRANT ALL ON public.companies TO authenticated;
+GRANT ALL ON public.profiles TO authenticated;
+GRANT ALL ON public.users TO authenticated;
+GRANT ALL ON public.categories TO authenticated;
+GRANT ALL ON public.products TO authenticated;
+GRANT ALL ON public.product_images TO authenticated;
+GRANT ALL ON public.packages TO authenticated;
+GRANT ALL ON public.package_products TO authenticated;
+GRANT ALL ON public.customers TO authenticated;
+GRANT ALL ON public.sales TO authenticated;
+GRANT ALL ON public.sale_details TO authenticated;
+GRANT ALL ON public.sale_details_extra TO authenticated;
 
-    -- Debug log
-    RAISE LOG 'Profile exists: %', v_profile_exists;
-
-    IF NOT v_profile_exists THEN
-        RAISE LOG 'Profile not found for user: %', user_id;
-        RETURN false;
-    END IF;
-
-    -- Aktiflik durumunu kontrol et
-    SELECT 
-        CASE 
-            WHEN p.is_active = true AND c.is_active = true THEN true 
-            ELSE false 
-        END
-    INTO v_is_active
-    FROM profiles p
-    JOIN companies c ON c.id = p.company_id
-    WHERE p.id = user_id;
-
-    -- Debug log
-    RAISE LOG 'User active status: %', v_is_active;
-
-    RETURN COALESCE(v_is_active, false);
-END;
-$$;
-
--- get_active_profile fonksiyonunu güncelle
-CREATE OR REPLACE FUNCTION public.get_active_profile(user_id uuid)
-RETURNS TABLE (
-    id uuid,
-    first_name text,
-    last_name text,
-    is_active boolean,
-    role text,
-    company_id uuid,
-    company_name text,
-    company_is_active boolean
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    -- Debug log
-    RAISE LOG 'Getting profile for user: %', user_id;
-
-    RETURN QUERY
-    SELECT 
-        p.id,
-        p.first_name,
-        p.last_name,
-        p.is_active AND c.is_active as is_active, -- Hem profil hem şirket aktif olmalı
-        p.role,
-        p.company_id,
-        c.name as company_name,
-        c.is_active as company_is_active
-    FROM profiles p
-    JOIN companies c ON c.id = p.company_id
-    WHERE p.id = user_id;
-
-    -- Debug log
-    IF NOT FOUND THEN
-        RAISE LOG 'No profile found for user: %', user_id;
-    END IF;
-END;
-$$;
-
--- Companies için RLS
+-- RLS Policies
 CREATE POLICY "Users can view their own company" ON public.companies
     FOR ALL USING (
         id IN (
@@ -344,83 +363,72 @@ CREATE POLICY "Users can view their own company" ON public.companies
         )
     );
 
--- Profiles için RLS
 CREATE POLICY "Users can view their own profile" ON public.profiles
     FOR ALL USING (id = auth.uid());
 
--- Users için RLS
 CREATE POLICY "Users can view their own user data" ON public.users
     FOR ALL USING (id = auth.uid());
 
--- Categories için RLS
 CREATE POLICY "Users can manage their company's categories" ON public.categories
     FOR ALL USING (
         company_id IN (
-            SELECT company_id FROM public.users WHERE id = auth.uid()
+            SELECT company_id FROM public.profiles WHERE id = auth.uid()
         )
     );
 
--- Products için RLS
 CREATE POLICY "Users can manage their company's products" ON public.products
     FOR ALL USING (
         company_id IN (
-            SELECT company_id FROM public.users WHERE id = auth.uid()
+            SELECT company_id FROM public.profiles WHERE id = auth.uid()
         )
     );
 
--- Product Images için RLS
 CREATE POLICY "Users can manage their company's product images" ON public.product_images
     FOR ALL USING (
         company_id IN (
-            SELECT company_id FROM public.users WHERE id = auth.uid()
+            SELECT company_id FROM public.profiles WHERE id = auth.uid()
         )
     );
 
--- Packages için RLS
 CREATE POLICY "Users can manage their company's packages" ON public.packages
     FOR ALL USING (
         company_id IN (
-            SELECT company_id FROM public.users WHERE id = auth.uid()
+            SELECT company_id FROM public.profiles WHERE id = auth.uid()
         )
     );
 
--- Package Products için RLS
 CREATE POLICY "Users can manage their company's package products" ON public.package_products
     FOR ALL USING (
         company_id IN (
-            SELECT company_id FROM public.users WHERE id = auth.uid()
+            SELECT company_id FROM public.profiles WHERE id = auth.uid()
         )
     );
 
--- Customers için RLS
 CREATE POLICY "Users can manage their company's customers" ON public.customers
     FOR ALL USING (
         company_id IN (
-            SELECT company_id FROM public.users WHERE id = auth.uid()
+            SELECT company_id FROM public.profiles WHERE id = auth.uid()
         )
     );
 
--- Sales için RLS
 CREATE POLICY "Users can manage their company's sales" ON public.sales
     FOR ALL USING (
         company_id IN (
-            SELECT company_id FROM public.users WHERE id = auth.uid()
+            SELECT company_id FROM public.profiles WHERE id = auth.uid()
         )
     );
 
--- Sale Details için RLS
 CREATE POLICY "Users can manage their company's sale details" ON public.sale_details
     FOR ALL USING (
         company_id IN (
-            SELECT company_id FROM public.users WHERE id = auth.uid()
+            SELECT company_id FROM public.profiles WHERE id = auth.uid()
         )
     );
 
--- Sale Details Extra için RLS
 CREATE POLICY "Users can manage their company's sale details extra" ON public.sale_details_extra
     FOR ALL USING (
         company_id IN (
-            SELECT company_id FROM public.users WHERE id = auth.uid()
+            SELECT company_id FROM public.profiles WHERE id = auth.uid()
         )
     );
 

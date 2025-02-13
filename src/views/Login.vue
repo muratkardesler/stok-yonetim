@@ -181,63 +181,43 @@ export default {
         loading.value = true
 
         // Önce kullanıcının kimlik bilgilerini kontrol et
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        const { data: { user } } = await supabase.auth.signInWithPassword({
           email: email.value,
-          password: password.value,
+          password: password.value
         })
 
-        if (authError) {
-          if (authError.message.includes('Invalid login credentials')) {
-            toast.error('Geçersiz e-posta veya şifre')
-          } else if (authError.message.includes('Email not confirmed')) {
-            toast.error('E-posta adresiniz henüz doğrulanmamış')
-          } else {
-            toast.error('Giriş yapılırken bir hata oluştu')
-          }
-          return
+        // Kullanıcı aktiflik kontrolü
+        const { data: isActive, error: activeError } = await supabase
+          .rpc('check_user_active', {
+            user_id: user.id
+          })
+
+        if (activeError) {
+          console.error('Aktiflik kontrolü hatası:', activeError)
+          await supabase.auth.signOut()
+          throw new Error('Hesap durumu kontrol edilemedi. Lütfen destek ile iletişime geçin.')
         }
 
-        if (authData?.user) {
-          // Önce kullanıcının aktif olup olmadığını kontrol et
-          const { data: isActive, error: activeError } = await supabase
-            .rpc('check_user_active', {
-              user_id: authData.user.id
-            })
-
-          if (activeError) {
-            console.error('Aktiflik kontrolü hatası:', activeError)
-            throw activeError
-          }
-
-          if (!isActive) {
-            await supabase.auth.signOut()
-            toast.error('Hesabınız aktif değil. Lütfen destek ekibiyle iletişime geçin.')
-            return
-          }
-
-          // Kullanıcı profilini al
-          const { data: profile, error: profileError } = await supabase
-            .rpc('get_active_profile', {
-              user_id: authData.user.id
-            })
-
-          if (profileError) {
-            console.error('Profil bilgileri hatası:', profileError)
-            await supabase.auth.signOut()
-            throw profileError
-          }
-
-          if (!profile || !profile.is_active) {
-            await supabase.auth.signOut()
-            toast.error('Hesabınız aktif değil. Lütfen destek ekibiyle iletişime geçin.')
-            return
-          }
-
-          // Her şey yolundaysa oturumu başlat
-          await supabase.auth.setSession(authData.session)
-          router.push('/dashboard')
-          toast.success('Başarıyla giriş yapıldı')
+        if (!isActive) {
+          await supabase.auth.signOut()
+          throw new Error('Hesabınız aktif değil. Lütfen destek ile iletişime geçin.')
         }
+
+        // Profil bilgilerini al
+        const { data: profile, error: profileError } = await supabase
+          .rpc('get_active_profile', {
+            user_id: user.id
+          })
+
+        if (profileError || !profile) {
+          console.error('Profil bilgileri alınamadı:', profileError)
+          await supabase.auth.signOut()
+          throw new Error('Profil bilgileri alınamadı. Lütfen destek ile iletişime geçin.')
+        }
+
+        // Başarılı giriş - yönlendirme yap
+        router.push('/dashboard')
+        toast.success('Başarıyla giriş yapıldı')
       } catch (error) {
         console.error('Giriş hatası:', error.message)
         toast.error('Giriş yapılırken bir hata oluştu')
