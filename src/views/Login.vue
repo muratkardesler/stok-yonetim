@@ -198,19 +198,36 @@ export default {
         }
 
         if (authData?.user) {
-          // Kullanıcının aktif durumunu kontrol et
+          // Önce kullanıcının aktif olup olmadığını kontrol et
+          const { data: isActive, error: activeError } = await supabase
+            .rpc('check_user_active', {
+              user_id: authData.user.id
+            })
+
+          if (activeError) {
+            console.error('Aktiflik kontrolü hatası:', activeError)
+            throw activeError
+          }
+
+          if (!isActive) {
+            await supabase.auth.signOut()
+            toast.error('Hesabınız aktif değil. Lütfen destek ekibiyle iletişime geçin.')
+            return
+          }
+
+          // Kullanıcı profilini al
           const { data: profile, error: profileError } = await supabase
             .rpc('get_active_profile', {
               user_id: authData.user.id
             })
 
           if (profileError) {
+            console.error('Profil bilgileri hatası:', profileError)
             await supabase.auth.signOut()
             throw profileError
           }
 
-          // Hesap aktif değilse giriş yapmasına izin verme
-          if (!profile.is_active) {
+          if (!profile || !profile.is_active) {
             await supabase.auth.signOut()
             toast.error('Hesabınız aktif değil. Lütfen destek ekibiyle iletişime geçin.')
             return
@@ -218,7 +235,7 @@ export default {
 
           // Her şey yolundaysa oturumu başlat
           await supabase.auth.setSession(authData.session)
-          router.push('/')
+          router.push('/dashboard')
           toast.success('Başarıyla giriş yapıldı')
         }
       } catch (error) {
