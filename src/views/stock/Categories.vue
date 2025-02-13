@@ -178,7 +178,7 @@
         </div>
       </template>
       <template #body>
-        <form @submit.prevent="saveCategory" class="space-y-6">
+        <form @submit.prevent="handleAddCategory" class="space-y-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Kategori Adı</label>
             <input
@@ -207,7 +207,7 @@
                   class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors">
             İptal
           </button>
-          <button @click="saveCategory" 
+          <button @click="handleAddCategory" 
                   class="px-4 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 transition-colors">
             {{ editingCategory ? 'Güncelle' : 'Kaydet' }}
           </button>
@@ -272,6 +272,7 @@ export default {
     const showDeleteModal = ref(false)
     const itemToDelete = ref(null)
     const expandedCategories = ref({})
+    const loading = ref(false)
 
     const categoryForm = ref({
       name: '',
@@ -424,49 +425,26 @@ export default {
     }
 
     // Save operations
-    const saveCategory = async () => {
+    const handleAddCategory = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        loading.value = true
         
-        // Check for duplicate category name
-        const existingCategory = categories.value.find(
-          cat => cat.name.toLowerCase() === categoryForm.value.name.toLowerCase() && 
-                 cat.id !== editingCategory.value?.id &&
-                 cat.parent_id === categoryForm.value.parent_id
-        )
+        const { data, error } = await supabase
+          .rpc('create_category', {
+            p_name: categoryForm.value.name,
+            p_parent_id: categoryForm.value.parent_id || null
+          })
 
-        if (existingCategory) {
-          toast.error('Bu isimde bir kategori zaten mevcut')
-          return
-        }
+        if (error) throw error
 
-        if (editingCategory.value) {
-          const { error } = await supabase
-            .from('categories')
-            .update({
-              name: categoryForm.value.name
-            })
-            .eq('id', editingCategory.value.id)
-
-          if (error) throw error
-          toast.success('Kategori güncellendi')
-        } else {
-          const { error } = await supabase
-            .from('categories')
-            .insert([{
-              ...categoryForm.value,
-              user_id: user.id
-            }])
-
-          if (error) throw error
-          toast.success('Kategori eklendi')
-        }
-
+        toast.success('Kategori başarıyla eklendi')
+        await loadCategories()
         closeAddCategoryModal()
-        loadCategories()
       } catch (error) {
-        console.error('Error saving category:', error)
-        toast.error('Kategori kaydedilirken bir hata oluştu')
+        console.error('Kategori ekleme hatası:', error)
+        toast.error('Kategori eklenirken bir hata oluştu')
+      } finally {
+        loading.value = false
       }
     }
 
@@ -526,7 +504,7 @@ export default {
       openAddSubCategory,
       deleteCategory,
       closeDeleteModal,
-      saveCategory,
+      handleAddCategory,
       confirmDelete
     }
   }

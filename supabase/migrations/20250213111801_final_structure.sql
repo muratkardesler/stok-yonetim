@@ -454,6 +454,10 @@ BEGIN
     FROM profiles
     WHERE id = auth.uid();
 
+    IF v_company_id IS NULL THEN
+        RAISE EXCEPTION 'Company ID not found for user';
+    END IF;
+
     -- Debug log
     RAISE LOG 'Company ID: %', v_company_id;
 
@@ -477,6 +481,54 @@ EXCEPTION
         -- Error logging
         RAISE LOG 'Error in create_category: %', SQLERRM;
         RAISE;
+END;
+$$;
+
+-- Kategori listeleme fonksiyonu
+CREATE OR REPLACE FUNCTION public.list_categories()
+RETURNS TABLE (
+    id uuid,
+    name text,
+    parent_id uuid,
+    company_id uuid,
+    created_at timestamptz,
+    updated_at timestamptz
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_company_id uuid;
+BEGIN
+    -- Get company_id for current user
+    SELECT company_id INTO v_company_id
+    FROM profiles
+    WHERE id = auth.uid();
+
+    IF v_company_id IS NULL THEN
+        RAISE EXCEPTION 'Company ID not found for user';
+    END IF;
+
+    -- Debug log
+    RAISE LOG 'Listing categories for company: %', v_company_id;
+
+    RETURN QUERY
+    SELECT 
+        c.id,
+        c.name,
+        c.parent_id,
+        c.company_id,
+        c.created_at,
+        c.updated_at
+    FROM categories c
+    WHERE c.company_id = v_company_id
+    ORDER BY c.name;
+
+    -- Debug log
+    IF NOT FOUND THEN
+        RAISE LOG 'No categories found for company: %', v_company_id;
+    END IF;
 END;
 $$;
 
@@ -566,4 +618,14 @@ $$;
 GRANT EXECUTE ON FUNCTION public.create_category TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_category TO authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_category TO authenticated;
+GRANT EXECUTE ON FUNCTION public.list_categories TO authenticated;
+
+-- Categories tablosu için RLS politikasını güncelle
+DROP POLICY IF EXISTS "Users can manage their company's categories" ON public.categories;
+CREATE POLICY "Users can manage their company's categories" ON public.categories
+    FOR ALL USING (
+        company_id IN (
+            SELECT company_id FROM profiles WHERE id = auth.uid()
+        )
+    );
 
