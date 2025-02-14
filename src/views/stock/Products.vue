@@ -450,7 +450,7 @@ export default {
       try {
         console.log('Starting to load products...')
         
-        // Kullanıcı bilgisini al ve kontrol et
+        // Kullanıcı ve şirket bilgisini al
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         
         if (userError) {
@@ -463,13 +463,30 @@ export default {
           return
         }
 
-        console.log('Current user ID:', user.id)
+        // Şirket bilgisini al
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) {
+          console.error('Error getting profile:', profileError)
+          throw profileError
+        }
+
+        if (!profile?.company_id) {
+          console.error('No company found')
+          return
+        }
+
+        console.log('Company ID:', profile.company_id)
         
         // Ürünleri çek
         const { data: productsData, error: productsError } = await supabase
           .from('products')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('company_id', profile.company_id)
           .order('name')
         
         if (productsError) {
@@ -674,13 +691,29 @@ export default {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         console.log('Current user:', user)
+
+        // Şirket bilgisini al
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) {
+          console.error('Error getting profile:', profileError)
+          throw profileError
+        }
+
+        if (!profile?.company_id) {
+          throw new Error('Şirket bilgisi bulunamadı')
+        }
         
         const productData = {
           name: productForm.value.name,
           category_id: productForm.value.category_id,
           stock: parseInt(productForm.value.stock) || 0,
           price: parseFloat(productForm.value.price) || 0,
-          user_id: user.id
+          company_id: profile.company_id
         }
         
         console.log('Saving product data:', productData)
@@ -690,6 +723,7 @@ export default {
             .from('products')
             .update(productData)
             .eq('id', editingProduct.value.id)
+            .eq('company_id', profile.company_id)
             .select()
 
           if (error) {

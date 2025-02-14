@@ -282,20 +282,32 @@ export default {
     // Load data
     const loadCategories = async () => {
       try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Kullanıcı bulunamadı')
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+
+        if (!profile?.company_id) throw new Error('Şirket bilgisi bulunamadı')
+
         const { data, error } = await supabase
           .from('categories')
           .select(`
             *,
             products:products(*)
           `)
+          .eq('company_id', profile.company_id)
           .order('name')
         
         if (error) throw error
-        categories.value = data
+        categories.value = data || []
         
         // Initialize expanded state
         const initialState = {}
-        data.forEach(category => {
+        data?.forEach(category => {
           initialState[category.id] = false
         })
         expandedCategories.value = initialState
@@ -429,14 +441,28 @@ export default {
       try {
         loading.value = true
 
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Kullanıcı bulunamadı')
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+
+        if (!profile?.company_id) throw new Error('Şirket bilgisi bulunamadı')
+
         if (editingCategory.value) {
           // Kategori güncelleme
           const { error } = await supabase
-            .rpc('update_category', {
-              p_category_id: editingCategory.value.id,
-              p_name: categoryForm.value.name,
-              p_parent_id: categoryForm.value.parent_id
+            .from('categories')
+            .update({
+              name: categoryForm.value.name,
+              parent_id: categoryForm.value.parent_id,
+              updated_at: new Date().toISOString()
             })
+            .eq('id', editingCategory.value.id)
+            .eq('company_id', profile.company_id)
 
           if (error) throw error
           toast.success('Kategori güncellendi')
@@ -446,7 +472,8 @@ export default {
             .from('categories')
             .insert([{
               name: categoryForm.value.name,
-              parent_id: categoryForm.value.parent_id
+              parent_id: categoryForm.value.parent_id,
+              company_id: profile.company_id
             }])
 
           if (error) throw error
@@ -465,11 +492,23 @@ export default {
 
     const confirmDelete = async () => {
       try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Kullanıcı bulunamadı')
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+
+        if (!profile?.company_id) throw new Error('Şirket bilgisi bulunamadı')
+
         // Önce kategorideki tüm ürünleri sil
         const { error: productsError } = await supabase
           .from('products')
           .delete()
           .eq('category_id', itemToDelete.value.id)
+          .eq('company_id', profile.company_id)
 
         if (productsError) throw productsError
 
@@ -478,6 +517,7 @@ export default {
           .from('categories')
           .delete()
           .eq('id', itemToDelete.value.id)
+          .eq('company_id', profile.company_id)
 
         if (categoryError) throw categoryError
         

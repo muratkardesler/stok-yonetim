@@ -72,9 +72,16 @@ CREATE TABLE public.products (
 
 CREATE TABLE public.product_images (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    product_id uuid REFERENCES public.products(id) ON DELETE CASCADE,
-    url text NOT NULL,
+    product_name text,
+    description text,
+    image_url text NOT NULL,
+    file_name text,
+    file_size integer,
+    file_type text,
+    width integer,
+    height integer,
     is_primary boolean DEFAULT false,
+    status text DEFAULT 'unmatched',
     company_id uuid REFERENCES public.companies(id) ON DELETE CASCADE,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
@@ -628,4 +635,156 @@ CREATE POLICY "Users can manage their company's categories" ON public.categories
             SELECT company_id FROM profiles WHERE id = auth.uid()
         )
     );
+
+-- Ürün görselleri için RLS politikası
+DROP POLICY IF EXISTS "Users can manage their company's product images" ON public.product_images;
+CREATE POLICY "Users can manage their company's product images" ON public.product_images
+    FOR ALL USING (
+        company_id IN (
+            SELECT company_id FROM profiles WHERE id = auth.uid()
+        )
+    );
+
+-- Ürün görselleri için izinler
+GRANT ALL ON public.product_images TO authenticated;
+
+-- Storage bucket için get_company_id fonksiyonu
+CREATE OR REPLACE FUNCTION storage.get_company_id()
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  company_id uuid;
+BEGIN
+  SELECT p.company_id INTO company_id
+  FROM auth.users u
+  JOIN profiles p ON p.id = u.id
+  WHERE u.id = auth.uid();
+  RETURN company_id;
+END;
+$$;
+
+-- Product images tablosuna company_id ekleme
+ALTER TABLE public.product_images 
+  ADD COLUMN IF NOT EXISTS company_id uuid REFERENCES public.companies(id);
+
+-- Product images tablosuna gerekli alanları ekleme
+ALTER TABLE public.product_images 
+  ADD COLUMN IF NOT EXISTS file_name text,
+  ADD COLUMN IF NOT EXISTS file_size integer,
+  ADD COLUMN IF NOT EXISTS file_type text,
+  ADD COLUMN IF NOT EXISTS width integer,
+  ADD COLUMN IF NOT EXISTS height integer;
+
+-- Product images tablosuna RLS aktifleştirme
+ALTER TABLE public.product_images ENABLE ROW LEVEL SECURITY;
+
+-- Product images tablosu için RLS politikası
+CREATE POLICY "Kullanıcılar kendi şirketlerinin ürün görsellerini yönetebilir"
+  ON public.product_images
+  FOR ALL USING (company_id = storage.get_company_id())
+  WITH CHECK (company_id = storage.get_company_id());
+
+-- Storage bucket için RLS politikası
+CREATE POLICY "Kullanıcılar kendi şirketlerinin medyalarını yönetebilir" ON storage.objects
+  FOR ALL USING (
+    bucket_id = 'product-images' AND 
+    (storage.get_company_id())::text = (regexp_match(name, '^([^/]+)/'))[1]
+  )
+  WITH CHECK (
+    bucket_id = 'product-images' AND 
+    (storage.get_company_id())::text = (regexp_match(name, '^([^/]+)/'))[1]
+  );
+
+-- Storage bucket'ı oluştur
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('product-images', 'product-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage bucket için politikalar
+CREATE POLICY "Herkes product-images bucket'ını görebilir"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'product-images');
+
+CREATE POLICY "Authenticated kullanıcılar dosya yükleyebilir"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'product-images' AND
+  auth.role() = 'authenticated'
+);
+
+CREATE POLICY "Authenticated kullanıcılar dosya güncelleyebilir"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'product-images' AND
+  auth.role() = 'authenticated'
+);
+
+CREATE POLICY "Authenticated kullanıcılar dosya silebilir"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'product-images' AND
+  auth.role() = 'authenticated'
+);
+
+-- Önce tüm politikaları temizle
+DROP POLICY IF EXISTS "Kullanıcılar kendi şirketlerinin medyalarını yönetebilir" ON storage.objects;
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+DROP POLICY IF EXISTS "Herkes product-images bucket'ını görebilir" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated kullanıcılar dosya yükleyebilir" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated kullanıcılar dosya güncelleyebilir" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated kullanıcılar dosya silebilir" ON storage.objects;
+DROP POLICY IF EXISTS "Enable read access for all users" ON storage.objects;
+DROP POLICY IF EXISTS "Enable insert access for authenticated users" ON storage.objects;
+DROP POLICY IF EXISTS "Enable update access for authenticated users" ON storage.objects;
+DROP POLICY IF EXISTS "Enable delete access for authenticated users" ON storage.objects;
+
+DROP POLICY IF EXISTS "Kullanıcılar kendi şirketlerinin ürün görsellerini yönetebilir" ON public.product_images;
+DROP POLICY IF EXISTS "Kullanıcılar kendi şirketlerinin ürün görsellerini görebilir" ON public.product_images;
+DROP POLICY IF EXISTS "Kullanıcılar kendi şirketleri için ürün görseli ekleyebilir" ON public.product_images;
+DROP POLICY IF EXISTS "Kullanıcılar kendi şirketlerinin ürün görsellerini güncelleyebilir" ON public.product_images;
+DROP POLICY IF EXISTS "Kullanıcılar kendi şirketlerinin ürün görsellerini silebilir" ON public.product_images;
+DROP POLICY IF EXISTS "Enable read for users" ON public.product_images;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.product_images;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.product_images;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.product_images;
+
+-- Storage bucket'ı yeniden oluştur
+DELETE FROM storage.buckets WHERE id = 'product-images';
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('product-images', 'product-images', true);
+
+-- Storage objects için RLS'i aktifleştir
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- Basit storage politikaları
+CREATE POLICY "Enable read access for all users" ON storage.objects FOR SELECT
+USING (bucket_id = 'product-images');
+
+CREATE POLICY "Enable insert access for authenticated users" ON storage.objects FOR INSERT 
+WITH CHECK (bucket_id = 'product-images' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Enable update access for authenticated users" ON storage.objects FOR UPDATE
+USING (bucket_id = 'product-images' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Enable delete access for authenticated users" ON storage.objects FOR DELETE
+USING (bucket_id = 'product-images' AND auth.role() = 'authenticated');
+
+-- Product images için RLS'i aktifleştir
+ALTER TABLE public.product_images ENABLE ROW LEVEL SECURITY;
+
+-- Basit product_images politikaları
+CREATE POLICY "Enable read for users" ON public.product_images FOR SELECT
+USING (true);
+
+CREATE POLICY "Enable insert for authenticated users" ON public.product_images FOR INSERT
+WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Enable update for authenticated users" ON public.product_images FOR UPDATE
+USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Enable delete for authenticated users" ON public.product_images FOR DELETE
+USING (auth.role() = 'authenticated');
 
